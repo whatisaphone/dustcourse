@@ -1,0 +1,24 @@
+{
+  "name": "dustworld-website",
+  "version": "0.0.1",
+  "main": "index.js",
+  "author": "John Simon <john@johnsoft.com>",
+  "license": "MIT",
+  "private": true,
+  "dependencies": {
+    "bluebird": "^2.9.33",
+    "express": "^4.13.1",
+    "jade": "^1.11.0"
+  },
+  "devDependencies": {
+    "browserify": "^10.2.4",
+    "gulp": "^3.9.0",
+    "gulp-plumber": "^1.0.1",
+    "gulp-stylus": "^2.0.5",
+    "gulp-typescript": "^2.7.8",
+    "merge-stream": "^0.1.8",
+    "nib": "^1.1.0",
+    "tsify": "^0.11.2",
+    "vinyl-source-stream": "^1.1.0"
+  }
+}

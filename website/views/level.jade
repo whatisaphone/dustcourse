@@ -1,0 +1,15 @@
+doctype html
+meta(charset='utf-8')
+title #{level.properties.level_name} &ndash; Dustworld
+meta(name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
+link(rel='icon' href='/favicon.png')
+link(rel='stylesheet', href='/static/index.css')
+
+h1 #{level.properties.level_name}
+
+| TODO: non-js content
+
+script(src='//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js')
+script(src='/static/index.js')
+script.
+  Dustworld.initLevelViewer(!{JSON.stringify(level)});
