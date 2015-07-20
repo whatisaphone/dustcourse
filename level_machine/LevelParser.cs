@@ -98,11 +98,11 @@ namespace level_machine {
             ushort valueCount = 1;
             List<object> array = null;
             if (valueType == 15) {
-                array = new List<object>();
                 stream.Read(buf, 4);
                 valueType = buf[0];
                 stream.Read(buf, 16);
                 valueCount = Util.MakeU16(buf);
+                array = new List<object>();
             }
 
             if (valueCount == 0) {
@@ -128,7 +128,7 @@ namespace level_machine {
                         break;
                     case 4:
                         stream.Read(buf, 16);
-                        ushort strBytes = Util.MakeU16(buf);
+                        var strBytes = Util.MakeU16(buf);
                         var strBuf = new byte[strBytes];
                         stream.Read(strBuf, strBytes * 8);
                         value = Encoding.ASCII.GetString(strBuf);
@@ -367,7 +367,7 @@ namespace level_machine {
                     prop.X = stream.ReadFloat(28, 4);
                     prop.Y = stream.ReadFloat(28, 4);
                     stream.Read(buf, 16);
-                    prop.Rotation = Util.MakeU16(buf);  // (float) (Util.MakeU16(buf) * 0.0054931641);
+                    prop.Rotation = (float) (Util.MakeU16(buf) * (65536 / 360.0));
                     stream.Read(buf, 1);
                     prop.FlipHorz = buf[0] == 0;  // buf[0] != 0 ? 1 : -1;
                     stream.Read(buf, 1);
@@ -380,7 +380,7 @@ namespace level_machine {
                     prop.PropIndex = Util.MakeU16(buf);
                     stream.Read(buf, 8);
                     prop.Palette = buf[0];
-                    Trace("prop {0:N} {1:N} {2:X4} {3:X8} {4:X8} {5:X2} {6:X4} {7:X4} {8:X2} {9:X2} {10:X2}",
+                    Trace("prop {0:N} {1:N} {2:N} {3:X8} {4:X8} {5:X2} {6:X4} {7:X4} {8:X2} {9:X2} {10:X2}",
                         prop.X, prop.Y, prop.Rotation, prop.FlipHorz, prop.FlipVert, prop.PropSet, prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
                     ret.Add(prop);
                 } else

@@ -8,47 +8,44 @@ using Newtonsoft.Json.Linq;
 
 namespace level_machine {
     internal sealed class SpriteLoader {
-        private readonly string[] areaNames = { null, "mansion", "forest", "city", "laboratory", "tutorial", "nexus" };
+        private readonly string[] setNames = { null, "mansion", "forest", "city", "laboratory", "tutorial", "nexus" };
 
         private readonly string[] propGroups = {
             "books", "buildingblocks", "chains", "decoration", "facade", "foliage", "furniture", "gazebo",
-            "lighting", null, "sidewalk", "storage", "study", "fencing", null, null,
-            null, null, "backleaves", "leaves", "trunks", "boulders", "backdrops", "storage",
-            "npc", "symbol", "cars", "statues", "machinery"
+            "lighting", null, "statues", "storage", "study", "fencing", null, null,
+            null, null, "backleaves", "leaves", "trunks", "boulders", "backdrops", "temple",
+            "npc", "symbol", "cars", "sidewalk", "machinery"
         };
-        private readonly Dictionary<string, object> tileCache = new Dictionary<string, object>();
+        private readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
-        public TileGfx LoadTile(byte spriteSet, byte spritePalette, byte spriteTile) {
-            var filename = string.Format("tile{0}_{1}_0001.png", spriteTile, /* TODO: spritePalette + */ 1);
-            var path = Path.Combine(App.TilesPath, "area", areaNames[spriteSet], "tiles", filename);
-
-            object ret;
-            if (tileCache.TryGetValue(path, out ret))
-                return (TileGfx) ret;
-
+        public Sprite LoadTile(int spriteSet, int spriteTile, int spritePalette, int chunk) {
+            var filename = string.Format("tile{0}_{1}", spriteTile, spritePalette * 30 + chunk);
+            var path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
             try {
-                var bitmap = new Bitmap(path);
-                // changing the pixel format to pre-multiplied speeds compositing up a bit (by ~20% maybe?)
-                bitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format32bppPArgb);
-                ret = new TileGfx {Image = bitmap};
+                return CachedLoad(path);
             } catch (Exception) {
-                Console.WriteLine("warning, sprite not found: " + path);
-                ret = null;
+                filename = string.Format("tile{0}_{1}", spriteTile, 0 * 30 + chunk);
+                path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
+                return CachedLoad(path);
             }
-
-            tileCache[path] = ret;
-            return (TileGfx) ret;
         }
 
-        public Sprite LoadProp(byte propSet, ushort propGroup, ushort propIndex, byte palette) {
-            var filename = string.Format("{0}_{1}_{2}", propGroups[propGroup], propIndex, palette + 1);
-            var path = Path.Combine(App.SpritesPath, "area", areaNames[propSet], "props", filename);
+        public Sprite LoadProp(int propSet, int propGroup, int propIndex, int palette) {
+            var isBackdrop = propGroups[propGroup] == "backdrops";
+            var filename = isBackdrop && setNames[propSet] == "mansion"
+                ? string.Format("backdrop{0}_{1}", propIndex, palette + 1)
+                : string.Format("{0}_{1}_{2}", propGroups[propGroup], propIndex, palette + 1);
+            var dir = isBackdrop ? "backdrops" : "props";
+            var path = Path.Combine(App.SpritesPath, "area", setNames[propSet], dir, filename);
+            return CachedLoad(path);
+        }
 
-            object ret;
-            if (tileCache.TryGetValue(path, out ret))
-                return (Sprite) ret;
+        private Sprite CachedLoad(string path) {
+            Sprite ret;
+            if (cache.TryGetValue(path, out ret))
+                return ret;
 
-            try {
+            //try {
                 var bitmap = new Bitmap(path + ".png");
                 // changing the pixel format to pre-multiplied speeds compositing up a bit (by ~20% maybe?)
                 bitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format32bppPArgb);
@@ -72,18 +69,14 @@ namespace level_machine {
                         manifest.Value<JObject>("rect2").Value<int>("r"),
                         manifest.Value<JObject>("rect2").Value<int>("b")),
                 };
-            } catch (Exception) {
-                Console.WriteLine("warning, sprite not found: " + path);
-                ret = null;
-            }
+            //} catch (Exception) {
+            //    Console.WriteLine("warning, sprite not found: " + path);
+            //    ret = null;
+            //}
 
-            tileCache[path] = ret;
-            return (Sprite) ret;
+            cache[path] = ret;
+            return ret;
         }
-    }
-
-    internal sealed class TileGfx {
-        public Image Image;
     }
 
     internal sealed class Sprite {

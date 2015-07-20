@@ -51,7 +51,7 @@ namespace level_machine {
     internal sealed class Prop {
         public int Field4;
         public float X, Y;
-        public ushort Rotation;
+        public float Rotation;
         public bool FlipHorz, FlipVert;
         public byte PropSet;
         public ushort PropGroup, PropIndex;

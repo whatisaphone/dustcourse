@@ -6,15 +6,16 @@ import Rectangle = coords.Rectangle;
 export class View implements DragScroll.Callback {
 	public element: Element;
 	private scroll: DragScroll;
+	private children: { [key: string]: Element };
 	private camemraPos: Point;
 	private cameraWidth: number;
 	private cameraHeight: number;
 	private cameraZoom: number;
-	private children: { [key: string]: Element };
 
 	constructor(private model: Model) {
 		this.element = document.createElement('div');
 		this.scroll = new DragScroll(this);
+		this.children = {};
 		this.element.addEventListener('mousedown', (e: MouseEvent) => this.mousedown(e));
 		this.element.addEventListener('mousemove', (e: MouseEvent) => this.mousemove(e));
 		this.element.addEventListener('mouseup', (e: MouseEvent) => this.mouseup(e));
@@ -22,7 +23,6 @@ export class View implements DragScroll.Callback {
 
 		this.camemraPos = new Point(0, 0);
 		this.cameraZoom = 1;
-		this.update();
 	}
 
 	private update() {
@@ -79,20 +79,20 @@ export class View implements DragScroll.Callback {
 		el.setAttribute('width', '' + Math.ceil(cameraRect.width));
 		el.setAttribute('height', '' + Math.ceil(cameraRect.height));
 		el.setAttribute('style', 'position:absolute;left:' + Math.floor(cameraRect.left) +
-			'px;top:' + Math.floor(cameraRect.top) + 'px;z-index:' + layer.zindex + ';opacity:' + layer.opacity);
+			'px;top:' + Math.floor(cameraRect.top) + 'px;z-index:' + layer.zindex);
 	}
 
-	private cameraToLayerP(layer: Layer, scale: Scale, cameraP: Point) {
-		var x = (cameraP.x / layer.parallax - this.cameraWidth / 2) / this.cameraZoom + this.camemraPos.x;
-		var y = (cameraP.y / layer.parallax - this.cameraHeight / 2) / this.cameraZoom + this.camemraPos.y;
+	private cameraToLayerP(layer: Layer, scale: Scale, screenP: Point) {
+		var x = (screenP.x - this.cameraWidth / 2) / this.cameraZoom / layer.tileScale + this.camemraPos.x * layer.parallax;
+		var y = (screenP.y - this.cameraHeight / 2) / this.cameraZoom / layer.tileScale + this.camemraPos.y * layer.parallax;
 		// var x = (cameraP.x / layer.parallax + this.camemraPos.x) * scale.scale / this.cameraZoom;
 		// var y = (cameraP.y / layer.parallax + this.camemraPos.y) * scale.scale / this.cameraZoom;
 		return new Point(x, y);
 	}
 
 	private layerToCameraP(layer: Layer, scale: Scale, layerP: Point) {
-		var x = ((layerP.x - this.camemraPos.x) * this.cameraZoom + this.cameraWidth / 2) * layer.parallax;
-		var y = ((layerP.y - this.camemraPos.y) * this.cameraZoom + this.cameraHeight / 2) * layer.parallax;
+		var x = (layerP.x - this.camemraPos.x * layer.parallax) * this.cameraZoom * layer.tileScale + this.cameraWidth / 2;
+		var y = (layerP.y - this.camemraPos.y * layer.parallax) * this.cameraZoom * layer.tileScale + this.cameraHeight / 2;
 		// var x = (layerP.x / scale.scale * this.cameraZoom - this.camemraPos.x) * layer.parallax;
 		// var y = (layerP.y / scale.scale * this.cameraZoom - this.camemraPos.y) * layer.parallax;
 		return new Point(x, y);
@@ -100,14 +100,12 @@ export class View implements DragScroll.Callback {
 
 	private cameraToLayerR(layer: Layer, scale: Scale, cameraR: Rectangle) {
 		var topLeft = this.cameraToLayerP(layer, scale, cameraR.topLeft());
-		var bottomRight = this.cameraToLayerP(layer, scale, cameraR.bottomRight());
-		return Rectangle.ltrb(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+		return new Rectangle(topLeft.x, topLeft.y, cameraR.width / layer.tileScale / this.cameraZoom, cameraR.height / layer.tileScale / this.cameraZoom);
 	}
 
 	private layerToCameraR(layer: Layer, scale: Scale, layerR: Rectangle) {
 		var topLeft = this.layerToCameraP(layer, scale, layerR.topLeft());
-		var bottomRight = this.layerToCameraP(layer, scale, layerR.bottomRight());
-		return Rectangle.ltrb(topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+		return new Rectangle(topLeft.x, topLeft.y, layerR.width * layer.tileScale * this.cameraZoom, layerR.height * layer.tileScale * this.cameraZoom);
 	}
 
 	private mousedown(event: MouseEvent) {
@@ -126,8 +124,9 @@ export class View implements DragScroll.Callback {
 		this.scroll.mousewheel(event);
 	}
 
-	public scrollTo(x: number, y: number) {
+	public scrollTo(x: number, y: number, zoom: number) {
 		this.camemraPos = new Point(x, y);
+		this.cameraZoom = zoom;
 		this.update();
 	}
 
@@ -143,14 +142,9 @@ export class View implements DragScroll.Callback {
 	}
 
 	public setViewport(viewport: Rectangle) {
-		var layer = _.find(this.model.layers, l => l.name === '19');
-		console.log(this.getViewport());
-		console.log(this.cameraToLayerR(layer, layer.scales[0], this.getViewport()));
 		this.camemraPos.x = viewport.left + viewport.width / 2;
 		this.camemraPos.y = viewport.top + viewport.height / 2;
 		this.cameraZoom = this.element.clientWidth / viewport.width;
-		console.log(this.getViewport());
-		console.log(this.cameraToLayerR(layer, layer.scales[0], this.getViewport()));
 		this.update();
 	}
 }
@@ -165,7 +159,7 @@ export interface Layer {
 	scales: Scale[];
 	zindex: number;
 	parallax: number;
-	opacity: number;
+	tileScale: number;
 }
 
 export interface Scale {

@@ -10,6 +10,8 @@ using System.Linq;
 
 namespace level_machine {
     internal sealed class LevelRenderer {
+        private const int sliceOverdraw = 96;
+
         private readonly Level level;
         private readonly string name;
         private readonly SpriteLoader sprites;
@@ -43,80 +45,79 @@ namespace level_machine {
         }
 
         private void DrawBlock(Block block) {
-            foreach (var slice in block.Slices) {
-                for (var layer = 1; layer <= App.NumLayers; ++layer) {
-                    using (var image = new Bitmap(App.PixelsPerSlice, App.PixelsPerSlice))
+            foreach (var slicesByPos in block.Slices.GroupBy(s => Tuple.Create(s.Header.X, + s.Header.Y))) {
+                var sliceX = slicesByPos.Key.Item1;
+                var sliceY = slicesByPos.Key.Item2;
+
+                for (byte layer = 1; layer <= App.NumLayers; ++layer) {
+                    using (var image = new Bitmap(App.PixelsPerSlice + sliceOverdraw * 2, App.PixelsPerSlice + sliceOverdraw * 2))
                     using (var canvas = Graphics.FromImage(image)) {
-                        bool drewAnything = DrawTiles(canvas, slice, layer);
-                        drewAnything |= DrawProps(canvas, block, slice, layer);
+                        bool drewAnything = false;
+                        foreach (var slice in slicesByPos) {
+                            drewAnything |= DrawTiles(canvas, slice, layer);
+                            drewAnything |= DrawProps(canvas, block, slice, layer);
+                        }
 
                         if (!drewAnything)
                             continue;
 
-                        var x = ((block.X * App.SlicesPerBlock) + slice.Header.X) * App.PixelsPerSlice;
-                        var y = ((block.Y * App.SlicesPerBlock) + slice.Header.Y) * App.PixelsPerSlice;
+                        var x = ((block.X * App.SlicesPerBlock) + sliceX) * App.PixelsPerSlice;
+                        var y = ((block.Y * App.SlicesPerBlock) + sliceY) * App.PixelsPerSlice;
                         var path = Path.Combine(App.IntermediatePath, name,
                             string.Format("{0}_{1}_{2}.png", layer, x, y));
                         using (var file = File.Open(path, FileMode.Create, FileAccess.Write)) {
                             image.Save(file, ImageFormat.Png);
                         }
 
-                        var area = new Rectangle(x, y, App.PixelsPerSlice, App.PixelsPerSlice);
+                        var area = new Rectangle(x - sliceOverdraw, y - sliceOverdraw, App.PixelsPerSlice, App.PixelsPerSlice);
                         result.Tiles.Add(new RenderedTiles(path, area, layer));
                     }
                 }
             }
         }
 
-        private bool DrawTiles(Graphics canvas, Slice slice, int layer) {
-            var drewAnything = false;
-
-            foreach (var tile in slice.Tiles) {
-                if (tile.Layer == layer) {
-                    DrawTile(canvas, tile);
-                    drewAnything = true;
-                }
-            }
-
-            return drewAnything;
-        }
-
-        private void DrawTile(Graphics canvas, Tile tile) {
-            var x = tile.X * App.PixelsPerTile;
-            var y = tile.Y * App.PixelsPerTile;
-            var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpritePalette, tile.SpriteTile);
-            if (sprite == null)
-                return;
-
-            TileShape shape;
-            try {
-                shape = tileShapes[tile.Flags];
-            } catch (Exception) {
-                Debug.WriteLine("unknown tile shape");
-                shape = tileShapes[0x80];
-            }
+        private bool DrawTiles(Graphics canvas, Slice slice, byte layer) {
+            var tiles = slice.Tiles.Where(t => t.Layer == layer).ToArray();
+            if (tiles.Length == 0)
+                return false;
 
             var attrs = new ImageAttributes();
-            attrs = null;
-//            var matrix = new ColorMatrix {Matrix33 = tile.Layer / 20f};
-//            attrs.SetColorMatrix(matrix);
+            attrs.SetColorMatrix(MakeFogMatrix(layer));
 
-            if (shape.Clip != null) {
-                canvas.SetClip(new GraphicsPath(shape.Clip, shape.Clip.Select(p => (byte) 1).ToArray()));
-                canvas.TranslateClip(x, y);
-            }
-            var srcX = 96 + (tile.X % 10) * 48;
-            var srcY = 96 + (tile.Y % 6) * 48;
-            canvas.DrawImage(sprite.Image, new Rectangle(x, y, App.PixelsPerTile, App.PixelsPerTile), srcX, srcY, 48, 48, GraphicsUnit.Pixel, attrs);
-            canvas.ResetClip();
+            foreach (var tile in tiles)
+                DrawTileCenter(canvas, tile, tileShapes[tile.Flags], attrs);
+            foreach (var tile in tiles)
+                DrawTileBottomEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+            foreach (var tile in tiles)
+                DrawTileLeftEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+            foreach (var tile in tiles)
+                DrawTileRightEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+            foreach (var tile in tiles)
+                DrawTileTopEdge(canvas, tile, tileShapes[tile.Flags], attrs);
 
-            DrawTileBottomEdge(canvas, tile, shape, sprite, attrs);
-            DrawTileLeftEdge(canvas, tile, shape, sprite, attrs);
-            DrawTileRightEdge(canvas, tile, shape, sprite, attrs);
-            DrawTileTopEdge(canvas, tile, shape, sprite, attrs);
+            return true;
         }
 
-        private void DrawTileTopEdge(Graphics canvas, Tile tile, TileShape shape, TileGfx sprite, ImageAttributes attrs) {
+        private void DrawTileCenter(Graphics canvas, Tile tile, TileShape shape, ImageAttributes attrs) {
+            var transform = new Matrix();
+            transform.Translate(tile.X * App.PixelsPerTile + sliceOverdraw, tile.Y * App.PixelsPerTile + sliceOverdraw);
+            canvas.Transform = transform;
+
+            canvas.SetClip(new GraphicsPath(shape.Clip, shape.Clip.Select(p => (byte) 1).ToArray()));
+
+            var chunk = (tile.X / 2) % 5 + ((tile.Y / 2) % 3) * 5 + 1;
+            var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, chunk);
+            var sx = (tile.X & 1) * 48;
+            var sy = (tile.Y & 1) * 48;
+            canvas.DrawImage(sprite.Image,
+                new Rectangle(0, 0, 48, 48),
+                sx - sprite.Rect1.Left, sy - sprite.Rect1.Top, 48, 48, GraphicsUnit.Pixel, attrs);
+
+            canvas.ResetClip();
+            canvas.ResetTransform();
+        }
+
+        private void DrawTileTopEdge(Graphics canvas, Tile tile, TileShape shape, ImageAttributes attrs) {
             var drawEdge = (tile.Edges & 1) != 0;
             var drawLeftCap = (tile.EndCaps & 1) != 0;
             var drawRightCap = (tile.EndCaps & 2) != 0;
@@ -127,29 +128,37 @@ namespace level_machine {
             }
 
             var transform = new Matrix();
-            transform.Translate(tile.X * App.PixelsPerTile + shape.Top.X1, tile.Y * App.PixelsPerTile + shape.Top.Y1);
+            transform.Translate(tile.X * App.PixelsPerTile + shape.Top.X1 + sliceOverdraw, tile.Y * App.PixelsPerTile + shape.Top.Y1 + sliceOverdraw);
             transform.Rotate(shape.Top.Angle);
             canvas.Transform = transform;
-
             var length = shape.Top.Length;
 
             if (drawEdge) {
-                int srcX = 192 + (tile.X % 6) * 48;
-                canvas.DrawImage(sprite.Image, new Rectangle(0, -48, length, 96), srcX, 0, 48, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 17 + (tile.X / 2) % 3);
+                var sx = (tile.X & 1) * 48;
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(0, sprite.Rect1.Top, length, sprite.Rect1.Height),
+                    sx - sprite.Rect1.Left, 0, 48, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawLeftCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-96, -48, 96, 96), 96, 0, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 16);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawRightCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(length, -48, 96, 96), 480, 0, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 20);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
         }
 
-        private static void DrawTileBottomEdge(Graphics canvas, Tile tile, TileShape shape, TileGfx sprite, ImageAttributes attrs) {
+        private void DrawTileBottomEdge(Graphics canvas, Tile tile, TileShape shape, ImageAttributes attrs) {
             var drawEdge = (tile.Edges & 2) != 0;
             var drawLeftCap = (tile.EndCaps & 4) != 0;
             var drawRightCap = (tile.EndCaps & 8) != 0;
@@ -160,29 +169,37 @@ namespace level_machine {
             }
 
             var transform = new Matrix();
-            transform.Translate(tile.X * App.PixelsPerTile + shape.Bottom.X2, tile.Y * App.PixelsPerTile + shape.Bottom.Y2);
+            transform.Translate(tile.X * App.PixelsPerTile + shape.Bottom.X2 + sliceOverdraw, tile.Y * App.PixelsPerTile + shape.Bottom.Y2 + sliceOverdraw);
             transform.Rotate(shape.Bottom.Angle - 180);
             canvas.Transform = transform;
-
             var length = shape.Bottom.Length;
 
             if (drawEdge) {
-                int srcX = 192 + (tile.X % 6) * 48;
-                canvas.DrawImage(sprite.Image, new Rectangle(0, -48, length, 96), srcX, 384, 48, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 22 + (tile.Y / 2) % 3);
+                var sx = (tile.X & 1) * 48;
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(0, sprite.Rect1.Top, length, sprite.Rect1.Height),
+                    sx - sprite.Rect1.Left, 0, 48, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawLeftCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-96, -48, 96, 96), 96, 384, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 21);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawRightCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(length, -48, 96, 96), 480, 384, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 25);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
         }
 
-        private static void DrawTileLeftEdge(Graphics canvas, Tile tile, TileShape shape, TileGfx sprite, ImageAttributes attrs) {
+        private void DrawTileLeftEdge(Graphics canvas, Tile tile, TileShape shape, ImageAttributes attrs) {
             var drawEdge = (tile.Edges & 4) != 0;
             var drawTopCap = (tile.EndCaps & 16) != 0;
             var drawBottomCap = (tile.EndCaps & 32) != 0;
@@ -193,29 +210,37 @@ namespace level_machine {
             }
 
             var transform = new Matrix();
-            transform.Translate(tile.X * App.PixelsPerTile + shape.Left.X2, tile.Y * App.PixelsPerTile + shape.Left.Y2);
+            transform.Translate(tile.X * App.PixelsPerTile + shape.Left.X2 + sliceOverdraw, tile.Y * App.PixelsPerTile + shape.Left.Y2 + sliceOverdraw);
             transform.Rotate(shape.Left.Angle + 90);
             canvas.Transform = transform;
-
             var length = shape.Left.Length;
 
             if (drawEdge) {
-                int srcY = 96 + (tile.Y % 6) * 48;
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, 0, 96, length), 96, srcY, -96, 48, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 27 + (tile.Y / 2) % 3);
+                var sy = (tile.Y & 1) * 48;
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, 0, sprite.Rect1.Width, length),
+                    0, sy - sprite.Rect1.Top, sprite.Rect1.Width, 48, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawTopCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, -96, 96, 96), 96, 0, -96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 26);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawBottomCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, length, 96, 96), 96, 384, -96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 30);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top + length, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
         }
 
-        private static void DrawTileRightEdge(Graphics canvas, Tile tile, TileShape shape, TileGfx sprite, ImageAttributes attrs) {
+        private void DrawTileRightEdge(Graphics canvas, Tile tile, TileShape shape, ImageAttributes attrs) {
             var drawEdge = (tile.Edges & 8) != 0;
             var drawTopCap = (tile.EndCaps & 64) != 0;
             var drawBottomCap = (tile.EndCaps & 128) != 0;
@@ -226,23 +251,31 @@ namespace level_machine {
             }
 
             var transform = new Matrix();
-            transform.Translate(tile.X * App.PixelsPerTile + shape.Right.X1, tile.Y * App.PixelsPerTile + shape.Right.Y1);
+            transform.Translate(tile.X * App.PixelsPerTile + shape.Right.X1 + sliceOverdraw, tile.Y * App.PixelsPerTile + shape.Right.Y1 + sliceOverdraw);
             transform.Rotate(shape.Right.Angle - 90);
             canvas.Transform = transform;
-
             var length = shape.Right.Length;
 
             if (drawEdge) {
-                int srcY = 96 + (tile.Y % 6) * 48;
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, 0, 96, length), 0, srcY, 96, 48, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 27 + (tile.Y / 2) % 3);
+                var sy = (tile.Y & 1) * 48;
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, 0, sprite.Rect1.Width, length),
+                    0, sy - sprite.Rect1.Top, sprite.Rect1.Width, 48, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawTopCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, -96, 96, 96), 0, 0, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 26);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawBottomCap) {
-                canvas.DrawImage(sprite.Image, new Rectangle(-48, length, 96, 96), 0, 384, 96, 96, GraphicsUnit.Pixel, attrs);
+                var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 30);
+                canvas.DrawImage(sprite.Image,
+                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top + length, sprite.Rect1.Width, sprite.Rect1.Height),
+                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
@@ -271,19 +304,91 @@ namespace level_machine {
         }
 
         private void DrawProp(Graphics canvas, Block block, Slice slice, Prop prop) {
-            var x = prop.X - (block.X * App.SlicesPerBlock + slice.Header.X) * App.PixelsPerSlice;
-            var y = prop.Y - (block.Y * App.SlicesPerBlock + slice.Header.Y) * App.PixelsPerSlice;
-//            Console.WriteLine("{0} {1} {2}", prop.PropGroup, prop.Y, y);
+            //Console.WriteLine("{0} {1} {2}", prop.PropGroup, prop.Y, y);
             var sprite = sprites.LoadProp(prop.PropSet, prop.PropGroup, prop.PropIndex, prop.Palette);
             if (sprite == null)
                 return;
-            var srcRect = new Rectangle(0, 0, sprite.Rect1.Width, sprite.Rect1.Height);
-            var dstRect = new Rectangle((int) x + sprite.Rect1.Left, (int) y + sprite.Rect1.Top, srcRect.Width, srcRect.Height);
+
+            var dstRect = new Rectangle((int) prop.X, (int) prop.Y, sprite.Rect1.Width, sprite.Rect1.Height);
+
+            // no idea what the deal with this is. it isn't perfect, but it's at least closer than just using the raw numbers, usually…
+            // no idea what significance the constants have.
+            dstRect.Y += (dstRect.Y / 232) * 32;
+            dstRect.X -= (dstRect.X / 286) * 32;
+
+            if (prop.LayerGroup <= 5) {
+                dstRect.X = (int) (dstRect.X * (0.05 * prop.LayerGroup));  // multiply the position by the layer's parallax
+                dstRect.Y = (int) (dstRect.Y * (0.05 * prop.LayerGroup));
+                dstRect.Width *= 2;
+                dstRect.Height *= 2;
+            }
+
             if (prop.FlipHorz)
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                , dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left + dstRect.Width, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
                 dstRect = new Rectangle(dstRect.Right - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
             if (prop.FlipVert)
                 dstRect = new Rectangle(dstRect.Left, dstRect.Bottom - sprite.Rect1.Top - sprite.Rect1.Bottom, dstRect.Width, -dstRect.Height);
-            canvas.DrawImage(sprite.Image, dstRect, srcRect, GraphicsUnit.Pixel);
+
+            var attrs = new ImageAttributes();
+            attrs.SetColorMatrix(MakeFogMatrix(prop.LayerGroup));
+
+            dstRect.X += sprite.Rect1.Left;
+            dstRect.Y += sprite.Rect1.Top;
+            dstRect.X -= (block.X * App.SlicesPerBlock + slice.Header.X) * App.PixelsPerSlice;
+            dstRect.Y -= (block.Y * App.SlicesPerBlock + slice.Header.Y) * App.PixelsPerSlice;
+            dstRect.X += sliceOverdraw;
+            dstRect.Y += sliceOverdraw;
+            canvas.DrawImage(sprite.Image, dstRect, 0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+        }
+
+        private ColorMatrix MakeFogMatrix(byte layer) {
+            var fogColour = (int) Util.GetProp<List<object>>(level.Tags, "cp_fog_colour")[layer];
+            var fogPer = (float) Util.GetProp<List<object>>(level.Tags, "cp_fog_per")[layer];
+            var matrix = MakeColorMatrix(fogColour, fogPer);
+            return matrix;
+        }
+
+        private static ColorMatrix MakeColorMatrix(int color, float percent) {
+            var r = ((color & 0xff0000) >> 16) / 255f;
+            var g = ((color & 0xff00) >> 8) / 255f;
+            var b = (color & 0xff) / 255f;
+            return new ColorMatrix(new[] {
+                new[] {1f - percent, 0f, 0f, 0f, 0f},
+                new[] {0f, 1f - percent, 0f, 0f, 0f},
+                new[] {0f, 0f, 1f - percent, 0f, 0f},
+                new[] {0f, 0f, 0f, 1f, 0f},
+                new[] {r * percent, g * percent, b * percent, 0f, 1f},
+            });
+        }
+
+        private static ColorMatrix MakeColorMatrix(int black, int red, int green, int blue) {
+            var z = Color.FromArgb(black);
+            var r = Color.FromArgb(red);
+            var g = Color.FromArgb(green);
+            var b = Color.FromArgb(blue);
+            var ret = new[] {
+                new[] {(r.R - z.R) / 255f, (g.R - z.R) / 255f, (b.R - z.R) / 255f, 0f, 0f},
+                new[] {(r.G - z.G) / 255f, (g.G - z.G) / 255f, (b.G - z.G) / 255f, 0f, 0f},
+                new[] {(r.B - z.B) / 255f, (g.B - z.B) / 255f, (b.B - z.B) / 255f, 0f, 0f},
+                new[] {0f, 0f, 0f, 1f, 0f},
+                new[] {z.R / 255f, z.G / 255f, z.B / 255f, 0f, 1f},
+            };
+            ret = ret.Select(row => row.Select(e => Math.Max(0, Math.Min(1, e))).ToArray()).ToArray();
+            return new ColorMatrix(ret);
+        }
+
+        private static ColorMatrix MakeColorMatrixSimple(int black, int white) {
+            return MakeColorMatrix(black, white & 0xff0000, white & 0xff00, white & 0xff);
         }
 
         private readonly Dictionary<byte, TileShape> tileShapes = new List<TileShape>(new[] {
@@ -313,6 +418,29 @@ namespace level_machine {
         private static TileEdge e(int x1, int y1, int x2, int y2) {
             return new TileEdge(x1, y1, x2, y2);
         }
+
+        private static readonly ColorMatrix[] propLayerColors = {
+            MakeColorMatrixSimple(0x000000, 0xdddddd),
+            MakeColorMatrixSimple(0x23294d, 0xaeb4d8),
+            MakeColorMatrixSimple(0x1b203b, 0xc0c6e1),
+            MakeColorMatrixSimple(0x203048, 0x6c7c94),
+            MakeColorMatrixSimple(0x1a273b, 0x8794a8),
+            MakeColorMatrixSimple(0x010102, 0xf5f5f6),
+            MakeColorMatrixSimple(0x010102, 0xf8f8f9),
+            MakeColorMatrixSimple(0x000001, 0xfcfcfd),
+            MakeColorMatrixSimple(0x0d1025, 0x3a3d52),
+            MakeColorMatrixSimple(0x121628, 0x5a5e70),
+            MakeColorMatrixSimple(0x0e111f, 0x808291),
+            MakeColorMatrixSimple(0x000000, 0xffffff),
+            MakeColorMatrixSimple(0x121629, 0x55596c),
+            MakeColorMatrixSimple(0x0f1222, 0x727585),
+            MakeColorMatrixSimple(0x0e101e, 0x828593),
+            MakeColorMatrixSimple(0x080a12, 0xb6b7c0),
+            MakeColorMatrixSimple(0x000000, 0xffffff),
+            MakeColorMatrixSimple(0x000000, 0xffffff),
+            MakeColorMatrixSimple(0x04040a, 0xe5e5eb),
+            MakeColorMatrixSimple(0x000000, 0xffffff),
+        };
     }
 
     internal sealed class TileShape {

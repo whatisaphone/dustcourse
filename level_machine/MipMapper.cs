@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Drawing;
@@ -30,9 +31,11 @@ namespace level_machine {
 
             Directory.CreateDirectory(Path.Combine(App.LevelAssetsOutputPath, name));
 
-            //DoMipMap(768 / 4, 1.0f);
-            DoMipMap(768 * 1, 1.0f / 4);
-            //DoMipMap(768 * 4, 1.0f / 16);
+            //DoMipMap(768 / 2, 1.0f / 1);
+            DoMipMap(768 / 2, 1.0f / 2);
+            //DoMipMap(768 / 2, 1.0f / 4);
+            //DoMipMap(768 / 4, 1.0f / 8);
+            //DoMipMap(768 / 8, 1.0f / 16);
 
             var path = Path.Combine(App.LevelAssetsOutputPath, name, "manifest.json");
             using (var file = File.Open(path, FileMode.Create, FileAccess.Write))
@@ -42,23 +45,25 @@ namespace level_machine {
             }
         }
 
-        private void DoMipMap(int size, float zoom) {
+        private void DoMipMap(int dstSize, float zoom) {
+            var srcSize = (int) (dstSize / zoom);
+
             var renderMinX = render.Tiles.Min(s => s.Area.X);
             var renderMaxX = render.Tiles.Max(s => s.Area.Right);
             var renderMinY = render.Tiles.Min(s => s.Area.Y);
             var renderMaxY = render.Tiles.Max(s => s.Area.Bottom);
-            var minX = (renderMinX / size) * size;
-            var maxX = (renderMaxX / size + 1) * size;
-            var minY = (renderMinY / size) * size;
-            var maxY = (renderMaxY / size + 1) * size;
+            var minX = (renderMinX / srcSize) * srcSize;
+            var maxX = (renderMaxX / srcSize + 1) * srcSize;
+            var minY = (renderMinY / srcSize) * srcSize;
+            var maxY = (renderMaxY / srcSize + 1) * srcSize;
 
             foreach (var bucket in render.Tiles.GroupBy(o => o.Bucket)) {
-                for (var x = minX; x <= maxX; x += size) {
-                    for (var y = minY; y <= maxY; y += size) {
-                        var area = new Rectangle(x, y, size, size);
+                for (var x = minX; x <= maxX; x += srcSize) {
+                    for (var y = minY; y <= maxY; y += srcSize) {
+                        var area = new Rectangle(x, y, srcSize, srcSize);
                         var objects = bucket.Where(s => s.Area.IntersectsWith(area));
 
-                        using (var image = new Bitmap((int) (size * zoom), (int) (size * zoom)))
+                        using (var image = new Bitmap(dstSize, dstSize))
                         using (var canvas = Graphics.FromImage(image)) {
                             bool drewAnything = false;
                             foreach (var obj in objects) {
@@ -77,23 +82,23 @@ namespace level_machine {
                             using (var file = File.Open(path, FileMode.Create, FileAccess.Write)) {
                                 image.Save(file, ImageFormat.Png);
                             }
-
-                            var manifestLayers = manifest.Value<JObject>("layers");
-                            var layer = manifestLayers.Value<JObject>(bucket.Key);
-                            if (layer == null) {
-                                manifestLayers.Add(bucket.Key, layer = new JObject{{"scales", new JArray()}});
-                            }
-                            var scales = layer.Value<JArray>("scales");
-                            var scale = scales.Where(s => s.Value<float>("scale") == zoom).Select(p => p.Value<JObject>()).FirstOrDefault();
-                            if (scale == null) {
-                                scales.Add(scale = new JObject {
-                                    {"scale", zoom},
-                                    {"tile_size", new JArray {size * zoom, size * zoom}},
-                                    {"tiles", new JArray()},
-                                });
-                            }
-                            scale.Value<JArray>("tiles").Add(new JArray(x * zoom, y * zoom));
                         }
+
+                        var manifestLayers = manifest.Value<JObject>("layers");
+                        var layer = manifestLayers.Value<JObject>(bucket.Key);
+                        if (layer == null) {
+                            manifestLayers.Add(bucket.Key, layer = new JObject{{"scales", new JArray()}});
+                        }
+                        var scales = layer.Value<JArray>("scales");
+                        var scale = scales.Where(s => s.Value<float>("scale") == zoom).Select(p => p.Value<JObject>()).FirstOrDefault();
+                        if (scale == null) {
+                            scales.Add(scale = new JObject {
+                                {"scale", zoom},
+                                {"tile_size", new JArray {dstSize, dstSize}},
+                                {"tiles", new JArray()},
+                            });
+                        }
+                        scale.Value<JArray>("tiles").Add(new JArray(x * zoom, y * zoom));
                     }
                 }
             }

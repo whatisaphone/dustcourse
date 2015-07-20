@@ -20,6 +20,10 @@ namespace level_machine {
                 CompositeSprites(info.Item1, info.Item2);
         }
 
+        private static void Trace(string format, params object[] args) {
+            //Console.WriteLine(format, args);
+        }
+
         private static Tuple<List<SpriteGroup>, List<SpriteTexture>> ExtractSpriteInfo(string name, byte[] data) {
             var groups = new List<SpriteGroup>();
             var textures = new List<SpriteTexture>();
@@ -85,7 +89,7 @@ namespace level_machine {
                 stream.Read(buffer, 8);
                 var unk14 = buffer[0];
 
-                //Console.WriteLine("group {0}{1} {2} {3} {4} {5}", group.Prefix, group.Name, unk11, unk12, unk13, unk14);
+                Trace("group {0}{1} {2} {3} {4} {5}", group.Prefix, group.Name, unk11, unk12, unk13, unk14);
 
                 for (var j = 0; j < count1; ++j) {
                     var frame = new SpriteFrame();
@@ -104,8 +108,8 @@ namespace level_machine {
                     stream.Read(buffer, 8);
                     frame.Field28 = buffer[0];
                     group.Frames.Add(frame);
-                    //Console.WriteLine("  frame {0:X4} {1:X4} {2} {3} {4:X8} {5:X4} {6:X2}", frame.Field4, frame.Field0,
-                    //    frame.Rect1, frame.Rect2, frame.ChunksOffset, frame.ChunkCount, frame.Field28);
+                    Trace("  frame {0:X4} {1:X4} {2} {3} {4:X8} {5:X4} {6:X2}", frame.Field4, frame.Field0,
+                        frame.Rect1, frame.Rect2, frame.ChunksOffset, frame.ChunkCount, frame.Field28);
                 }
 
                 for (var j = 0; j < count2; ++j) {
@@ -119,7 +123,7 @@ namespace level_machine {
                     stream.Read(buffer, 16);
                     chunk.Y = Util.MakeI16(buffer);
                     group.Chunks.Add(chunk);
-                    //Console.WriteLine("  chunk {0:X4} {1} {2:X4} {3:X4}", chunk.TextureIndex, chunk.SourceRect, chunk.X, chunk.Y);
+                    Trace("  chunk {0:X4} {1} {2:X4} {3:X4}", chunk.TextureIndex, chunk.SourceRect, chunk.X, chunk.Y);
                 }
 
                 groups.Add(group);
@@ -147,7 +151,7 @@ namespace level_machine {
                 texture.Path = Path.Combine(App.IntermediatePath, name, string.Format("{0:X2}_{1:X2}.png", texture.Unk1, texture.Unk2));
                 using (var image = GetImageFromPixelData(deflate, 102, 102))
                     image.Save(texture.Path);
-                //Console.WriteLine("texture {0:X2} {1:X2} byte[{2}]", texture.Unk1, texture.Unk2, "...");
+                Trace("texture {0:X2} {1:X2} byte[{2}]", texture.Unk1, texture.Unk2, "...");
 
                 textures.Add(texture);
             }
@@ -238,13 +242,17 @@ namespace level_machine {
             foreach (var group in groups) {
                 for (var fi = 0; fi < group.Frames.Count; ++fi) {
                     var frame = group.Frames[fi];
+                    if (group.Name == "sidewalk_1")
+                        Console.WriteLine();
 
                     using (var image = new Bitmap(frame.Rect1.Width, frame.Rect1.Height))
                     using (var canvas = Graphics.FromImage(image)) {
                         for (var ci = 0; ci < frame.ChunkCount; ++ci) {
                             var chunk = group.Chunks[frame.ChunksOffset + ci];
                             using (var texImage = new Bitmap(textures[chunk.TextureIndex].Path)) {
-                                canvas.DrawImage(texImage, chunk.X - frame.Rect1.Left, chunk.Y - frame.Rect1.Top, chunk.SourceRect, GraphicsUnit.Pixel);
+                                canvas.DrawImage(texImage,
+                                    chunk.X + chunk.SourceRect.Left - frame.Rect1.X, chunk.Y + chunk.SourceRect.Top - frame.Rect1.Y,
+                                    chunk.SourceRect, GraphicsUnit.Pixel);
                             }
                         }
 

@@ -41,6 +41,10 @@ namespace level_machine {
             return ret.ToString().Trim();
         }
 
+        public static T GetProp<T>(List<Tuple<string, object>> props, string name) {
+            return (T) props.First(p => p.Item1 == name).Item2;
+        }
+
         public static string DumpKeyValueList(List<Tuple<string, object>> pairs) {
             //            return string.Format("[{0}]",
             //                string.Join(", ",

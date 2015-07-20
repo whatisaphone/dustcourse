@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
-using Newtonsoft.Json;
 
 namespace level_machine {
     internal static class App {
@@ -9,7 +8,6 @@ namespace level_machine {
         public const int PixelsPerTile = 48;
         public const int SlicesPerBlock = 16;
         public const int PixelsPerSlice = PixelsPerTile * SlicesPerBlock;
-        public const string TilesPath = "T:\\Games\\Dustforce\\sprites";
         public const string SpritesPath = "T:\\Dev\\Projects\\Dustworld\\build\\sprites";
         public const string IntermediatePath = "T:\\Dev\\Projects\\Dustworld\\build\\intermediate";
         public const string LevelAssetsOutputPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\static\\level-assets";
@@ -27,9 +25,9 @@ namespace level_machine {
                     ExtractSprites(path);
             } else {
                 Console.WriteLine("Invalid arguments");
-                ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\treasure");
+                //ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
                 //Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\prop flip test");
-                //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\vacantlot");
+                Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\vacantlot");
             }
         }
 
@@ -64,7 +62,7 @@ namespace level_machine {
                         Console.WriteLine("    filth p={0:X2} q={1:X2} | {2}", filth.p, filth.q, Util.Hexify(filth.RawData));
                     }
                     foreach (var prop in slice.Props) {
-                        Console.WriteLine("    prop x={0:N} y={1:N} rot={2:X4} fh={3} fv={4} ps={5:X2} pg={6:X4} pi={7:X4} pal={8:X2} lg={9:X2} ls={10:X2}",
+                        Console.WriteLine("    prop x={0:N} y={1:N} rot={2:0.#} fh={3} fv={4} ps={5:X2} pg={6:X4} pi={7:X4} pal={8:X2} lg={9:X2} ls={10:X2}",
                             prop.X, prop.Y, prop.Rotation, prop.FlipHorz ? 'Y' : 'N', prop.FlipVert ? 'Y' : 'N', prop.PropSet,
                             prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
                     }
