@@ -31,11 +31,11 @@ namespace level_machine {
 
             Directory.CreateDirectory(Path.Combine(App.LevelAssetsOutputPath, name));
 
-            //DoMipMap(768 / 2, 1.0f / 1);
+            DoMipMap(768 / 2, 1.0f / 1);
             DoMipMap(768 / 2, 1.0f / 2);
-            //DoMipMap(768 / 2, 1.0f / 4);
-            //DoMipMap(768 / 4, 1.0f / 8);
-            //DoMipMap(768 / 8, 1.0f / 16);
+            DoMipMap(768 / 2, 1.0f / 4);
+            DoMipMap(768 / 2, 1.0f / 8);
+            DoMipMap(768 / 8, 1.0f / 16);
 
             var path = Path.Combine(App.LevelAssetsOutputPath, name, "manifest.json");
             using (var file = File.Open(path, FileMode.Create, FileAccess.Write))
@@ -78,7 +78,7 @@ namespace level_machine {
                                 continue;
 
                             var path = Path.Combine(App.LevelAssetsOutputPath, name,
-                                string.Format("{0}_{1}_{2},{3}.png", bucket.Key, zoom, x * zoom, y * zoom));
+                                string.Format("{0}_{1}_{2},{3}.png", bucket.Key, zoom, x, y));
                             using (var file = File.Open(path, FileMode.Create, FileAccess.Write)) {
                                 image.Save(file, ImageFormat.Png);
                             }
@@ -94,11 +94,11 @@ namespace level_machine {
                         if (scale == null) {
                             scales.Add(scale = new JObject {
                                 {"scale", zoom},
-                                {"tile_size", new JArray {dstSize, dstSize}},
+                                {"tile_size", new JArray {srcSize, srcSize}},
                                 {"tiles", new JArray()},
                             });
                         }
-                        scale.Value<JArray>("tiles").Add(new JArray(x * zoom, y * zoom));
+                        scale.Value<JArray>("tiles").Add(new JArray(x, y));
                     }
                 }
             }

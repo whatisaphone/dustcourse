@@ -9,6 +9,13 @@ class DragScroll {
 
 	public constructor(private callback: DragScroll.Callback) {}
 
+	public bindEvents(element: Element) {
+		element.addEventListener('mousedown', (e: MouseEvent) => this.mousedown(e));
+		element.addEventListener('mousewheel', (e: MouseWheelEvent) => this.mousewheel(e));
+		window.addEventListener('mousemove', (e: MouseEvent) => this.mousemove(e));
+		window.addEventListener('mouseup', (e: MouseEvent) => this.mouseup(e));
+	}
+
 	public mousedown(event: MouseEvent) {
 		this.scrolling = true;
 		this.lastX = event.pageX;
