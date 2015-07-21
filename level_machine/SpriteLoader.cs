@@ -22,11 +22,11 @@ namespace level_machine {
             var filename = string.Format("tile{0}_{1}", spriteTile, spritePalette * 30 + chunk);
             var path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
             try {
-                return CachedLoad(path);
+                return Cached(path, () => Load(path));
             } catch (Exception) {
                 filename = string.Format("tile{0}_{1}", spriteTile, 0 * 30 + chunk);
                 path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
-                return CachedLoad(path);
+                return Cached(path, () => Load(path));
             }
         }
 
@@ -37,45 +37,43 @@ namespace level_machine {
                 : string.Format("{0}_{1}_{2}", propGroups[propGroup], propIndex, palette + 1);
             var dir = isBackdrop ? "backdrops" : "props";
             var path = Path.Combine(App.SpritesPath, "area", setNames[propSet], dir, filename);
-            return CachedLoad(path);
+            return Cached(path, () => Load(path));
         }
 
-        private Sprite CachedLoad(string path) {
+        private Sprite Cached(string path, Func<Sprite> action) {
             Sprite ret;
             if (cache.TryGetValue(path, out ret))
                 return ret;
 
-            //try {
-                var bitmap = new Bitmap(path + ".png");
-                // changing the pixel format to pre-multiplied speeds compositing up a bit (by ~20% maybe?)
-                bitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format32bppPArgb);
-
-                JObject manifest;
-                using (var file = File.Open(path + ".json", FileMode.Open, FileAccess.Read))
-                using (var sr = new StreamReader(file))
-                using (var jtr = new JsonTextReader(sr))
-                    manifest = JObject.Load(jtr);
-
-                ret = new Sprite {
-                    Image = bitmap,
-                    Rect1 = Rectangle.FromLTRB(
-                        manifest.Value<JObject>("rect1").Value<int>("l"),
-                        manifest.Value<JObject>("rect1").Value<int>("t"),
-                        manifest.Value<JObject>("rect1").Value<int>("r"),
-                        manifest.Value<JObject>("rect1").Value<int>("b")),
-                    Rect2 = Rectangle.FromLTRB(
-                        manifest.Value<JObject>("rect2").Value<int>("l"),
-                        manifest.Value<JObject>("rect2").Value<int>("t"),
-                        manifest.Value<JObject>("rect2").Value<int>("r"),
-                        manifest.Value<JObject>("rect2").Value<int>("b")),
-                };
-            //} catch (Exception) {
-            //    Console.WriteLine("warning, sprite not found: " + path);
-            //    ret = null;
-            //}
-
+            ret = action();
             cache[path] = ret;
             return ret;
+        }
+
+        private Sprite Load(string path) {
+            var bitmap = new Bitmap(path + ".png");
+            // changing the pixel format to pre-multiplied speeds compositing up a bit (by ~20% maybe?)
+            bitmap = bitmap.Clone(new Rectangle(0, 0, bitmap.Width, bitmap.Height), PixelFormat.Format32bppPArgb);
+
+            JObject manifest;
+            using (var file = File.Open(path + ".json", FileMode.Open, FileAccess.Read))
+            using (var sr = new StreamReader(file))
+            using (var jtr = new JsonTextReader(sr))
+                manifest = JObject.Load(jtr);
+
+            return new Sprite {
+                Image = bitmap,
+                Rect1 = Rectangle.FromLTRB(
+                    manifest.Value<JObject>("rect1").Value<int>("l"),
+                    manifest.Value<JObject>("rect1").Value<int>("t"),
+                    manifest.Value<JObject>("rect1").Value<int>("r"),
+                    manifest.Value<JObject>("rect1").Value<int>("b")),
+                Rect2 = Rectangle.FromLTRB(
+                    manifest.Value<JObject>("rect2").Value<int>("l"),
+                    manifest.Value<JObject>("rect2").Value<int>("t"),
+                    manifest.Value<JObject>("rect2").Value<int>("r"),
+                    manifest.Value<JObject>("rect2").Value<int>("b")),
+            };
         }
     }
 

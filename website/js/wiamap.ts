@@ -4,9 +4,11 @@ import Point = coords.Point;
 import Rectangle = coords.Rectangle;
 
 export class View implements DragScroll.Callback {
-	public element: Element;
+	public element: HTMLDivElement;
+	private canvas: HTMLCanvasElement;
+	private context: CanvasRenderingContext2D;
+	private images: { [key: string]: HTMLImageElement };
 	private scroll: DragScroll;
-	private children: { [key: string]: Element };
 	private camemraPos: Point;
 	private cameraWidth: number;
 	private cameraHeight: number;
@@ -14,7 +16,12 @@ export class View implements DragScroll.Callback {
 
 	constructor(private model: Model) {
 		this.element = document.createElement('div');
-		this.children = {};
+		this.canvas = document.createElement('canvas');
+		this.canvas.style.width = '100%';
+		this.canvas.style.height = '100%';
+		this.element.appendChild(this.canvas);
+		this.context = <CanvasRenderingContext2D>this.canvas.getContext('2d');
+		this.images = {};
 
 		this.scroll = new DragScroll(this);
 		this.scroll.bindEvents(this.element);
@@ -26,11 +33,16 @@ export class View implements DragScroll.Callback {
 	private update() {
 		this.cameraWidth = this.element.clientWidth;
 		this.cameraHeight = this.element.clientHeight;
+		if (this.canvas.width != this.cameraWidth || this.canvas.height != this.cameraHeight) {
+			this.canvas.width = this.cameraWidth;
+			this.canvas.height = this.cameraHeight;
+		}
+
+		this.context.fillStyle = '#ccf';
+		this.context.fillRect(0, 0, this.cameraWidth, this.cameraHeight);
+
 		var viewport = new Rectangle(-this.cameraWidth / 2, -this.cameraHeight / 2,
 			this.cameraWidth, this.cameraHeight);
-		var oldChildren = this.children;
-		var newChildren: { [key: string]: Element } = {};
-		console.log(this.camemraPos);
 
 		_.each(this.model.layers, layer => {
 			var scale = this.chooseScale(layer.scales, this.cameraZoom);
@@ -44,48 +56,28 @@ export class View implements DragScroll.Callback {
 			for (var lx = minX; lx < maxX; lx += scale.tileWidth) {
 				for (var ly = minY; ly < maxY; ly += scale.tileHeight) {
 					var tileKey = layer.name + '_' + scale.scale + '_' + lx + '_' + ly;
-					var oldChild = oldChildren[tileKey];
-					if (oldChild) {
-						this.moveTileElement(layer, scale, lx, ly, oldChild);
-						newChildren[tileKey] = oldChild;
-						delete oldChildren[tileKey];
-					} else {
-						var tile = this.model.getTile(layer, scale, lx, ly);
-						if (tile)
-							newChildren[tileKey] = this.addTile(layer, scale, lx, ly, tile);
+					var tile = this.model.getTile(layer, scale, lx, ly);
+					if (tile) {
+						var image = this.images[tileKey];
+						if (!image) {
+							image = this.images[tileKey] = document.createElement('img');
+							image.addEventListener('load', e => this.update());
+							image.src = tile.imageURL;
+						}
+						var layerRect = new Rectangle(lx, ly, scale.tileWidth, scale.tileHeight);
+						var cameraRect = this.layerToCameraR(layer, scale, layerRect);
+						var left = Math.floor(cameraRect.left + this.cameraWidth / 2);
+						var top = Math.floor(cameraRect.top + this.cameraHeight / 2);
+						this.context.drawImage(image, left, top, Math.ceil(cameraRect.width), Math.ceil(cameraRect.height));
 					}
 				}
 			}
 		});
-
-		for (var key in oldChildren)
-			this.element.removeChild(oldChildren[key]);
-		if (this.element.childElementCount != _.size(newChildren))
-			alert('oh no!');
-
-		this.children = newChildren;
 	}
 
 	private chooseScale(scales: Scale[], targetZoom: number) {
 		var sorted = _.sortBy(scales, s => s.scale);
 		return _.find(sorted, s => s.scale >= targetZoom) || sorted[sorted.length - 1];
-	}
-
-	private addTile(layer: Layer, scale: Scale, lx: number, ly: number, tile: Tile) {
-		var el = document.createElement('img');
-		el.setAttribute('src', tile.imageURL);
-		this.moveTileElement(layer, scale, lx, ly, el);
-		this.element.appendChild(el);
-		return el;
-	}
-
-	private moveTileElement(layer: Layer, scale: Scale, lx: number, ly: number, el: Element) {
-		var layerRect = new Rectangle(lx, ly, scale.tileWidth, scale.tileHeight);
-		var cameraRect = this.layerToCameraR(layer, scale, layerRect);
-		el.setAttribute('width', '' + Math.ceil(cameraRect.width));
-		el.setAttribute('height', '' + Math.ceil(cameraRect.height));
-		el.setAttribute('style', 'position:absolute;left:' + Math.floor(cameraRect.left + this.cameraWidth / 2) +
-			'px;top:' + Math.floor(cameraRect.top + this.cameraHeight / 2) + 'px;z-index:' + layer.zindex);
 	}
 
 	private cameraToLayerP(layer: Layer, scale: Scale, screenP: Point) {
