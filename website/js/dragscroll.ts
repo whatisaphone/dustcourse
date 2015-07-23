@@ -1,6 +1,4 @@
-import coords = require('./coords');
-import Point = coords.Point;
-import Rectangle = coords.Rectangle;
+import { Point, Rectangle } from './coords';
 
 class DragScroll {
 	private scrolling: boolean;
@@ -62,4 +60,4 @@ module DragScroll {
 	}
 }
 
-export = DragScroll;
+export { DragScroll as default };

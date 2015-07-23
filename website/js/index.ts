@@ -1,6 +1,6 @@
 /// <reference path="../../typings/lodash/lodash.d.ts" />
 
-import wiamap = require('./wiamap');
+import * as wiamap from './wiamap';
 
 interface LevelManifest {
 	path: string;
@@ -18,7 +18,7 @@ interface LevelManifestScale {
 	tiles: [number, number][];
 }
 
-class LevelWiamapModel implements wiamap.Model {
+class WiamapLevelSource implements wiamap.Source {
 	public layers: LevelWiamapLayer[];
 
 	constructor(private manifest: LevelManifest) {
@@ -33,6 +33,7 @@ class LevelWiamapModel implements wiamap.Model {
 		// this.layers = _.filter(this.layers, l => l.name === '19');
 		// this.layers = _.filter(this.layers, l => l.name !== '19');
 		// this.layers = _.filter(this.layers, l => l.parallax !== 1);
+		// this.layers = _.filter(this.layers, l => l.parallax === 1);
 	}
 
 	public getTile(layer: LevelWiamapLayer, scale: LevelWiamapScale, x: number, y: number): wiamap.Tile {
@@ -62,16 +63,16 @@ class LevelWiamapScale implements wiamap.Scale {
 }
 
 function initLevelViewer(manifest: LevelManifest) {
-	var model = new LevelWiamapModel(manifest);
-	var view = new wiamap.View(model);
-	var el = view.element;
+	var source = new WiamapLevelSource(manifest);
+	var widget = new wiamap.Widget(source);
+	var el = widget.getElement();
 	el.setAttribute('class', 'wiamap-stage');
 	document.body.appendChild(el);
 
 	var bg = Math.abs(manifest.properties['cp_background_colour'][1]);
 	(<any>el).style.background = '#' + ((bg & 0xff) << 16 | bg & 0xff00 | (bg & 0xff0000) >> 16).toString(16);
 
-	view.scrollTo(manifest.properties['p1_x'], manifest.properties['p1_y'], 0.5);
+	widget.scrollTo(manifest.properties['p1_x'], manifest.properties['p1_y'], 0.5);
 }
 
 (<any>window).Dustworld = {

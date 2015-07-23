@@ -20,9 +20,6 @@
     "bluebird/bluebird.d.ts": {
       "commit": "be03157bace6e6465e63f13073d7b68e8ea1303c"
     },
-    "underscore/underscore.d.ts": {
-      "commit": "be03157bace6e6465e63f13073d7b68e8ea1303c"
-    },
     "lodash/lodash.d.ts": {
       "commit": "34b5eb499d3c3be97660019dfb309a6d31d21837"
     }
