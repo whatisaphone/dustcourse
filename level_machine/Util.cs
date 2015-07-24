@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Drawing;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
@@ -50,6 +51,10 @@ namespace level_machine {
             //                string.Join(", ",
             //                    list.Select(p => string.Format("{0} = {1}", p.Item1, p.Item2))));
             return new JObject(pairs.Select(t => new JProperty(t.Item1, t.Item2))).ToString(Formatting.None);
+        }
+
+        public static double Distance(double x1, double y1, double x2, double y2) {
+            return Math.Sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2));
         }
     }
 }

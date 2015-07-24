@@ -61,8 +61,8 @@ namespace level_machine {
     }
 
     internal sealed class Entity {
-        public string Name;
-        public float Field1C, Field20;
+        public string Kind;
+        public float X, Y;
         public ushort Field24;
         public byte Field28;
         public bool Field2C, Field30, Field34;

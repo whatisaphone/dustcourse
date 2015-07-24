@@ -17,6 +17,7 @@ namespace level_machine {
         private readonly SpriteLoader sprites;
         private readonly LevelRenderResult result;
         private int minBlockX, maxBlockX, minBlockY, maxBlockY;
+        private List<Tuple<string, object>> fogTags;
 
         private LevelRenderer(Level level, string name) {
             this.level = level;
@@ -24,6 +25,7 @@ namespace level_machine {
             sprites = new SpriteLoader();
             result = new LevelRenderResult();
             result.Tags = level.Tags;
+            result.Entities = level.Blocks.SelectMany(b => b.Slices).SelectMany(s => s.Entities).ToList();
         }
 
         public static LevelRenderResult Render(Level level, string name) {
@@ -34,6 +36,15 @@ namespace level_machine {
 
         private void Render() {
             Directory.CreateDirectory(Path.Combine(App.IntermediatePath, name));
+
+            var p1x = Util.GetProp<int>(level.Tags, "p1_x");
+            var p1y = Util.GetProp<int>(level.Tags, "p1_y");
+            foreach (var entity in level.Blocks.SelectMany(b => b.Slices).SelectMany(s => s.Entities)) {
+                if (entity.Kind == "fog_trigger" &&
+                    Util.Distance(p1x, p1y, entity.X, entity.Y) < Util.GetProp<int>(entity.Tags, "width")) {
+                    fogTags = entity.Tags;
+                }
+            }
 
             foreach (var block in level.Blocks) {
                 if (block.X > minBlockX) minBlockX = block.X;
@@ -393,8 +404,10 @@ namespace level_machine {
         }
 
         private ColorMatrix MakeFogMatrix(byte layer) {
-            var fogColour = (int) Util.GetProp<List<object>>(level.Tags, "cp_fog_colour")[layer];
-            var fogPer = (float) Util.GetProp<List<object>>(level.Tags, "cp_fog_per")[layer];
+            if (fogTags == null)
+                return new ColorMatrix();
+            var fogColour = (int) Util.GetProp<List<object>>(fogTags, "fog_colour")[layer];
+            var fogPer = (float) Util.GetProp<List<object>>(fogTags, "fog_per")[layer];
             var matrix = MakeColorMatrix(fogColour, fogPer);
             return matrix;
         }
@@ -546,6 +559,7 @@ namespace level_machine {
     internal sealed class LevelRenderResult {
         public List<Tuple<string, object>> Tags;
         public List<RenderedTiles> Tiles = new List<RenderedTiles>();
+        public List<Entity> Entities;
     }
 
     internal sealed class RenderedTiles : MipMappable {

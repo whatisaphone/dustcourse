@@ -31,7 +31,7 @@ namespace level_machine {
         }
 
         public Sprite LoadProp(int propSet, int propGroup, int propIndex, int palette) {
-            var isBackdrop = propGroups[propGroup] == "backdrops";
+            var isBackdrop = propGroups[propGroup] == "backdrops" && setNames[propSet] != "mansion";
             var filename = isBackdrop && setNames[propSet] == "mansion"
                 ? string.Format("backdrop{0}_{1}", propIndex, palette + 1)
                 : string.Format("{0}_{1}_{2}", propGroups[propGroup], propIndex, palette + 1);

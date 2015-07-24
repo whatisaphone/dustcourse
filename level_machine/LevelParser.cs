@@ -427,9 +427,9 @@ namespace level_machine {
             var name = new string(chars, 0, count);
             //}
 
-            var entity = new Entity { Name = name };
-            entity.Field1C = stream.ReadFloat(32, 8);
-            entity.Field20 = stream.ReadFloat(32, 8);
+            var entity = new Entity { Kind = name };
+            entity.X = stream.ReadFloat(32, 8);
+            entity.Y = stream.ReadFloat(32, 8);
             stream.Read(buf, 16);
             entity.Field24 = Util.MakeU16(buf);
             stream.Read(buf, 8);
@@ -442,7 +442,7 @@ namespace level_machine {
             entity.Field34 = buf[2] != 0;
             entity.Tags = ReadKeyValueList(stream);
             Trace("entity {0} {1:N} {2:N} {3:X4} {4:X2} {5} {6} {7} {8}",
-                name, entity.Field1C, entity.Field20, entity.Field24, entity.Field28,
+                name, entity.X, entity.Y, entity.Field24, entity.Field28,
                 entity.Field2C, entity.Field30, entity.Field34, Util.DumpKeyValueList(entity.Tags));
             return entity;
         }

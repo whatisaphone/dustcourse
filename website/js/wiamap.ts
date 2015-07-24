@@ -21,12 +21,7 @@ export class Widget implements DragScroll.Callback {
         return this.view.getElement();
     }
 
-    public addLayer(def: LayerDef) {
-        var layer;
-        if (def.type === "tile")
-            layer = new TileLayer(<TileLayerDef>def);
-        else
-            throw new Error();
+    public addLayer(layer: Layer) {
         layer.callback = this;
         this.layers.push(layer);
     }
@@ -66,7 +61,7 @@ export class Widget implements DragScroll.Callback {
     }
 }
 
-class Viewport {
+export class Viewport {
     constructor(public position: Point, public size: Size, public zoom: number) { }
 
     public screenRect() {
@@ -300,7 +295,6 @@ export interface Source {
 }
 
 export interface LayerDef {
-    type: string;
     id: string;
     zindex: number;
     parallax: number;
@@ -321,17 +315,18 @@ export interface Tile {
     imageURL: string;
 }
 
-interface Layer {
+export interface Layer {
     def: LayerDef;
+    callback: LayerCallback;
 
     draw(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle);
 }
 
-interface LayerCallback {
+export interface LayerCallback {
     redrawArea(layer: Layer, area: Rectangle);
 }
 
-class TileLayer implements Layer {
+export class TileLayer implements Layer {
     public callback: LayerCallback;
     private imageCache = new ImageCache();
 
