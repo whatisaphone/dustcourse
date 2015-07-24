@@ -40,6 +40,12 @@ namespace level_machine {
             return Cached(path, () => Load(path));
         }
 
+        public Sprite LoadFilth(int set, bool spikes, int chunk) {
+            var filename = string.Format("{0}_{1}", spikes ? "spikes" : "filth", chunk);
+            var path = Path.Combine(App.SpritesPath, "area", setNames[set], "filth", filename);
+            return Cached(path, () => Load(path));
+        }
+
         private Sprite Cached(string path, Func<Sprite> action) {
             Sprite ret;
             if (cache.TryGetValue(path, out ret))

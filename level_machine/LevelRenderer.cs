@@ -56,6 +56,9 @@ namespace level_machine {
                         foreach (var slice in slicesByPos) {
                             drewAnything |= DrawTiles(canvas, slice, layer);
                             drewAnything |= DrawProps(canvas, block, slice, layer);
+                            if (layer == 19)
+                                foreach (var filth in slice.Filth)
+                                    DrawFilth(canvas, slice, filth);
                         }
 
                         if (!drewAnything)
@@ -85,15 +88,15 @@ namespace level_machine {
             attrs.SetColorMatrix(MakeFogMatrix(layer));
 
             foreach (var tile in tiles)
-                DrawTileCenter(canvas, tile, tileShapes[tile.Flags], attrs);
+                DrawTileCenter(canvas, tile, tileShapes[tile.Shape], attrs);
             foreach (var tile in tiles)
-                DrawTileBottomEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+                DrawTileBottomEdge(canvas, tile, tileShapes[tile.Shape], attrs);
             foreach (var tile in tiles)
-                DrawTileLeftEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+                DrawTileLeftEdge(canvas, tile, tileShapes[tile.Shape], attrs);
             foreach (var tile in tiles)
-                DrawTileRightEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+                DrawTileRightEdge(canvas, tile, tileShapes[tile.Shape], attrs);
             foreach (var tile in tiles)
-                DrawTileTopEdge(canvas, tile, tileShapes[tile.Flags], attrs);
+                DrawTileTopEdge(canvas, tile, tileShapes[tile.Shape], attrs);
 
             return true;
         }
@@ -349,6 +352,44 @@ namespace level_machine {
             dstRect.X += sliceOverdraw;
             dstRect.Y += sliceOverdraw;
             canvas.DrawImage(sprite.Image, dstRect, 0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+        }
+
+        private void DrawFilth(Graphics canvas, Slice slice, Filth filth) {
+            var tile = slice.Tiles.FirstOrDefault(t => t.X == filth.X && t.Y == filth.Y);
+            var shape = tileShapes[tile.Shape];
+
+            DrawFilth(canvas, tile, shape.Bottom, (filth.Edges >> 4) & 0xf, (filth.EndCaps >> 2) & 0x3);
+            DrawFilth(canvas, tile, shape.Left, (filth.Edges >> 8) & 0xf, (filth.EndCaps >> 4) & 0x3);
+            DrawFilth(canvas, tile, shape.Right, (filth.Edges >> 12) & 0xf, (filth.EndCaps >> 6) & 0x3);
+            DrawFilth(canvas, tile, shape.Top, (filth.Edges >> 0) & 0xf, (filth.EndCaps >> 0) & 0x3);
+        }
+
+        private void DrawFilth(Graphics canvas, Tile tile, TileEdge edge, int center, int caps) {
+            if (center == 0)
+                return;
+
+            var transform = new Matrix();
+            transform.Translate(tile.X * App.PixelsPerTile + edge.X1 + sliceOverdraw, tile.Y * App.PixelsPerTile + edge.Y1 + sliceOverdraw);
+            transform.Rotate(edge.Angle);
+            canvas.Transform = transform;
+            var length = edge.Length;
+
+            if (center != 0) {
+                var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 2 + (tile.X + tile.Y) % 5);
+                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, length, sprite.Rect1.Height));
+            }
+
+            if ((caps & 1) != 0) {
+                var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 1);
+                canvas.DrawImage(sprite.Image, sprite.Rect1);
+            }
+
+            if ((caps & 2) != 0) {
+                var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 7);
+                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height));
+            }
+
+            canvas.ResetTransform();
         }
 
         private ColorMatrix MakeFogMatrix(byte layer) {

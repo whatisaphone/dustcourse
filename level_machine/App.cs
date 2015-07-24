@@ -26,8 +26,8 @@ namespace level_machine {
             } else {
                 Console.WriteLine("Invalid arguments");
                 //ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
-                //Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\prop flip test");
-                Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\vacantlot");
+                Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\filth");
+                //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\vacantlot");
             }
         }
 
@@ -56,10 +56,10 @@ namespace level_machine {
                         slice.Header.Field8, slice.Header.X, slice.Header.Y, slice.Header.FieldC, slice.Header.Field14, slice.Header.Kinds);
                     foreach (var tile in slice.Tiles) {
                         Console.WriteLine("    tile x={0:X1} y={1:X1} layer={2} | f={3:X2} e={4:X2} c={5:X2} | {6}",
-                            tile.X, tile.Y, tile.Layer, tile.Flags, tile.Edges, tile.EndCaps, Util.Hexify(tile.RawData));
+                            tile.X, tile.Y, tile.Layer, tile.Shape, tile.Edges, tile.EndCaps, Util.Hexify(tile.RawData));
                     }
                     foreach (var filth in slice.Filth) {
-                        Console.WriteLine("    filth p={0:X2} q={1:X2} | {2}", filth.p, filth.q, Util.Hexify(filth.RawData));
+                        Console.WriteLine("    filth x={0:X2} y={1:X2} e={2:X4} c={3:X2} | {4}", filth.X, filth.Y, filth.Edges, filth.EndCaps, Util.Hexify(filth.RawData));
                     }
                     foreach (var prop in slice.Props) {
                         Console.WriteLine("    prop x={0:N} y={1:N} rot={2:0.#} fh={3} fv={4} ps={5:X2} pg={6:X4} pi={7:X4} pal={8:X2} lg={9:X2} ls={10:X2}",

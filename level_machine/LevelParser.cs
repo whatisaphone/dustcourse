@@ -314,7 +314,7 @@ namespace level_machine {
                 X = x,
                 Y = y,
                 Layer = layer,
-                Flags = data[0],
+                Shape = data[0],
                 Edges = data[1],
                 EndCaps = data[2],
                 SpriteSet = (byte)(data[11] & 0xf),
@@ -323,7 +323,7 @@ namespace level_machine {
                 RawData = data.ToArray(),
             };
             Trace("tile {0:X2} {1:X2} {2:X2} | {3:X2} {4:X2} {5} {6} {7} | {8}",
-                x, y, layer, tile.Flags, tile.Edges, tile.SpriteSet, tile.SpritePalette, tile.SpriteTile, Util.Hexify(data));
+                x, y, layer, tile.Shape, tile.Edges, tile.SpriteSet, tile.SpritePalette, tile.SpriteTile, Util.Hexify(data));
             return tile;
         }
 
@@ -335,18 +335,24 @@ namespace level_machine {
             var count = c != 0 ? c : 1024;
             for (var i = 0; i < count; ++i) {
                 stream.Read(buf, 5);
-                var p = buf[0];
+                var x = buf[0];
                 stream.Read(buf, 5);
-                var q = buf[0];
+                var y = buf[0];
                 stream.Read(buf, 96);
-                ret.Add(LoadSingleFilth(p, q, buf));
+                ret.Add(LoadSingleFilth(x, y, buf.ToArray()));
             }
             return ret;
         }
 
-        private static Filth LoadSingleFilth(byte p, byte q, byte[] data) {
-            Trace("filth {0:X2} {1:X2} | {2}", p, q, Util.Hexify(data));
-            return new Filth { p = p, q = q, RawData = data.ToArray() };
+        private static Filth LoadSingleFilth(byte x, byte y, byte[] data) {
+            Trace("filth {0:X2} {1:X2} | {2}", x, y, Util.Hexify(data));
+            return new Filth {
+                X = x,
+                Y = y,
+                Edges = Util.MakeU16(data),
+                EndCaps = data[10],
+                RawData = data,
+            };
         }
 
         private static List<Prop> LoadProps(BitStream stream) {

@@ -31,7 +31,7 @@ namespace level_machine {
 
     internal sealed class Tile {
         public byte X, Y, Layer;
-        public byte Flags;
+        public byte Shape;
         public byte Edges;
         public byte EndCaps;
         public byte SpriteSet;
@@ -39,12 +39,13 @@ namespace level_machine {
         public byte SpriteTile;
         public byte[] RawData;
 
-        public bool IsSolid { get { return (Flags & 0x80) != 0; } }
+        public bool IsSolid { get { return (Shape & 0x80) != 0; } }
     }
 
     internal sealed class Filth {
-        public byte p;
-        public byte q;
+        public byte X, Y;
+        public ushort Edges;
+        public byte EndCaps;
         public byte[] RawData;
     }
 
