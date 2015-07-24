@@ -274,13 +274,15 @@ class MultiCanvasView implements View {
     }
 
     private drawPaneTiles(layer: TileLayer, pane: MultiCanvasPane) {
-        var scale = chooseScale(layer.def.scales, this.widget.viewport.zoom);
+        setTimeout(() => {
+            var scale = chooseScale(layer.def.scales, this.widget.viewport.zoom);
 
-        pane.context.clearRect(0, 0, pane.screenRect.width, pane.screenRect.height);
+            pane.context.clearRect(0, 0, pane.screenRect.width, pane.screenRect.height);
 
-        enumerateTiles(layer, scale, pane.drawnWorldRect, (wx, wy, tile) => {
-            this.drawTile(layer, scale, pane, wx, wy, tile);
-        });
+            enumerateTiles(layer, scale, pane.drawnWorldRect, (wx, wy, tile) => {
+                this.drawTile(layer, scale, pane, wx, wy, tile);
+            });
+        }, 0);
     }
 
     private drawTile(layer: TileLayer, scale: TileScale, pane: MultiCanvasPane, wx: number, wy: number, tile: Tile) {
