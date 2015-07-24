@@ -16,6 +16,11 @@ export class Rectangle {
 	public topLeft() { return new Point(this.left, this.top); }
 
 	public bottomRight() { return new Point(this.left + this.width, this.top + this.height); }
+
+	public intersects(that: Rectangle) {
+		return (this.right() >= that.left || this.left <= that.right()) &&
+			(this.bottom() >= that.top || this.top <= that.bottom());
+	}
 }
 
 export class Size {

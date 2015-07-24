@@ -1,5 +1,6 @@
 import { Point, Rectangle, Size } from './coords';
 import DragScroll from './dragscroll';
+import ImageCache from './imageCache';
 
 export class Widget implements DragScroll.Callback {
     private view: View;
@@ -26,6 +27,7 @@ export class Widget implements DragScroll.Callback {
             layer = new TileLayer(<TileLayerDef>def);
         else
             throw new Error();
+        layer.callback = this;
         this.layers.push(layer);
     }
 
@@ -43,6 +45,10 @@ export class Widget implements DragScroll.Callback {
         var newY = this.viewport.position.y + y / this.viewport.zoom;
         this.viewport = new Viewport(new Point(newX, newY), this.viewport.size, this.viewport.zoom);
         this.view.onViewportChanged();
+    }
+
+    public redrawArea(layer: Layer, area: Rectangle) {
+        this.view.redrawArea(layer, area);
     }
 
     public getViewport() {
@@ -96,6 +102,7 @@ class Viewport {
 
 export interface View {
     getElement();
+    redrawArea(layer: Layer, area: Rectangle);
     onViewportChanged();
 }
 
@@ -103,7 +110,6 @@ class NaiveCanvasView implements View {
     private element: HTMLDivElement;
     private canvas: HTMLCanvasElement;
     private context: CanvasRenderingContext2D;
-    private images: { [key: string]: HTMLImageElement };
 
     constructor(private widget: Widget) {
         this.element = document.createElement('div');
@@ -112,7 +118,6 @@ class NaiveCanvasView implements View {
         this.canvas.style.height = '100%';
         this.element.appendChild(this.canvas);
         this.context = <CanvasRenderingContext2D>this.canvas.getContext('2d');
-        this.images = {};
     }
 
     public getElement() {
@@ -120,6 +125,10 @@ class NaiveCanvasView implements View {
     }
 
     public onViewportChanged() {
+        this.redraw();
+    }
+
+    public redrawArea(layer: Layer, area: Rectangle) {
         this.redraw();
     }
 
@@ -140,50 +149,24 @@ class NaiveCanvasView implements View {
     }
 
     private drawLayer(layer: Layer) {
-        if (layer.def.type === "tile")
-            this.drawTileLayer(<TileLayer>layer);
-        else
-            throw new Error();
-    }
-
-    private drawTileLayer(layer: TileLayer) {
-        var scale = chooseScale(layer.def.scales, this.widget.viewport.zoom);
-        var area = this.widget.viewport.screenToWorldR(layer, this.widget.viewport.screenRect());
-        enumerateTiles(layer, scale, area, (wx, wy, tile) => {
-            this.drawTile(layer, scale, wx, wy, tile);
-        });
-    }
-
-    private drawTile(layer: Layer, scale: TileScale, wx: number, wy: number, tile: Tile) {
-        var tileKey = layer.def.id + '_' + scale.scale + '_' + wx + '_' + wy;
-        var image = this.images[tileKey];
-        if (!image) {
-            image = this.images[tileKey] = document.createElement('img');
-            image.addEventListener('load', e => this.redraw());
-            image.src = tile.imageURL;
-        }
-        var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
-        var screenRect = this.widget.viewport.worldToScreenR(layer, worldRect);
-        var left = Math.floor(screenRect.left + this.widget.viewport.size.width / 2);
-        var top = Math.floor(screenRect.top + this.widget.viewport.size.height / 2);
-        this.context.drawImage(image, left, top, Math.ceil(screenRect.width), Math.ceil(screenRect.height));
+        var screenRect = this.widget.viewport.screenRect();
+        var worldRect = this.widget.viewport.screenToWorldR(layer, screenRect);
+        layer.draw(this.widget.viewport, this.context, screenRect, worldRect);
     }
 }
 
 class MultiCanvasView implements View {
     private element: HTMLDivElement;
     private prevViewport: Viewport;
-    private images: { [key: string]: HTMLImageElement };
-    private easels: MultiCanvasEasel[];
+    private easels: { [layerID: string]: MultiCanvasEasel };
 
     constructor(private widget: Widget) {
         this.element = document.createElement('div');
         this.prevViewport = new Viewport(new Point(0, 0), new Size(0, 0), 1);
-        this.images = {};
     }
 
     private initLayers() {
-        this.easels = _.map(this.widget.layers, l => this.makeEasel(l));
+        this.easels = _.object(_.map(this.widget.layers, l => [l.def.id, this.makeEasel(l)]));
     }
 
     private makeEasel(layer: Layer) {
@@ -204,6 +187,15 @@ class MultiCanvasView implements View {
         return this.element;
     }
 
+    public redrawArea(layer: Layer, area: Rectangle) {
+        var easel = this.easels[layer.def.id];
+        _.each(easel.panes, pane => {
+            if (pane.drawnWorldRect && pane.drawnWorldRect.intersects(area)) {
+                this.drawPane(layer, pane);
+            }
+        });
+    }
+
     public onViewportChanged() {
         var screenSize = new Size(this.element.clientWidth, this.element.clientHeight);
         this.widget.setViewportSize(screenSize);
@@ -216,8 +208,8 @@ class MultiCanvasView implements View {
         }
         this.prevViewport = this.widget.viewport;
 
-        (<any>_).zipWith(this.widget.layers, this.easels, (layer, easel) => {
-            this.moveOrDrawPanes(layer, easel);
+        _.each(this.widget.layers, layer => {
+            this.moveOrDrawPanes(layer, this.easels[layer.def.id]);
         });
     }
 
@@ -267,38 +259,8 @@ class MultiCanvasView implements View {
     }
 
     private drawPane(layer: Layer, pane: MultiCanvasPane) {
-        if (layer.def.type === "tile")
-            this.drawPaneTiles(<TileLayer>layer, pane);
-        else
-            throw new Error();
-    }
-
-    private drawPaneTiles(layer: TileLayer, pane: MultiCanvasPane) {
-        setTimeout(() => {
-            var scale = chooseScale(layer.def.scales, this.widget.viewport.zoom);
-
-            pane.context.clearRect(0, 0, pane.screenRect.width, pane.screenRect.height);
-
-            enumerateTiles(layer, scale, pane.drawnWorldRect, (wx, wy, tile) => {
-                this.drawTile(layer, scale, pane, wx, wy, tile);
-            });
-        }, 0);
-    }
-
-    private drawTile(layer: TileLayer, scale: TileScale, pane: MultiCanvasPane, wx: number, wy: number, tile: Tile) {
-        var tileKey = layer.def.id + '_' + scale.scale + '_' + wx + '_' + wy;
-        var image = this.images[tileKey];
-        if (!image) {
-            image = this.images[tileKey] = document.createElement('img');
-            image.addEventListener('load', e => { this.drawPane(layer, pane); });
-            image.src = tile.imageURL;
-            return;
-        }
-        var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
-        var screenRect = this.widget.viewport.worldToScreenR(layer, worldRect);
-        var left = Math.floor(screenRect.left - pane.screenRect.left);
-        var top = Math.floor(screenRect.top - pane.screenRect.top);
-        pane.context.drawImage(image, left, top, Math.ceil(screenRect.width), Math.ceil(screenRect.height));
+        pane.context.clearRect(0, 0, pane.screenRect.width, pane.screenRect.height);
+        layer.draw(this.widget.viewport, pane.context, pane.screenRect, pane.drawnWorldRect);
     }
 }
 
@@ -359,12 +321,40 @@ export interface Tile {
     imageURL: string;
 }
 
-class Layer {
-    constructor(public def: LayerDef) { }
+interface Layer {
+    def: LayerDef;
+
+    draw(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle);
 }
 
-class TileLayer extends Layer {
-    constructor(public def: TileLayerDef) {
-        super(def);
+interface LayerCallback {
+    redrawArea(layer: Layer, area: Rectangle);
+}
+
+class TileLayer implements Layer {
+    public callback: LayerCallback;
+    private imageCache = new ImageCache();
+
+    constructor(public def: TileLayerDef) { }
+
+    public draw(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle) {
+        var scale = chooseScale(this.def.scales, viewport.zoom);
+
+        enumerateTiles(this, scale, worldRect, (wx, wy, tile) => {
+            this.drawTile(viewport, context, canvasRect, scale, wx, wy, tile);
+        });
+    }
+
+    private drawTile(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, scale: TileScale, wx: number, wy: number, tile: Tile) {
+        var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
+
+        var image = this.imageCache.get(tile.imageURL, () => this.callback.redrawArea(this, worldRect));
+        if (!image.complete)
+            return;
+
+        var screenRect = viewport.worldToScreenR(this, worldRect);
+        var left = Math.floor(screenRect.left - canvasRect.left);
+        var top = Math.floor(screenRect.top - canvasRect.top);
+        context.drawImage(image, left, top, Math.ceil(screenRect.width), Math.ceil(screenRect.height));
     }
 }
