@@ -355,7 +355,7 @@ namespace level_machine {
         }
 
         private void DrawFilth(Graphics canvas, Slice slice, Filth filth) {
-            var tile = slice.Tiles.FirstOrDefault(t => t.X == filth.X && t.Y == filth.Y);
+            var tile = slice.Tiles.First(t => t.Layer == 19 && t.X == filth.X && t.Y == filth.Y);
             var shape = tileShapes[tile.Shape];
 
             DrawFilth(canvas, tile, shape.Bottom, (filth.Edges >> 4) & 0xf, (filth.EndCaps >> 2) & 0x3);
@@ -365,7 +365,7 @@ namespace level_machine {
         }
 
         private void DrawFilth(Graphics canvas, Tile tile, TileEdge edge, int center, int caps) {
-            if (center == 0)
+            if (center == 0 || edge == null)
                 return;
 
             var transform = new Matrix();
