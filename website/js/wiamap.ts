@@ -288,8 +288,7 @@ class MultiCanvasView implements View {
         var image = this.images[tileKey];
         if (!image) {
             image = this.images[tileKey] = document.createElement('img');
-            // TODO: instead of this, call a higher-level redraw function to avoid possible leaks and glitches
-            image.addEventListener('load', e => { this.drawTile(layer, scale, pane, wx, wy, tile); });
+            image.addEventListener('load', e => { this.drawPane(layer, pane); });
             image.src = tile.imageURL;
             return;
         }
