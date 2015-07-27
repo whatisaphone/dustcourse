@@ -4,35 +4,46 @@ import * as wiamap from './wiamap';
 
 export function init(manifest: LevelManifest) {
     var widget = new wiamap.Widget();
-    populateLayers(widget, manifest);
 
     var el = widget.getElement();
     el.setAttribute('class', 'wiamap-stage');
     document.body.appendChild(el);
 
-    var fogEntity = getFogEntityNearestPlayer(manifest);
-    if (fogEntity) {
-        el.style.background = 'linear-gradient(' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][0]) + ',' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][1]) + ' ' +
-                (fogEntity.properties['gradient_middle'] * 100) + '%,' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][2]) + ')';
-    } else {
-        el.style.background = 'linear-gradient(' +
-            util.convertIntToColorRGB(manifest.properties['cp_background_colour'][0]) + ',' +
-            util.convertIntToColorRGB(manifest.properties['cp_background_colour'][1]) + ' ' +
-                (manifest.properties['cp_background_middle'] * 100) + '%,' +
-            util.convertIntToColorRGB(manifest.properties['cp_background_colour'][2]) + ')';
-    }
+    var fogEntity = findFogEntityNearestPlayer(manifest);
+    el.style.background = makeSkyGradient(manifest, fogEntity);
+    if (fogEntity)
+        widget.addLayer(new StarsLayer(fogEntity.properties));
+
+    populateLayers(widget, manifest);
 
     widget.scrollTo(manifest.properties['p1_x'], manifest.properties['p1_y'], 0.5);
 }
 
-function populateLayers(widget: wiamap.Widget, manifest: LevelManifest) {
-    var fogEntity = getFogEntityNearestPlayer(manifest);
-    if (fogEntity)
-        widget.addLayer(new StarsLayer({ id: 'sky', zindex: 0, parallax: 0.02 }, fogEntity.properties));
+function findFogEntityNearestPlayer(manifest: LevelManifest) {
+    var p1_x = manifest.properties['p1_x'];
+    var p1_y = manifest.properties['p1_y'];
+    var fogs = _.filter(manifest.entities, e => e.kind == 'fog_trigger');
+    var closestFog = _.min(fogs, e => Math.pow(p1_x - e.x, 2) + Math.pow(p1_y - e.y, 2));
+    return <any>closestFog !== Infinity ? closestFog : null;
+}
 
+function makeSkyGradient(manifest: LevelManifest, fogEntity: LevelManifestEntity) {
+    if (fogEntity) {
+        return 'linear-gradient(' +
+            util.convertIntToColorRGB(fogEntity.properties['gradient'][0]) + ',' +
+            util.convertIntToColorRGB(fogEntity.properties['gradient'][1]) + ' ' +
+                (fogEntity.properties['gradient_middle'] * 100) + '%,' +
+            util.convertIntToColorRGB(fogEntity.properties['gradient'][2]) + ')';
+    }
+
+    return 'linear-gradient(' +
+        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][0]) + ',' +
+        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][1]) + ' ' +
+            (manifest.properties['cp_background_middle'] * 100) + '%,' +
+        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][2]) + ')';
+}
+
+function populateLayers(widget: wiamap.Widget, manifest: LevelManifest) {
     _.each(manifest.layers, (layer, layerID) => {
         var layerNum = parseInt(layerID, 10);
         var parallax = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
@@ -43,16 +54,11 @@ function populateLayers(widget: wiamap.Widget, manifest: LevelManifest) {
     });
 }
 
-function getFogEntityNearestPlayer(manifest: LevelManifest) {
-    var ret = _.min(_.filter(manifest.entities, e => e.kind == 'fog_trigger'), e => Math.pow(manifest.properties['p1_x'] - e.x, 2) + Math.pow(manifest.properties['p1_y'] - e.y, 2));
-    return <any>ret !== Infinity ? ret : null;
-}
-
 interface LevelManifest {
     path: string;
     properties: { [key: string]: any };
     layers: { [key: string]: LevelManifestLayer };
-    entities: { kind: string, x: number, y: number, properties: { [key: string]: any } }[];
+    entities: LevelManifestEntity[];
 }
 
 interface LevelManifestLayer {
@@ -63,6 +69,13 @@ interface LevelManifestTileScale {
     scale: number;
     tile_size: [number, number];
     tiles: [number, number][];
+}
+
+interface LevelManifestEntity {
+    kind: string;
+    x: number;
+    y: number;
+    properties: { [key: string]: any };
 }
 
 class LevelWiamapTileLayerDef implements wiamap.TileLayerDef {
@@ -95,9 +108,12 @@ class LevelWiamapTileScale implements wiamap.TileScale {
 }
 
 class StarsLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
     public callback: wiamap.LayerCallback;
 
-    constructor(public def: wiamap.LayerDef, private fog: { [key: string]: any }) { }
+    constructor(private fog: { [key: string]: any }) {
+        this.def = { id: 'stars', zindex: 0, parallax: 0.025 };
+    }
 
     public draw(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle) {
         context.fillStyle = 'white';  // TODO: blend with white using fog_colour and fog_per
