@@ -25,9 +25,9 @@ namespace level_machine {
                     ExtractSprites(path);
             } else {
                 Console.WriteLine("Invalid arguments");
-                //ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
-                Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\filth");
-                //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\vacantlot");
+                ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
+                //Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\filth");
+                //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\development");
             }
         }
 
@@ -67,8 +67,8 @@ namespace level_machine {
                             prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
                     }
                     foreach (var entity in slice.Entities) {
-                        Console.WriteLine("entity {0} {1:N} {2:N} {3:X4} {4:X2} {5} {6} {7} {8}",
-                            entity.Name, entity.Field1C, entity.Field20, entity.Field24, entity.Field28,
+                        Console.WriteLine("    entity \"{0}\" x={1:N} y={2:N} ?={3:X4} ?={4:X2} ?={5} ?={6} ?={7} ?={8}",
+                            entity.Kind, entity.X, entity.Y, entity.Field24, entity.Field28,
                             entity.Field2C ? 'Y' : 'N', entity.Field30 ? 'Y' : 'N', entity.Field34 ? 'Y' : 'N', Util.DumpKeyValueList(entity.Tags));
                     }
                 }

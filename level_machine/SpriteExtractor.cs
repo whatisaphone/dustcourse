@@ -73,7 +73,7 @@ namespace level_machine {
                 if (extraLen != 0) {
                     var buf = new byte[extraLen];
                     stream.Read(buf, extraLen * 8);
-                    Console.WriteLine("(ignoring {0} bytes of extra data)", extraLen);
+                    Console.WriteLine("(ignoring {0} bytes of extra data in '{1}')", extraLen, name);
                 }
 
                 stream.Read(buffer, 16);
@@ -256,7 +256,7 @@ namespace level_machine {
                             }
                         }
 
-                        var filename = Path.Combine(App.SpritesPath, string.Format("{0}{1}_{2}", group.Prefix, group.Name, fi + 1));
+                        var filename = Path.Combine(App.SpritesPath, string.Format("{0}{1}_{2}_0001", group.Prefix, group.Name, fi + 1));
                         Directory.CreateDirectory(Path.GetDirectoryName(filename));
                         image.Save(filename + ".png");
 

@@ -19,12 +19,12 @@ namespace level_machine {
         private readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
         public Sprite LoadTile(int spriteSet, int spriteTile, int spritePalette, int chunk) {
-            var filename = string.Format("tile{0}_{1}", spriteTile, spritePalette * 30 + chunk);
+            var filename = string.Format("tile{0}_{1}_0001", spriteTile, spritePalette * 30 + chunk);
             var path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
             try {
                 return Cached(path, () => Load(path));
             } catch (Exception) {
-                filename = string.Format("tile{0}_{1}", spriteTile, 0 * 30 + chunk);
+                filename = string.Format("tile{0}_{1}_0001", spriteTile, 0 * 30 + chunk);
                 path = Path.Combine(App.SpritesPath, "area", setNames[spriteSet], "tiles", filename);
                 return Cached(path, () => Load(path));
             }
@@ -33,15 +33,15 @@ namespace level_machine {
         public Sprite LoadProp(int propSet, int propGroup, int propIndex, int palette) {
             var isBackdrop = propGroups[propGroup] == "backdrops" && setNames[propSet] != "mansion";
             var filename = isBackdrop && setNames[propSet] == "mansion"
-                ? string.Format("backdrop{0}_{1}", propIndex, palette + 1)
-                : string.Format("{0}_{1}_{2}", propGroups[propGroup], propIndex, palette + 1);
+                ? string.Format("backdrop{0}_{1}_0001", propIndex, palette + 1)
+                : string.Format("{0}_{1}_{2}_0001", propGroups[propGroup], propIndex, palette + 1);
             var dir = isBackdrop ? "backdrops" : "props";
             var path = Path.Combine(App.SpritesPath, "area", setNames[propSet], dir, filename);
             return Cached(path, () => Load(path));
         }
 
         public Sprite LoadFilth(int set, bool spikes, int chunk) {
-            var filename = string.Format("{0}_{1}", spikes ? "spikes" : "filth", chunk);
+            var filename = string.Format("{0}_{1}_0001", spikes ? "spikes" : "filth", chunk);
             var path = Path.Combine(App.SpritesPath, "area", setNames[set], "filth", filename);
             return Cached(path, () => Load(path));
         }
