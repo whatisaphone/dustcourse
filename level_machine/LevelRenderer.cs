@@ -25,7 +25,6 @@ namespace level_machine {
             sprites = new SpriteLoader();
             result = new LevelRenderResult();
             result.Level = level;
-            result.Entities = level.Blocks.SelectMany(b => b.Slices).SelectMany(s => s.Entities).ToList();
         }
 
         public static LevelRenderResult Render(Level level, string name) {
@@ -530,7 +529,6 @@ namespace level_machine {
     internal sealed class LevelRenderResult {
         public Level Level;
         public List<RenderedTiles> Tiles = new List<RenderedTiles>();
-        public List<Entity> Entities;  // TODO: one day, get rid of this field
     }
 
     internal sealed class RenderedTiles : MipMappable {

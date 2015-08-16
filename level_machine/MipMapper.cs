@@ -26,7 +26,6 @@ namespace level_machine {
             manifest = new JObject {
                 {"path", name},
                 {"layers", new JObject()},
-                {"entities", new JArray(render.Entities.Select(EntityToJsonDeprecated))},
                 {"properties", new JObject(render.Level.Tags.Select(t => new JProperty(t.Item1, t.Item2)))},
                 {"blocks", new JArray(render.Level.Blocks.Select(BlockToJson))},
             };
@@ -45,15 +44,6 @@ namespace level_machine {
             using (var jtw = new JsonTextWriter(sw)) {
                 manifest.WriteTo(jtw);
             }
-        }
-
-        private static JObject EntityToJsonDeprecated(Entity entity) {
-            return new JObject {
-                {"kind", entity.Kind},
-                {"x", entity.X},
-                {"y", entity.Y},
-                {"properties", JObject.FromObject(entity.Tags.ToDictionary(t => t.Item1, t => t.Item2))},
-            };
         }
 
         private static JObject BlockToJson(Block block) {
