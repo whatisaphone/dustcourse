@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System;
+using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Drawing;
@@ -25,9 +25,10 @@ namespace level_machine {
         private void Run() {
             manifest = new JObject {
                 {"path", name},
-                {"properties", new JObject(render.Tags.Select(t => new JProperty(t.Item1, t.Item2)))},
                 {"layers", new JObject()},
-                {"entities", new JArray(render.Entities.Select(EntityToJson))},
+                {"entities", new JArray(render.Entities.Select(EntityToJsonDeprecated))},
+                {"properties", new JObject(render.Level.Tags.Select(t => new JProperty(t.Item1, t.Item2)))},
+                {"blocks", new JArray(render.Level.Blocks.Select(BlockToJson))},
             };
 
             Directory.CreateDirectory(Path.Combine(App.LevelAssetsOutputPath, name));
@@ -46,12 +47,54 @@ namespace level_machine {
             }
         }
 
-        private static JObject EntityToJson(Entity entity) {
+        private static JObject EntityToJsonDeprecated(Entity entity) {
             return new JObject {
                 {"kind", entity.Kind},
                 {"x", entity.X},
                 {"y", entity.Y},
                 {"properties", JObject.FromObject(entity.Tags.ToDictionary(t => t.Item1, t => t.Item2))},
+            };
+        }
+
+        private static JObject BlockToJson(Block block) {
+            return new JObject {
+                {"x", block.X},
+                {"y", block.Y},
+                {"slices", new JArray(block.Slices.Select(SliceToJson))},
+            };
+        }
+
+        private static JObject SliceToJson(Slice slice) {
+            return new JObject {
+                {"x", slice.Header.X},
+                {"y", slice.Header.Y},
+                {"enemy_count", slice.Header.EnemyCount},
+                {"filth_count", slice.Header.FilthCount},
+                {"tile_edge_count", slice.Header.TileEdgeCount},
+                {"filth_blocks", slice.Header.FilthBlocks},
+                {"tiles", new JArray(slice.Tiles.Select(TileToJson))},
+                {"filth", new JArray(slice.Filth.Select(f => new JArray(f.X, f.Y, Convert.ToBase64String(f.RawData))))},
+                {"props", new JArray(slice.Props.Select(PropToJson))},
+                {"entities", new JArray(slice.Entities.Select(EntityToJson))},
+            };
+        }
+
+        private static JArray TileToJson(Tile tile) {
+            return new JArray {tile.Layer, tile.X, tile.Y, Convert.ToBase64String(tile.RawData)};
+        }
+
+        private static JArray PropToJson(Prop prop) {
+            return new JArray {
+                prop.Field4, prop.X, prop.Y, prop.Rotation, prop.FlipHorz ? -1 : 1, prop.FlipVert ? -1 : 1,
+                prop.PropSet, prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub,
+            };
+        }
+
+        private static JArray EntityToJson(Entity entity) {
+            return new JArray {
+                entity.Kind, entity.X, entity.Y,
+                entity.Field24, entity.Field28, entity.Field2C, entity.Field30, entity.Field34,
+                JObject.FromObject(entity.Tags.ToDictionary(t => t.Item1, t => t.Item2)),
             };
         }
 

@@ -24,7 +24,7 @@ namespace level_machine {
             this.name = name;
             sprites = new SpriteLoader();
             result = new LevelRenderResult();
-            result.Tags = level.Tags;
+            result.Level = level;
             result.Entities = level.Blocks.SelectMany(b => b.Slices).SelectMany(s => s.Entities).ToList();
         }
 
@@ -56,7 +56,7 @@ namespace level_machine {
         }
 
         private void DrawBlock(Block block) {
-            foreach (var slicesByPos in block.Slices.GroupBy(s => Tuple.Create(s.Header.X, + s.Header.Y))) {
+            foreach (var slicesByPos in block.Slices.GroupBy(s => Tuple.Create(s.Header.X, s.Header.Y))) {
                 var sliceX = slicesByPos.Key.Item1;
                 var sliceY = slicesByPos.Key.Item2;
 
@@ -64,14 +64,8 @@ namespace level_machine {
                     using (var image = new Bitmap(App.PixelsPerSlice + sliceOverdraw * 2, App.PixelsPerSlice + sliceOverdraw * 2))
                     using (var canvas = Graphics.FromImage(image)) {
                         bool drewAnything = false;
-                        foreach (var slice in slicesByPos) {
+                        foreach (var slice in slicesByPos)
                             drewAnything |= DrawTiles(canvas, slice, layer);
-                            drewAnything |= DrawProps(canvas, block, slice, layer);
-                            if (layer == 19)
-                                foreach (var filth in slice.Filth)
-                                    DrawFilth(canvas, slice, filth);
-                        }
-
                         if (!drewAnything)
                             continue;
 
@@ -84,7 +78,7 @@ namespace level_machine {
                         }
 
                         var area = new Rectangle(x - sliceOverdraw, y - sliceOverdraw, App.PixelsPerSlice, App.PixelsPerSlice);
-                        result.Tiles.Add(new RenderedTiles(path, area, layer));
+                        result.Tiles.Add(new RenderedTiles(level, path, area, layer));
                     }
                 }
             }
@@ -557,13 +551,13 @@ namespace level_machine {
     }
 
     internal sealed class LevelRenderResult {
-        public List<Tuple<string, object>> Tags;
+        public Level Level;
         public List<RenderedTiles> Tiles = new List<RenderedTiles>();
-        public List<Entity> Entities;
+        public List<Entity> Entities;  // TODO: one day, get rid of this field
     }
 
     internal sealed class RenderedTiles : MipMappable {
-        public RenderedTiles(string path, Rectangle area, int layer) {
+        public RenderedTiles(Level level, string path, Rectangle area, int layer) {
             Path = path;
             Area = area;
             Layer = layer;
