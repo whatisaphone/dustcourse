@@ -466,29 +466,6 @@ namespace level_machine {
         private static TileEdge e(int x1, int y1, int x2, int y2) {
             return new TileEdge(x1, y1, x2, y2);
         }
-
-        private static readonly ColorMatrix[] propLayerColors = {
-            MakeColorMatrixSimple(0x000000, 0xdddddd),
-            MakeColorMatrixSimple(0x23294d, 0xaeb4d8),
-            MakeColorMatrixSimple(0x1b203b, 0xc0c6e1),
-            MakeColorMatrixSimple(0x203048, 0x6c7c94),
-            MakeColorMatrixSimple(0x1a273b, 0x8794a8),
-            MakeColorMatrixSimple(0x010102, 0xf5f5f6),
-            MakeColorMatrixSimple(0x010102, 0xf8f8f9),
-            MakeColorMatrixSimple(0x000001, 0xfcfcfd),
-            MakeColorMatrixSimple(0x0d1025, 0x3a3d52),
-            MakeColorMatrixSimple(0x121628, 0x5a5e70),
-            MakeColorMatrixSimple(0x0e111f, 0x808291),
-            MakeColorMatrixSimple(0x000000, 0xffffff),
-            MakeColorMatrixSimple(0x121629, 0x55596c),
-            MakeColorMatrixSimple(0x0f1222, 0x727585),
-            MakeColorMatrixSimple(0x0e101e, 0x828593),
-            MakeColorMatrixSimple(0x080a12, 0xb6b7c0),
-            MakeColorMatrixSimple(0x000000, 0xffffff),
-            MakeColorMatrixSimple(0x000000, 0xffffff),
-            MakeColorMatrixSimple(0x04040a, 0xe5e5eb),
-            MakeColorMatrixSimple(0x000000, 0xffffff),
-        };
     }
 
     internal sealed class TileShape {
