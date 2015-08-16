@@ -1,87 +1,69 @@
 import { Rectangle } from './coords';
+import * as model from './model';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
-export function init(manifest: LevelManifest) {
+export function init(level: model.Level) {
+    model.levelPopulate(level);
+
     var widget = new wiamap.Widget();
 
     var el = widget.getElement();
     el.setAttribute('class', 'wiamap-stage');
     document.body.appendChild(el);
 
-    var fogEntity = findFogEntityNearestPlayer(manifest);
-    el.style.background = makeSkyGradient(manifest, fogEntity);
+    var fogEntity = findFogEntityNearestPlayer(level);
+    el.style.background = makeSkyGradient(level, fogEntity);
     if (fogEntity)
-        widget.addLayer(new StarsLayer(fogEntity.properties));
+        widget.addLayer(new StarsLayer(model.entityProperties(fogEntity)));
 
-    populateLayers(widget, manifest);
+    populateLayers(widget, level);
 
-    widget.scrollTo(manifest.properties['p1_x'], manifest.properties['p1_y'], 0.5);
+    widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
-function findFogEntityNearestPlayer(manifest: LevelManifest) {
-    var p1_x = manifest.properties['p1_x'];
-    var p1_y = manifest.properties['p1_y'];
-    var fogs = _.filter(manifest.entities, e => e.kind == 'fog_trigger');
-    var closestFog = _.min(fogs, e => Math.pow(p1_x - e.x, 2) + Math.pow(p1_y - e.y, 2));
+function findFogEntityNearestPlayer(level: model.Level) {
+    var p1_x = level.properties['p1_x'];
+    var p1_y = level.properties['p1_y'];
+    var fogs = _.filter(level.allEntities, e => model.entityName(e) == 'fog_trigger');
+    var closestFog = _.min(fogs, e => Math.pow(p1_x - model.entityX(e), 2) + Math.pow(p1_y - model.entityY(e), 2));
     return <any>closestFog !== Infinity ? closestFog : null;
 }
 
-function makeSkyGradient(manifest: LevelManifest, fogEntity: LevelManifestEntity) {
+function makeSkyGradient(level: model.Level, fogEntity: model.Entity) {
     if (fogEntity) {
+        var properties = model.entityProperties(fogEntity);
         return 'linear-gradient(' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][0]) + ',' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][1]) + ' ' +
-                (fogEntity.properties['gradient_middle'] * 100) + '%,' +
-            util.convertIntToColorRGB(fogEntity.properties['gradient'][2]) + ')';
+            util.convertIntToColorRGB(properties['gradient'][0]) + ',' +
+            util.convertIntToColorRGB(properties['gradient'][1]) + ' ' +
+                (properties['gradient_middle'] * 100) + '%,' +
+            util.convertIntToColorRGB(properties['gradient'][2]) + ')';
     }
 
     return 'linear-gradient(' +
-        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][0]) + ',' +
-        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][1]) + ' ' +
-            (manifest.properties['cp_background_middle'] * 100) + '%,' +
-        util.convertIntToColorRGB(manifest.properties['cp_background_colour'][2]) + ')';
+        util.convertIntToColorRGB(level.properties['cp_background_colour'][0]) + ',' +
+        util.convertIntToColorRGB(level.properties['cp_background_colour'][1]) + ' ' +
+            (level.properties['cp_background_middle'] * 100) + '%,' +
+        util.convertIntToColorRGB(level.properties['cp_background_colour'][2]) + ')';
 }
 
-function populateLayers(widget: wiamap.Widget, manifest: LevelManifest) {
-    _.each(manifest.layers, (layer, layerID) => {
+function populateLayers(widget: wiamap.Widget, level: model.Level) {
+    _.each(level.layers, (layer, layerID) => {
         var layerNum = parseInt(layerID, 10);
         var parallax = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
         var layerScale = layerNum <= 5 ? 1 : parallax;
         var scales = _.map(layer.scales, s => new LevelWiamapTileScale(s.scale, s.tile_size, layerScale, s.tiles));
-        var layerDef = new LevelWiamapTileLayerDef(manifest, layerID, scales, layerNum, parallax);
+        var layerDef = new LevelWiamapTileLayerDef(level, layerID, scales, layerNum, parallax);
         widget.addLayer(new wiamap.TileLayer(layerDef));
     });
 }
 
-interface LevelManifest {
-    path: string;
-    properties: { [key: string]: any };
-    layers: { [key: string]: LevelManifestLayer };
-    entities: LevelManifestEntity[];
-}
 
-interface LevelManifestLayer {
-    scales: LevelManifestTileScale[];
-}
-
-interface LevelManifestTileScale {
-    scale: number;
-    tile_size: [number, number];
-    tiles: [number, number][];
-}
-
-interface LevelManifestEntity {
-    kind: string;
-    x: number;
-    y: number;
-    properties: { [key: string]: any };
-}
 
 class LevelWiamapTileLayerDef implements wiamap.TileLayerDef {
     public type = "tile";
 
-    constructor(private manifest: LevelManifest, public id: string,
+    constructor(private level: model.Level, public id: string,
         public scales: wiamap.TileScale[], public zindex: number, public parallax: number) { }
 
     public getTile(scale: LevelWiamapTileScale, x: number, y: number): wiamap.Tile {
@@ -91,7 +73,7 @@ class LevelWiamapTileLayerDef implements wiamap.TileLayerDef {
             return;
 
         return {
-            imageURL: '/static/level-assets/' + this.manifest.path
+            imageURL: '/static/level-assets/' + this.level.path
                 + '/' + this.id + '_' + scale.scale + '_' + realX + ',' + realY + '.png',
         };
     }
