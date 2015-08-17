@@ -13,7 +13,7 @@ export function init(level: model.Level) {
     document.body.appendChild(el);
 
     var fogEntity = findFogEntityNearestPlayer(level);
-    el.style.background = makeSkyGradient(level, fogEntity);
+    el.style.background = makeBackgroundGradient(level, fogEntity);
     if (fogEntity)
         widget.addLayer(new StarsLayer(model.entityProperties(fogEntity)));
 
@@ -30,21 +30,20 @@ function findFogEntityNearestPlayer(level: model.Level) {
     return <any>closestFog !== Infinity ? closestFog : null;
 }
 
-function makeSkyGradient(level: model.Level, fogEntity: model.Entity) {
+function makeBackgroundGradient(level: model.Level, fogEntity: model.Entity) {
     if (fogEntity) {
         var properties = model.entityProperties(fogEntity);
-        return 'linear-gradient(' +
-            util.convertIntToColorRGB(properties['gradient'][0]) + ',' +
-            util.convertIntToColorRGB(properties['gradient'][1]) + ' ' +
-                (properties['gradient_middle'] * 100) + '%,' +
-            util.convertIntToColorRGB(properties['gradient'][2]) + ')';
+        return makeSkyGradient(properties['gradient'], properties['gradient_middle']);
     }
 
+    return makeSkyGradient(level.properties['cp_background_colour'], level.properties['cp_background_middle']);
+}
+
+function makeSkyGradient(colors: number[], middle: number) {
     return 'linear-gradient(' +
-        util.convertIntToColorRGB(level.properties['cp_background_colour'][0]) + ',' +
-        util.convertIntToColorRGB(level.properties['cp_background_colour'][1]) + ' ' +
-            (level.properties['cp_background_middle'] * 100) + '%,' +
-        util.convertIntToColorRGB(level.properties['cp_background_colour'][2]) + ')';
+        util.convertIntToColorRGB(colors[0]) + ',' +
+        util.convertIntToColorRGB(colors[1]) + ' ' + (middle * 100) + '%,' +
+        util.convertIntToColorRGB(colors[2]) + ')';
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
