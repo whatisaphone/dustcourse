@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -62,15 +63,21 @@ namespace level_machine {
                 {"filth_count", slice.Header.FilthCount},
                 {"tile_edge_count", slice.Header.TileEdgeCount},
                 {"filth_blocks", slice.Header.FilthBlocks},
-                {"tiles", new JArray(slice.Tiles.Select(TileToJson))},
+                {"tiles", TilesToJson(slice.Tiles)},
                 {"filth", new JArray(slice.Filth.Select(f => new JArray(f.X, f.Y, Convert.ToBase64String(f.RawData))))},
                 {"props", new JArray(slice.Props.Select(PropToJson))},
                 {"entities", new JArray(slice.Entities.Select(EntityToJson))},
             };
         }
 
+        private static JObject TilesToJson(IEnumerable<Tile> tiles) {
+            return JObject.FromObject(
+                tiles.GroupBy(t => t.Layer).OrderBy(g => g.Key)
+                    .ToDictionary(g => g.Key, g => g.Select(TileToJson)));
+        }
+
         private static JArray TileToJson(Tile tile) {
-            return new JArray {tile.Layer, tile.X, tile.Y, Convert.ToBase64String(tile.RawData)};
+            return new JArray {tile.X, tile.Y, Convert.ToBase64String(tile.RawData)};
         }
 
         private static JArray PropToJson(Prop prop) {

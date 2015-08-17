@@ -34,7 +34,7 @@ export interface Slice {
     filth_count: number;
     tile_edge_count: number;
     filth_blocks: number;
-    tiles: Tile[];
+    tiles: Tile[][];
     filth: Filth[];
     props: Prop[];
     entities: Entity[];
