@@ -20,6 +20,12 @@ export function levelPopulate(level: Level) {
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
 }
 
+export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: number) {
+    return new Rectangle(((block.x * slicesPerBlock + slice.x) * tilesPerSlice + tileX) * pixelsPerTile,
+                         ((block.y * slicesPerBlock + slice.y) * tilesPerSlice + tileY) * pixelsPerTile,
+                         pixelsPerTile, pixelsPerTile);
+}
+
 export function eachIntersectingSlice(level: Level, area: Rectangle, callback: (b: Block, s: Slice) => void) {
     for (var bx = Math.floor(area.left / pixelsPerBlock); bx < Math.ceil(area.right() / pixelsPerBlock); ++bx) {
         for (var by = Math.floor(area.top / pixelsPerBlock); by < Math.ceil(area.bottom() / pixelsPerBlock); ++by) {
@@ -72,6 +78,15 @@ export function filthX(f: Filth) { return f[0]; }
 export function filthY(f: Filth) { return f[1]; }
 export function filthEdges(f: Filth) { var d = atob(f[2]); return d.charCodeAt(0) | (d.charCodeAt(1) << 8); }
 export function filthCaps(f: Filth) { var d = atob(f[2]); return d.charCodeAt(10); }
+
+export function eachFilthEdge(filth: Filth, shape: TileShape, callback: (e: TileEdge, m: number, c: number) => void) {
+    var edges = filthEdges(filth);
+    var caps = filthCaps(filth);
+    if ((edges >> 0) & 0xf)  callback(shape.top,    (edges >> 0) & 0xf,  (caps >> 0) & 0x3);
+    if ((edges >> 4) & 0xf)  callback(shape.bottom, (edges >> 4) & 0xf,  (caps >> 2) & 0x3);
+    if ((edges >> 8) & 0xf)  callback(shape.left,   (edges >> 8) & 0xf,  (caps >> 4) & 0x3);
+    if ((edges >> 12) & 0xf) callback(shape.right,  (edges >> 12) & 0xf, (caps >> 6) & 0x3);
+}
 
 type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
 

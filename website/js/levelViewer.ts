@@ -1,6 +1,6 @@
 import { Point, Rectangle } from './coords';
 import * as model from './model';
-import SpriteLoader from './spriteLoader';
+import { SpriteAnim, SpriteLoader } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -57,7 +57,9 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
         widget.addLayer(new wiamap.TileLayer(layerDef));
     });
 
-    widget.addLayer(new FilthLayer(level));
+    var filthLayer = new FilthLayer(level);
+    widget.addLayer(filthLayer);
+    new FilthParticles(level, widget, filthLayer);
 }
 
 
@@ -129,29 +131,25 @@ class FilthLayer implements wiamap.Layer {
             _.each(slice.filth, filth => {
                 var filthX = model.filthX(filth);
                 var filthY = model.filthY(filth);
-                var filthEdges = model.filthEdges(filth);
-                var filthCaps = model.filthCaps(filth);
                 var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
                 var shape = model.tileShape(tile);
-                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.bottom, (filthEdges >> 4) & 0xf, (filthCaps >> 2) & 0x3);
-                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.left, (filthEdges >> 8) & 0xf, (filthCaps >> 4) & 0x3);
-                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.right, (filthEdges >> 12) & 0xf, (filthCaps >> 6) & 0x3);
-                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.top, (filthEdges >> 0) & 0xf, (filthCaps >> 0) & 0x3);
+                model.eachFilthEdge(filth, shape, (edge, center, caps) => {
+                    this.drawFilth(viewport, context, canvasRect, block, slice, filthX, filthY, edge, center, caps);
+                });
             });
         });
     }
 
-    private drawFilth(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle, block: model.Block, slice: model.Slice, filthX: number, filthY: number, edge: model.TileEdge, center: number, caps: number) {
-        if (!edge)
-            return;
-
+    private drawFilth(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle,
+                      block: model.Block, slice: model.Slice, filthX: number, filthY: number,
+                      edge: model.TileEdge, center: number, caps: number) {
         context.save();
-        var tileRect = new Rectangle(block.x * model.pixelsPerBlock + slice.x * model.pixelsPerSlice + filthX * model.pixelsPerTile + edge.x1 * model.pixelsPerTile,
-                                     block.y * model.pixelsPerBlock + slice.y * model.pixelsPerSlice + filthY * model.pixelsPerTile + edge.y1 * model.pixelsPerTile,
-                                     model.pixelsPerTile, model.pixelsPerTile);
-        tileRect = viewport.worldToScreenR(this, tileRect);
-        context.translate(tileRect.left - canvasRect.left, tileRect.top - canvasRect.top);
-        context.scale(tileRect.width / model.pixelsPerTile, tileRect.height / model.pixelsPerTile);
+        var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
+        tileRect.left += edge.x1 * model.pixelsPerTile;
+        tileRect.top += edge.y1 * model.pixelsPerTile;
+        var screenRect = viewport.worldToScreenR(this, tileRect);
+        context.translate(screenRect.left - canvasRect.left, screenRect.top - canvasRect.top);
+        context.scale(screenRect.width / model.pixelsPerTile, screenRect.height / model.pixelsPerTile);
         context.rotate(edge.angle);
         var length = edge.length * 50;
 
@@ -178,4 +176,107 @@ class FilthLayer implements wiamap.Layer {
 
         context.restore();
     }
+}
+
+class FilthParticles {
+    private element: HTMLCanvasElement;
+    private sprites = new SpriteLoader();
+    private particles: Particle[] = [];
+
+    constructor(private level: model.Level, private map: wiamap.Widget, private filthLayer: FilthLayer) {
+        this.element = document.createElement('canvas');
+        this.element.className = 'map-overlay';
+        document.body.appendChild(this.element);
+
+        requestAnimationFrame(() => this.animationFrame());
+    }
+
+    private animationFrame() {
+        var canvasWidth = this.element.clientWidth;
+        var canvasHeight = this.element.clientHeight;
+        if (this.element.width !== canvasWidth || this.element.height !== canvasHeight) {
+            this.element.width = canvasWidth;
+            this.element.height = canvasHeight;
+        }
+
+        var context = this.element.getContext('2d');
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        var worldRect = this.map.viewport.screenToWorldR(this.filthLayer, this.map.viewport.screenRect());
+        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            _.each(slice.filth, filth => {
+                var filthX = model.filthX(filth);
+                var filthY = model.filthY(filth);
+                var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
+                var shape = model.tileShape(tile);
+                var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
+                model.eachFilthEdge(filth, shape, (edge, center, caps) => {
+                    var particle = this.createParticle(tileRect, edge, center);
+                    if (particle) {
+                        this.particles.push(particle);
+                    }
+                });
+            });
+        });
+
+        for (var pi = 0; pi < this.particles.length; ++pi) {
+            var particle = this.particles[pi];
+            var sprite = this.sprites.get(particle.anim.urlPrefix + (Math.floor(particle.frame / particle.anim.frameDuration60) % particle.anim.frameCount + 1) + '_0001', () => { });
+            if (sprite) {
+                context.save();
+                var screenRect = this.map.viewport.screenRect();
+                var screen = this.map.viewport.worldToScreenP(this.filthLayer, new Point(particle.x, particle.y));
+                context.translate(screen.x - screenRect.left, screen.y - screenRect.top);
+                context.rotate(particle.rotation);
+                context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
+                context.translate(sprite.hitbox.left, sprite.hitbox.top);
+                context.globalAlpha = particle.alpha;
+                context.drawImage(sprite.image, 0, 0);
+                context.restore();
+            }
+            ++particle.frame;
+            particle.x += particle.dx;
+            particle.y += particle.dy;
+            if (particle.frame > particle.fadeOutStart) {
+                particle.alpha -= 1 / particle.fadeOutDuration;
+                if (particle.alpha <= 0) {
+                    this.particles.splice(pi, 1);
+                    --pi;
+                }
+            }
+        }
+
+        requestAnimationFrame(() => this.animationFrame());
+    }
+
+    private createParticle(tileRect: Rectangle, tileEdge: model.TileEdge, spriteSet: number) {
+        if (spriteSet === 2) {
+            if (Math.random() < 0.02)
+                return this.createLeaf(tileRect, tileEdge);
+        }
+    }
+
+    private createLeaf(tileRect: Rectangle, tileEdge: model.TileEdge) {
+        var anim = [
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift1_', 15),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift2_', 15),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift3_', 15),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin1_', 5),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin2_', 5),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin3_', 5),
+        ][Math.floor(Math.random() * 6)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var theta = Math.random() * Math.PI * 2;
+        var dx = (Math.random() + Math.sin(tileEdge.angle) * 0.75 - 0.5) * 1;
+        var dy = (Math.random() - Math.cos(tileEdge.angle) * 0.75 - 0.5) * 1;
+        return new Particle(anim, 30 + Math.random() * 90, 8 + Math.random() * 16, x, y, theta, dx, dy);
+    }
+}
+
+class Particle {
+    public frame = 1;
+    public alpha = 1;
+
+    constructor(public anim: SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
 }

@@ -1,6 +1,6 @@
 import { Rectangle } from './coords';
 
-export default class SpriteLoader {
+export class SpriteLoader {
     private sprites: { [url: string]: Sprite } = {};
 
     public get(url: string, loaded: () => void) {
@@ -44,4 +44,10 @@ class Sprite {
 
 interface SpriteMetadata {
     rect1: { t: number, l: number, b: number, r: number };
+}
+
+export class SpriteAnim {
+	public frameDuration60 = 6;
+
+	constructor(public urlPrefix: string, public frameCount: number) { }
 }
