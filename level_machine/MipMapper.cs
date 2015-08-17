@@ -26,9 +26,9 @@ namespace level_machine {
         private void Run() {
             manifest = new JObject {
                 {"path", name},
-                {"layers", new JObject()},
                 {"properties", new JObject(render.Level.Tags.Select(t => new JProperty(t.Item1, t.Item2)))},
                 {"blocks", new JArray(render.Level.Blocks.Select(BlockToJson))},
+                {"prerenders", new JObject()},
             };
 
             Directory.CreateDirectory(Path.Combine(App.LevelAssetsOutputPath, name));
@@ -134,12 +134,12 @@ namespace level_machine {
                             }
                         }
 
-                        var manifestLayers = manifest.Value<JObject>("layers");
-                        var layer = manifestLayers.Value<JObject>(bucket.Key);
-                        if (layer == null) {
-                            manifestLayers.Add(bucket.Key, layer = new JObject{{"scales", new JArray()}});
+                        var prerenders = manifest.Value<JObject>("prerenders");
+                        var prerender = prerenders.Value<JObject>(bucket.Key);
+                        if (prerender == null) {
+                            prerenders.Add(bucket.Key, prerender = new JObject{{"scales", new JArray()}});
                         }
-                        var scales = layer.Value<JArray>("scales");
+                        var scales = prerender.Value<JArray>("scales");
                         var scale = scales.Where(s => s.Value<float>("scale") == zoom).Select(p => p.Value<JObject>()).FirstOrDefault();
                         if (scale == null) {
                             scales.Add(scale = new JObject {

@@ -47,7 +47,7 @@ function makeSkyGradient(colors: number[], middle: number) {
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
-    _.each(level.layers, (layer, layerID) => {
+    _.each(level.prerenders, (layer, layerID) => {
         var layerNum = parseInt(layerID, 10);
         var parallax = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
         var layerScale = layerNum <= 5 ? 1 : parallax;

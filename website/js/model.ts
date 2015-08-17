@@ -1,8 +1,8 @@
 export interface Level {
     path: string;
     properties: { [key: string]: any };
-    layers: { [key: string]: Layer };
     blocks: Block[];
+    prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
 }
 
@@ -11,11 +11,11 @@ export function levelPopulate(level: Level) {
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
 }
 
-interface Layer {
-    scales: TileScale[];
+interface PrerenderLayer {
+    scales: PrerenderTileScale[];
 }
 
-interface TileScale {
+interface PrerenderTileScale {
     scale: number;
     tile_size: [number, number];
     tiles: [number, number][];
