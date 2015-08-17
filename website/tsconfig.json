@@ -1,0 +1,23 @@
+{
+    "version": "1.5.0-beta",
+    "compilerOptions": {
+        "module": "commonjs",
+        "noImplicitAny": true,
+        "outDir": "../build/website-intermediate"
+    },
+    "filesGlob": [
+        "./**/*.ts"
+    ],
+    "files": [
+        "./index.ts",
+        "./js/algo.ts",
+        "./js/coords.ts",
+        "./js/dragscroll.ts",
+        "./js/imageCache.ts",
+        "./js/index.ts",
+        "./js/levelViewer.ts",
+        "./js/model.ts",
+        "./js/util.ts",
+        "./js/wiamap.ts"
+    ]
+}

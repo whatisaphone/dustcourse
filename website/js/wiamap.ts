@@ -26,7 +26,7 @@ export class Widget implements DragScroll.Callback {
         this.layers.push(layer);
     }
 
-    public setViewportSize(size) {
+    public setViewportSize(size: Size) {
         this.viewport = new Viewport(this.viewport.position, size, this.viewport.zoom);
     }
 
@@ -96,9 +96,9 @@ export class Viewport {
 }
 
 export interface View {
-    getElement();
-    redrawArea(layer: Layer, area: Rectangle);
-    onViewportChanged();
+    getElement(): HTMLElement;
+    redrawArea(layer: Layer, area: Rectangle): void;
+    onViewportChanged(): void;
 }
 
 class NaiveCanvasView implements View {
@@ -319,11 +319,11 @@ export interface Layer {
     def: LayerDef;
     callback: LayerCallback;
 
-    draw(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle);
+    draw(viewport: Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle): void;
 }
 
 export interface LayerCallback {
-    redrawArea(layer: Layer, area: Rectangle);
+    redrawArea(layer: Layer, area: Rectangle): void;
 }
 
 export class TileLayer implements Layer {

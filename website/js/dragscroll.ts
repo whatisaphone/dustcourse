@@ -54,9 +54,9 @@ class DragScroll {
 
 module DragScroll {
 	export interface Callback {
-		scrollRelative(x: number, y: number);
+		scrollRelative(x: number, y: number): void;
 		getViewport(): Rectangle;
-		setViewport(viewport: Rectangle);
+		setViewport(viewport: Rectangle): void;
 	}
 }
 

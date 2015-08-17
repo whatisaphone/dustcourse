@@ -2,7 +2,7 @@
 
 In one window, run:
 
-    gulp watch-website
+    gulp watch-website --dev
 
 In another, run:
 
