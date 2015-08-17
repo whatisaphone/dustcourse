@@ -6,8 +6,9 @@ namespace level_machine {
     internal static class App {
         public const int NumLayers = 20;
         public const int PixelsPerTile = 48;
+        public const int TilesPerSlice = 16;
         public const int SlicesPerBlock = 16;
-        public const int PixelsPerSlice = PixelsPerTile * SlicesPerBlock;
+        public const int PixelsPerSlice = PixelsPerTile * TilesPerSlice;
         public const string SpritesPath = "T:\\Dev\\Projects\\Dustworld\\build\\sprites";
         public const string IntermediatePath = "T:\\Dev\\Projects\\Dustworld\\build\\intermediate";
         public const string LevelAssetsOutputPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\static\\level-assets";
