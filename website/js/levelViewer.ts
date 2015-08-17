@@ -1,5 +1,6 @@
-import { Rectangle } from './coords';
+import { Point, Rectangle } from './coords';
 import * as model from './model';
+import SpriteLoader from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -55,8 +56,9 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
         var layerDef = new LevelWiamapTileLayerDef(level, layerID, scales, layerNum, parallax);
         widget.addLayer(new wiamap.TileLayer(layerDef));
     });
-}
 
+    widget.addLayer(new FilthLayer(level));
+}
 
 
 class LevelWiamapTileLayerDef implements wiamap.TileLayerDef {
@@ -110,5 +112,70 @@ class StarsLayer implements wiamap.Layer {
             // TODO: glowing circle instead of flat square
             context.fillRect(x, y, 2, 2);
         }
+    }
+}
+
+class FilthLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
+    public callback: wiamap.LayerCallback;
+    private sprites = new SpriteLoader();
+
+    constructor(private level: model.Level) {
+        this.def = { id: 'filth', zindex: 19, parallax: 1 };
+    }
+
+    public draw(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle) {
+        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            _.each(slice.filth, filth => {
+                var filthX = model.filthX(filth);
+                var filthY = model.filthY(filth);
+                var filthEdges = model.filthEdges(filth);
+                var filthCaps = model.filthCaps(filth);
+                var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
+                var shape = model.tileShape(tile);
+                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.bottom, (filthEdges >> 4) & 0xf, (filthCaps >> 2) & 0x3);
+                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.left, (filthEdges >> 8) & 0xf, (filthCaps >> 4) & 0x3);
+                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.right, (filthEdges >> 12) & 0xf, (filthCaps >> 6) & 0x3);
+                this.drawFilth(viewport, context, canvasRect, worldRect, block, slice, filthX, filthY, shape.top, (filthEdges >> 0) & 0xf, (filthCaps >> 0) & 0x3);
+            });
+        });
+    }
+
+    private drawFilth(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle, block: model.Block, slice: model.Slice, filthX: number, filthY: number, edge: model.TileEdge, center: number, caps: number) {
+        if (!edge)
+            return;
+
+        context.save();
+        var tileRect = new Rectangle(block.x * model.pixelsPerBlock + slice.x * model.pixelsPerSlice + filthX * model.pixelsPerTile + edge.x1 * model.pixelsPerTile,
+                                     block.y * model.pixelsPerBlock + slice.y * model.pixelsPerSlice + filthY * model.pixelsPerTile + edge.y1 * model.pixelsPerTile,
+                                     model.pixelsPerTile, model.pixelsPerTile);
+        tileRect = viewport.worldToScreenR(this, tileRect);
+        context.translate(tileRect.left - canvasRect.left, tileRect.top - canvasRect.top);
+        context.scale(tileRect.width / model.pixelsPerTile, tileRect.height / model.pixelsPerTile);
+        context.rotate(edge.angle);
+        var length = edge.length * 50;
+
+        if (center) {
+            var url = '/static/sprites/area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
+            var sprite = this.sprites.get(url, () => { /* TODO: somehow queue up this.callback.redrawArea(this, worldRect);*/ });
+            if (sprite)
+                context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top, length, sprite.hitbox.height);
+        }
+
+        if (caps & 1) {
+            var url = '/static/sprites/area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
+            var sprite = this.sprites.get(url, () => { /* TODO: somehow queue up this.callback.redrawArea(this, worldRect);*/ });
+            if (sprite)
+                context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);
+        }
+
+        if (caps & 2) {
+            var url = '/static/sprites/area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
+            var sprite = this.sprites.get(url, () => { /* TODO: somehow queue up this.callback.redrawArea(this, worldRect);*/ });
+            if (sprite)
+                context.drawImage(sprite.image, length + sprite.hitbox.left, sprite.hitbox.top);
+        }
+
+        context.restore();
     }
 }

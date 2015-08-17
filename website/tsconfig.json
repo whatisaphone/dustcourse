@@ -17,6 +17,7 @@
         "./js/index.ts",
         "./js/levelViewer.ts",
         "./js/model.ts",
+        "./js/spriteLoader.ts",
         "./js/util.ts",
         "./js/wiamap.ts"
     ]
