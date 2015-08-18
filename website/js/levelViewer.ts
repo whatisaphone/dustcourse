@@ -125,6 +125,9 @@ class StarsLayer implements wiamap.Layer {
             // TODO: glowing circle instead of flat square
             context.fillRect(x, y, 2, 2);
         }
+
+        if (this.level.currentFog)
+            applyFog(context, canvasRect.width, canvasRect.height, this.level.currentFog, 0);
     }
 }
 
@@ -413,6 +416,19 @@ class PropsAnimator {
             });
         });
 
+        if (this.level.currentFog)
+            applyFog(context, canvasWidth, canvasHeight, this.level.currentFog, this.layerNum);
+
         requestAnimationFrame(() => this.animationFrame());
     }
+}
+
+function applyFog(context: CanvasRenderingContext2D, width: number, height: number, fog: model.Entity, layerNum: number) {
+    var fogProps = model.entityProperties(fog);
+    context.save();
+    context.fillStyle = util.convertIntToColorRGB(fogProps['fog_colour'][layerNum]);
+    context.globalAlpha = fogProps['fog_per'][layerNum];
+    context.globalCompositeOperation = 'source-atop';
+    context.fillRect(0, 0, width, height);
+    context.restore();
 }
