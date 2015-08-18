@@ -65,6 +65,31 @@ export class SpriteAnim {
 
 var props: { [key: string]: SpriteAnim } = _.object([
     new SpriteAnim('/static/sprites/area/city/props/facade_5_', 6, 6),
+    new SpriteAnim('/static/sprites/area/city/props/lighting_1_', 6, 6),
+    new SpriteAnim('/static/sprites/area/city/props/lighting_2_', 6, 6),
+    new SpriteAnim('/static/sprites/area/forest/props/decoration_1_', 7, 6),
+    new SpriteAnim('/static/sprites/area/forest/props/lighting_1_', 6, 6),
+    new SpriteAnim('/static/sprites/area/forest/props/lighting_2_', 6, 6),
+    new SpriteAnim('/static/sprites/area/laboratory/props/machinery_18_', 10, 6),
+    new SpriteAnim('/static/sprites/area/laboratory/props/machinery_19_', 10, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/furniture_9_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_1_', 5, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_2_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_3_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_4_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_5_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_6_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_7_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_8_', 6, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_9_', 18, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_10_', 2, 6),
+    new SpriteAnim('/static/sprites/area/mansion/props/lighting_11_', 2, 6),
+    new SpriteAnim('/static/sprites/area/nexus/props/npc_1_', 15, 6),  // actually, this one is 3 animated sprites in 45 frames. what to do..?
+    new SpriteAnim('/static/sprites/area/nexus/props/npc_2_', 21, 6),
+    new SpriteAnim('/static/sprites/area/nexus/props/npc_3_', 15, 6),
+    new SpriteAnim('/static/sprites/area/nexus/props/npc_4_', 10, 6),
+    new SpriteAnim('/static/sprites/area/nexus/props/npc_5_', 12, 6),
+    new SpriteAnim('/static/sprites/area/tutorial/props/npc_1_', 17, 6),
 ].map(a => [a.urlPrefix, a]));
 
 export function propAnim(set: number, group: number, index: number, palette: number) {
