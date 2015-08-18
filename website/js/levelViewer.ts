@@ -237,7 +237,7 @@ class FilthParticles {
             ++particle.frame;
             particle.x += particle.dx;
             particle.y += particle.dy;
-            if (particle.frame > particle.fadeOutStart) {
+            if (particle.frame >= particle.fadeOutStart) {
                 particle.alpha -= 1 / particle.fadeOutDuration;
                 if (particle.alpha <= 0) {
                     this.particles.splice(pi, 1);
@@ -250,10 +250,21 @@ class FilthParticles {
     }
 
     private createParticle(tileRect: Rectangle, tileEdge: model.TileEdge, spriteSet: number) {
-        if (spriteSet === 2) {
+        if (spriteSet === 1) {
+            if (Math.random() < 0.02)
+                return this.createDust(tileRect, tileEdge);
+        } else if (spriteSet === 2) {
             if (Math.random() < 0.02)
                 return this.createLeaf(tileRect, tileEdge);
         }
+    }
+
+    private generateParticleDrift(angle: number, parMin: number, parMax: number, perpMin: number, perpMax: number) {
+        var par = parMin + Math.random() * (parMax - parMin);
+        var perp = perpMin + Math.random() * (perpMax - perpMin);
+        var x = Math.cos(angle) * par + Math.sin(angle) * perp;
+        var y = Math.sin(angle) * par + Math.cos(angle) * perp;
+        return [x, -y];  // negative y, because converting from cartesian coords to computer coords
     }
 
     private createLeaf(tileRect: Rectangle, tileEdge: model.TileEdge) {
@@ -268,9 +279,20 @@ class FilthParticles {
         var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
         var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
         var theta = Math.random() * Math.PI * 2;
-        var dx = (Math.random() + Math.sin(tileEdge.angle) * 0.75 - 0.5) * 1;
-        var dy = (Math.random() - Math.cos(tileEdge.angle) * 0.75 - 0.5) * 1;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.5, 0.5, 0, 1);
         return new Particle(anim, 30 + Math.random() * 90, 8 + Math.random() * 16, x, y, theta, dx, dy);
+    }
+
+    private createDust(tileRect: Rectangle, tileEdge: model.TileEdge) {
+        var anim = [
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust1_', 13),
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust2_', 8),
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust3_', 6),
+        ][Math.floor(Math.random() * 3)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
+        return new Particle(anim, anim.frameCount * anim.frameDuration60, 1, x, y, 0, dx, dy);
     }
 }
 
