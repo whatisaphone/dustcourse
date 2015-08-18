@@ -47,7 +47,5 @@ interface SpriteMetadata {
 }
 
 export class SpriteAnim {
-	public frameDuration60 = 6;
-
-	constructor(public urlPrefix: string, public frameCount: number) { }
+	constructor(public urlPrefix: string, public frameCount: number, public frameDuration60: number) { }
 }

@@ -256,6 +256,9 @@ class FilthParticles {
         } else if (spriteSet === 2) {
             if (Math.random() < 0.02)
                 return this.createLeaf(tileRect, tileEdge);
+        } else if (spriteSet === 3) {
+            if (Math.random() < 0.0075)
+                return this.createTrash(tileRect, tileEdge);
         }
     }
 
@@ -269,12 +272,12 @@ class FilthParticles {
 
     private createLeaf(tileRect: Rectangle, tileEdge: model.TileEdge) {
         var anim = [
-            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift1_', 15),
-            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift2_', 15),
-            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift3_', 15),
-            new SpriteAnim('/static/sprites/area/forest/particles/leafspin1_', 5),
-            new SpriteAnim('/static/sprites/area/forest/particles/leafspin2_', 5),
-            new SpriteAnim('/static/sprites/area/forest/particles/leafspin3_', 5),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift1_', 15, 6),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift2_', 15, 6),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafdrift3_', 15, 6),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin1_', 5, 6),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin2_', 5, 6),
+            new SpriteAnim('/static/sprites/area/forest/particles/leafspin3_', 5, 6),
         ][Math.floor(Math.random() * 6)];
         var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
         var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
@@ -285,10 +288,23 @@ class FilthParticles {
 
     private createDust(tileRect: Rectangle, tileEdge: model.TileEdge) {
         var anim = [
-            new SpriteAnim('/static/sprites/area/mansion/particles/dust1_', 13),
-            new SpriteAnim('/static/sprites/area/mansion/particles/dust2_', 8),
-            new SpriteAnim('/static/sprites/area/mansion/particles/dust3_', 6),
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust1_', 13, 6),
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust2_', 8, 6),
+            new SpriteAnim('/static/sprites/area/mansion/particles/dust3_', 6, 6),
         ][Math.floor(Math.random() * 3)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
+        return new Particle(anim, anim.frameCount * anim.frameDuration60, 1, x, y, 0, dx, dy);
+    }
+
+    private createTrash(tileRect: Rectangle, tileEdge: model.TileEdge) {
+        var anim = [
+            new SpriteAnim('/static/sprites/area/city/particles/bigpuff_', 5, 12),
+            new SpriteAnim('/static/sprites/area/city/particles/medpuff_', 5, 12),
+            new SpriteAnim('/static/sprites/area/city/particles/littlepuff_', 8, 12),
+            new SpriteAnim('/static/sprites/area/city/particles/fly1_', 21, 6),
+        ][Math.floor(Math.random() * 4)];
         var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
         var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
         var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
