@@ -262,6 +262,9 @@ class FilthParticles {
         } else if (spriteSet === 4) {
             if (Math.random() < 0.01)
                 return this.createSlime(tileRect, tileEdge);
+        } else if (spriteSet === 5) {
+            if (Math.random() < 0.025)
+                return this.createPolygon(tileRect, tileEdge);
         }
     }
 
@@ -323,6 +326,18 @@ class FilthParticles {
         var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
         var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
         return new Particle(anim, anim.frameCount * anim.frameDuration60, 1, x, y, 0, dx, dy);
+    }
+
+    private createPolygon(tileRect: Rectangle, tileEdge: model.TileEdge) {
+        var anim = [
+            new SpriteAnim('/static/sprites/area/tutorial/particles/poly1_', 8, 6),
+            new SpriteAnim('/static/sprites/area/tutorial/particles/poly2_', 6, 6),
+        ][Math.floor(Math.random() * 2)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var theta = Math.random() * Math.PI * 2;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.5, 0.5, 0, 1);
+        return new Particle(anim, 120 + Math.random() * 120, 8 + Math.random() * 16, x, y, theta, dx, dy);
     }
 }
 
