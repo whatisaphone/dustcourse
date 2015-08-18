@@ -110,7 +110,7 @@ class StarsLayer implements wiamap.Layer {
                 ? [0, midpoint, this.fog['star_top'], this.fog['star_middle']]
                 : [midpoint, viewport.size.height, this.fog['star_middle'], this.fog['star_bottom']];
             var pct = (canvasRect.top + y - topY) / (botY - topY);
-            context.globalAlpha = Math.max(0, Math.min(1, topA * pct + botA * (1 - pct)));
+            context.globalAlpha = Math.max(0, Math.min(1, topA * (1 - pct) + botA * pct));
             // TODO: glowing circle instead of flat square
             context.fillRect(x, y, 2, 2);
         }
