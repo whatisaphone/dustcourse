@@ -103,7 +103,34 @@ export function propAnim(set: number, group: number, index: number, palette: num
 }
 
 var entities: { [key: string]: SpriteAnim } = {
+    'enemy_bear': new SpriteAnim('/static/sprites/entities/forest/bear/idle_', 8, 6),
+    'enemy_book': new SpriteAnim('/static/sprites/entities/mansion/book/airidle_', 6, 6),
+    'enemy_butler': new SpriteAnim('/static/sprites/entities/mansion/butler/walk_', 10, 6),
+    'enemy_chest_scrolls': new SpriteAnim('/static/sprites/entities/mansion/chest/idle_', 7, 6),
     'enemy_critter': new SpriteAnim('/static/sprites/entities/forest/critter/airidle_', 7, 6),
+    'enemy_flag': new SpriteAnim('/static/sprites/entities/mansion/flag/idle_', 8, 6),
+    'enemy_gargoyle_big': new SpriteAnim('/static/sprites/entities/mansion/bgargoyle/idle_', 10, 6),
+    'enemy_gargoyle_small': new SpriteAnim('/static/sprites/entities/mansion/gargoyle/airidle_', 6, 6),
+    'enemy_key': new SpriteAnim('/static/sprites/entities/mansion/key/idle_', 8, 6),
+    'enemy_knight': new SpriteAnim('/static/sprites/entities/mansion/knight/idle_', 10, 6),
+    'enemy_maid': new SpriteAnim('/static/sprites/entities/mansion/maid/walk_', 9, 6),
+    'enemy_porcupine': new SpriteAnim('/static/sprites/entities/forest/porcupine/idle_', 6, 6),
+    'enemy_scrolls': new SpriteAnim('/static/sprites/entities/mansion/scroll/idle_', 3, 6),
+    'enemy_slime_ball': new SpriteAnim('/static/sprites/entities/laboratory/slimeball/airidle_', 7, 6),
+    'enemy_slime_barrel': new SpriteAnim('/static/sprites/entities/laboratory/barrel/airidle_', 15, 6),
+    'enemy_slime_beast': new SpriteAnim('/static/sprites/entities/laboratory/slimebeast/idle_', 8, 6),
+    'enemy_spring_ball': new SpriteAnim('/static/sprites/entities/laboratory/springball/idle_', 8, 6),
+    'enemy_stonebro': new SpriteAnim('/static/sprites/entities/forest/stonebro/idle_', 1, 1),
+    'enemy_stoneboss': new SpriteAnim('/static/sprites/entities/forest/stoneboss/idle_', 1, 1),
+    'enemy_trash_bag': new SpriteAnim('/static/sprites/entities/city/trashbag/spin_', 4, 6),
+    'enemy_trash_ball': new SpriteAnim('/static/sprites/entities/city/trashball/airidle_', 7, 6),
+    'enemy_trash_beast': new SpriteAnim('/static/sprites/entities/city/trashbeast/idle_', 8, 6),
+    'enemy_trash_can': new SpriteAnim('/static/sprites/entities/city/trashcan/idle_', 7, 6),
+    'enemy_trash_tire': new SpriteAnim('/static/sprites/entities/city/trashtire/idle_', 7, 6),
+    'enemy_treasure': new SpriteAnim('/static/sprites/entities/mansion/treasure/idle1_', 3, 6),
+    'enemy_tutorial_hexagon': new SpriteAnim('/static/sprites/entities/tutorial/hexagon/airidle_', 17, 6),
+    'enemy_tutorial_square': new SpriteAnim('/static/sprites/entities/tutorial/square/airidle_', 18, 6),
+    'enemy_wolf': new SpriteAnim('/static/sprites/entities/forest/wolf/idle_', 7, 6),
 };
 
 export function entityAnim(name: string) {
