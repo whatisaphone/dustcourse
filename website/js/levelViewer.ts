@@ -13,10 +13,8 @@ export function init(level: model.Level) {
     el.setAttribute('class', 'wiamap-stage');
     document.body.appendChild(el);
 
-    var fogEntity = findFogEntityNearestPlayer(level);
-    el.style.background = makeBackgroundGradient(level, fogEntity);
-    if (fogEntity)
-        widget.addLayer(new StarsLayer(model.entityProperties(fogEntity)));
+    level.currentFog = findFogEntityNearestPlayer(level);
+    el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
 
@@ -31,9 +29,9 @@ function findFogEntityNearestPlayer(level: model.Level) {
     return <any>closestFog !== Infinity ? closestFog : null;
 }
 
-function makeBackgroundGradient(level: model.Level, fogEntity: model.Entity) {
-    if (fogEntity) {
-        var properties = model.entityProperties(fogEntity);
+function makeBackgroundGradient(level: model.Level) {
+    if (level.currentFog) {
+        var properties = model.entityProperties(level.currentFog);
         return makeSkyGradient(properties['gradient'], properties['gradient_middle']);
     }
 
@@ -48,6 +46,8 @@ function makeSkyGradient(colors: number[], middle: number) {
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
+    widget.addLayer(new StarsLayer(level));
+
     var prerenderLayers = _.map(level.prerenders, (layer, layerID) => {
         var layerNum = parseInt(layerID, 10);
         var parallax = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
@@ -104,19 +104,22 @@ class StarsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public callback: wiamap.LayerCallback;
 
-    constructor(private fog: { [key: string]: any }) {
+    constructor(private level: model.Level) {
         this.def = { id: 'stars', zindex: 0, parallax: 0.025 };
     }
 
     public draw(viewport: wiamap.Viewport, context: CanvasRenderingContext2D, canvasRect: Rectangle, worldRect: Rectangle) {
+        if (!this.level.currentFog)
+            return;
+        var fog = model.entityProperties(this.level.currentFog);
         context.fillStyle = 'white';  // TODO: blend with white using fog_colour and fog_per
-        var midpoint = this.fog['gradient_middle'] * viewport.size.height;
+        var midpoint = fog['gradient_middle'] * viewport.size.height;
         for (var s = 0; s < 500; ++s) {
             var x = Math.random() * canvasRect.width;
             var y = Math.random() * canvasRect.height;
             var [topY, botY, topA, botA] = canvasRect.top + y < midpoint
-                ? [0, midpoint, this.fog['star_top'], this.fog['star_middle']]
-                : [midpoint, viewport.size.height, this.fog['star_middle'], this.fog['star_bottom']];
+                ? [0, midpoint, fog['star_top'], fog['star_middle']]
+                : [midpoint, viewport.size.height, fog['star_middle'], fog['star_bottom']];
             var pct = (canvasRect.top + y - topY) / (botY - topY);
             context.globalAlpha = Math.max(0, Math.min(1, topA * (1 - pct) + botA * pct));
             // TODO: glowing circle instead of flat square

@@ -13,6 +13,7 @@ export interface Level {
     blocks: Block[];
     prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
+    currentFog: Entity;
 }
 
 export function levelPopulate(level: Level) {
