@@ -89,7 +89,7 @@ export function eachFilthEdge(filth: Filth, shape: TileShape, callback: (e: Tile
     if ((edges >> 12) & 0xf) callback(shape.right,  (edges >> 12) & 0xf, (caps >> 6) & 0x3);
 }
 
-type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
+export type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
 export function propX(p: Prop) { return p[1]; }
 export function propY(p: Prop) { return p[2]; }
 export function propRotation(p: Prop) { return p[3]; }

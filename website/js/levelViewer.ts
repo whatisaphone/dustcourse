@@ -391,28 +391,8 @@ class PropsAnimator {
         var worldRect = this.map.viewport.screenToWorldR(this.tileLayer, this.map.viewport.screenRect());
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
-                if (model.propLayerGroup(prop) !== this.layerNum)
-                    return;
-
-                var anim = propAnim(model.propSet(prop), model.propGroup(prop),
-                                  model.propIndex(prop), model.propPalette(prop));
-                var sprite = this.sprites.get(anim.pathForFrame(this.frame), () => { });
-                if (sprite) {
-                    context.save();
-                    var propX = model.propX(prop);
-                    var propY = model.propY(prop);
-
-                    propX -= Math.floor(propX / 286) * 32;
-                    propY += Math.floor(propY / 232) * 32;
-                    // TODO: rotation and scaling
-
-                    var canvasRect = this.map.viewport.screenRect();
-                    var screenRect = this.map.viewport.worldToScreenP(this.tileLayer, new Point(propX, propY));
-                    context.translate(screenRect.x - canvasRect.left, screenRect.y - canvasRect.top);
-                    context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
-                    context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);
-                    context.restore();
-                }
+                if (model.propLayerGroup(prop) === this.layerNum)
+                    this.drawProp(context, prop);
             });
         });
 
@@ -420,6 +400,29 @@ class PropsAnimator {
             applyFog(context, canvasWidth, canvasHeight, this.level.currentFog, this.layerNum);
 
         requestAnimationFrame(() => this.animationFrame());
+    }
+
+    private drawProp(context: CanvasRenderingContext2D, prop: model.Prop) {
+        var anim = propAnim(model.propSet(prop), model.propGroup(prop),
+                          model.propIndex(prop), model.propPalette(prop));
+        var sprite = this.sprites.get(anim.pathForFrame(this.frame), () => { });
+        if (!sprite)
+            return;
+
+        context.save();
+        var propX = model.propX(prop);
+        var propY = model.propY(prop);
+
+        propX -= Math.floor(propX / 286) * 32;
+        propY += Math.floor(propY / 232) * 32;
+        // TODO: rotation and scaling
+
+        var canvasRect = this.map.viewport.screenRect();
+        var screenRect = this.map.viewport.worldToScreenP(this.tileLayer, new Point(propX, propY));
+        context.translate(screenRect.x - canvasRect.left, screenRect.y - canvasRect.top);
+        context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
+        context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);
+        context.restore();
     }
 }
 
