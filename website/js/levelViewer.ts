@@ -1,6 +1,6 @@
 import { Point, Rectangle } from './coords';
 import * as model from './model';
-import { SpriteAnim, SpriteLoader } from './spriteLoader';
+import { SpriteAnim, SpriteLoader, propAnim } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -48,13 +48,21 @@ function makeSkyGradient(colors: number[], middle: number) {
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
-    _.each(level.prerenders, (layer, layerID) => {
+    var prerenderLayers = _.map(level.prerenders, (layer, layerID) => {
         var layerNum = parseInt(layerID, 10);
         var parallax = [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
         var layerScale = layerNum <= 5 ? 1 : parallax;
         var scales = _.map(layer.scales, s => new LevelWiamapTileScale(s.scale, s.tile_size, layerScale, s.tiles));
         var layerDef = new LevelWiamapTileLayerDef(level, layerID, scales, layerNum, parallax);
-        widget.addLayer(new wiamap.TileLayer(layerDef));
+        var ret = new wiamap.TileLayer(layerDef);
+        widget.addLayer(ret);
+        return ret;
+    });
+
+    _.each(_.range(1, 21), layerNum => {
+        var layer = _.find(prerenderLayers, l => parseInt(l.def.id, 10) === layerNum);
+        if (layer)
+            new PropsAnimator(level, widget, layerNum, layer);
     });
 
     var filthLayer = new FilthLayer(level);
@@ -346,4 +354,62 @@ class Particle {
     public alpha = 1;
 
     constructor(public anim: SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+}
+
+class PropsAnimator {
+    private element: HTMLCanvasElement;
+    private sprites = new SpriteLoader();
+    private frame = 0;
+
+    constructor(private level: model.Level, private map: wiamap.Widget, private layerNum: number, private tileLayer: wiamap.Layer) {
+        this.element = document.createElement('canvas');
+        this.element.className = 'map-overlay';
+        document.body.appendChild(this.element);
+
+        requestAnimationFrame(() => this.animationFrame());
+    }
+
+    private animationFrame() {
+        var canvasWidth = this.element.clientWidth;
+        var canvasHeight = this.element.clientHeight;
+        if (this.element.width !== canvasWidth || this.element.height !== canvasHeight) {
+            this.element.width = canvasWidth;
+            this.element.height = canvasHeight;
+        }
+
+        ++this.frame;
+
+        var context = this.element.getContext('2d');
+        context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+        var worldRect = this.map.viewport.screenToWorldR(this.tileLayer, this.map.viewport.screenRect());
+        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            _.each(slice.props, prop => {
+                if (model.propLayerGroup(prop) !== this.layerNum)
+                    return;
+
+                var anim = propAnim(model.propSet(prop), model.propGroup(prop),
+                                  model.propIndex(prop), model.propPalette(prop));
+                var sprite = this.sprites.get(anim.pathForFrame(this.frame), () => { });
+                if (sprite) {
+                    context.save();
+                    var propX = model.propX(prop);
+                    var propY = model.propY(prop);
+
+                    propX -= Math.floor(propX / 286) * 32;
+                    propY += Math.floor(propY / 232) * 32;
+                    // TODO: rotation and scaling
+
+                    var canvasRect = this.map.viewport.screenRect();
+                    var screenRect = this.map.viewport.worldToScreenP(this.tileLayer, new Point(propX, propY));
+                    context.translate(screenRect.x - canvasRect.left, screenRect.y - canvasRect.top);
+                    context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
+                    context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);
+                    context.restore();
+                }
+            });
+        });
+
+        requestAnimationFrame(() => this.animationFrame());
+    }
 }

@@ -5,7 +5,7 @@ export const tilesPerSlice = 16;
 export const slicesPerBlock = 16;
 export const pixelsPerSlice = pixelsPerTile * tilesPerSlice;
 export const pixelsPerBlock = pixelsPerTile * tilesPerSlice * slicesPerBlock;
-export const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];
+export const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];  // TODO: remove; only needed in spriteLoader
 
 export interface Level {
     path: string;
@@ -89,6 +89,17 @@ export function eachFilthEdge(filth: Filth, shape: TileShape, callback: (e: Tile
 }
 
 type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
+export function propX(p: Prop) { return p[1]; }
+export function propY(p: Prop) { return p[2]; }
+export function propRotation(p: Prop) { return p[3]; }
+export function propScaleHorz(p: Prop) { return p[4]; }
+export function propScaleVert(p: Prop) { return p[5]; }
+export function propSet(p: Prop) { return p[6]; }
+export function propGroup(p: Prop) { return p[7]; }
+export function propIndex(p: Prop) { return p[8]; }
+export function propPalette(p: Prop) { return p[9]; }
+export function propLayerGroup(p: Prop) { return p[10]; }
+export function propLayerSub(p: Prop) { return p[11]; }
 
 export type Entity = [string, number, number, number, number, boolean, boolean, boolean, { [name: string]: any }];
 export function entityName(e: Entity) { return e[0]; }
