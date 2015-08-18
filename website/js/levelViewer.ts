@@ -259,6 +259,9 @@ class FilthParticles {
         } else if (spriteSet === 3) {
             if (Math.random() < 0.0075)
                 return this.createTrash(tileRect, tileEdge);
+        } else if (spriteSet === 4) {
+            if (Math.random() < 0.01)
+                return this.createSlime(tileRect, tileEdge);
         }
     }
 
@@ -305,6 +308,17 @@ class FilthParticles {
             new SpriteAnim('/static/sprites/area/city/particles/littlepuff_', 8, 12),
             new SpriteAnim('/static/sprites/area/city/particles/fly1_', 21, 6),
         ][Math.floor(Math.random() * 4)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
+        return new Particle(anim, anim.frameCount * anim.frameDuration60, 1, x, y, 0, dx, dy);
+    }
+
+    private createSlime(tileRect: Rectangle, tileEdge: model.TileEdge) {
+        var anim = [
+            new SpriteAnim('/static/sprites/area/laboratory/particles/bigbubble_', 18, 6),
+            new SpriteAnim('/static/sprites/area/laboratory/particles/smallbubble_', 17, 6),
+        ][Math.floor(Math.random() * 2)];
         var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
         var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
         var [dx, dy] = this.generateParticleDrift(tileEdge.angle, -0.1, 0.1, 0, 0.2);
