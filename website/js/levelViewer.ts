@@ -397,7 +397,9 @@ class PropsAnimator {
 
             if (this.layerNum === 19) {  // TODO: this is actually 18, not 19. needs canvas created above. quick fix for later.
                 _.each(slice.entities, entity => {
-                    this.drawEntity(context, entity);
+                    var ai = _.find(slice.entities, e => model.entityName(e) === 'AI_controller' &&
+                                                         model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
+                    this.drawEntity(context, entity, ai);
                 });
             }
         });
@@ -431,7 +433,7 @@ class PropsAnimator {
         context.restore();
     }
 
-    private drawEntity(context: CanvasRenderingContext2D, entity: model.Entity) {
+    private drawEntity(context: CanvasRenderingContext2D, entity: model.Entity, ai: model.Entity) {
         var anim = entityAnim(model.entityName(entity));
         if (!anim)
             return;
@@ -441,6 +443,9 @@ class PropsAnimator {
 
         var entityX = model.entityX(entity);
         var entityY = model.entityY(entity);
+        if (ai) {
+            [entityX, entityY] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+        }
 
         context.save();
         var canvasRect = this.map.viewport.screenRect();

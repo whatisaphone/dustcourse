@@ -103,6 +103,7 @@ export function propLayerGroup(p: Prop) { return p[10]; }
 export function propLayerSub(p: Prop) { return p[11]; }
 
 export type Entity = [number, string, number, number, number, number, number, number, boolean, { [name: string]: any }];
+export function entityUid(e: Entity) { return e[0]; }
 export function entityName(e: Entity) { return e[1]; }
 export function entityX(e: Entity) { return e[2]; }
 export function entityY(e: Entity) { return e[3]; }
