@@ -1,6 +1,6 @@
 import { Point, Rectangle } from './coords';
 import * as model from './model';
-import { SpriteAnim, SpriteLoader, propAnim } from './spriteLoader';
+import { SpriteAnim, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -394,6 +394,12 @@ class PropsAnimator {
                 if (model.propLayerGroup(prop) === this.layerNum)
                     this.drawProp(context, prop);
             });
+
+            if (this.layerNum === 19) {  // TODO: this is actually 18, not 19. needs canvas created above. quick fix for later.
+                _.each(slice.entities, entity => {
+                    this.drawEntity(context, entity);
+                });
+            }
         });
 
         if (this.level.currentFog)
@@ -419,6 +425,26 @@ class PropsAnimator {
 
         var canvasRect = this.map.viewport.screenRect();
         var screenRect = this.map.viewport.worldToScreenP(this.tileLayer, new Point(propX, propY));
+        context.translate(screenRect.x - canvasRect.left, screenRect.y - canvasRect.top);
+        context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
+        context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);
+        context.restore();
+    }
+
+    private drawEntity(context: CanvasRenderingContext2D, entity: model.Entity) {
+        var anim = entityAnim(model.entityName(entity));
+        if (!anim)
+            return;
+        var sprite = this.sprites.get(anim.pathForFrame(this.frame), () => { });
+        if (!sprite)
+            return;
+
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+
+        context.save();
+        var canvasRect = this.map.viewport.screenRect();
+        var screenRect = this.map.viewport.worldToScreenP(this.tileLayer, new Point(entityX, entityY));
         context.translate(screenRect.x - canvasRect.left, screenRect.y - canvasRect.top);
         context.scale(this.map.viewport.zoom, this.map.viewport.zoom);
         context.drawImage(sprite.image, sprite.hitbox.left, sprite.hitbox.top);

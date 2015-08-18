@@ -101,3 +101,11 @@ export function propAnim(set: number, group: number, index: number, palette: num
         return props[prefix];
     return new SpriteAnim(prefix, 1, 1);  // TODO: have SpriteAnim use `palette` instead of 1 for its url
 }
+
+var entities: { [key: string]: SpriteAnim } = {
+    'enemy_critter': new SpriteAnim('/static/sprites/entities/forest/critter/airidle_', 7, 6),
+};
+
+export function entityAnim(name: string) {
+    return entities[name];
+}
