@@ -68,9 +68,9 @@ namespace level_machine {
                             prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
                     }
                     foreach (var entity in slice.Entities) {
-                        Console.WriteLine("    entity \"{0}\" x={1:N} y={2:N} ?={3:X4} ?={4:X2} ?={5} ?={6} ?={7} ?={8}",
-                            entity.Kind, entity.X, entity.Y, entity.Field24, entity.Field28,
-                            entity.Field2C ? 'Y' : 'N', entity.Field30 ? 'Y' : 'N', entity.Field34 ? 'Y' : 'N', Util.DumpKeyValueList(entity.Tags));
+                        Console.WriteLine("    entity uid={0} \"{1}\" x={2:N} y={3:N} rot={4:0.#} ?={5:X2} fh={6} fv={7} ?={8} | {9}",
+                            entity.Uid, entity.Kind, entity.X, entity.Y, entity.Rotation, entity.Field28,
+                            entity.FlipHorz ? 'Y' : 'N', entity.FlipVert ? 'Y' : 'N', entity.Field34 ? 'Y' : 'N', Util.DumpKeyValueList(entity.Tags));
                     }
                 }
             }

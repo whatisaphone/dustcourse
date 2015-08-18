@@ -89,8 +89,8 @@ namespace level_machine {
 
         private static JArray EntityToJson(Entity entity) {
             return new JArray {
-                entity.Kind, entity.X, entity.Y,
-                entity.Field24, entity.Field28, entity.Field2C, entity.Field30, entity.Field34,
+                entity.Uid, entity.Kind, entity.X, entity.Y, entity.Rotation,
+                entity.Field28, entity.FlipHorz ? -1 : 1, entity.FlipVert ? -1 : 1, entity.Field34,
                 JObject.FromObject(entity.Tags.ToDictionary(t => t.Item1, t => t.Item2)),
             };
         }

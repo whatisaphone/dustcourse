@@ -416,9 +416,9 @@ namespace level_machine {
             var buf = new byte[4];
 
             stream.Read(buf, 32);
-            var something = Util.MakeI32(buf);
+            var uid = Util.MakeI32(buf);
 
-            Debug.Assert((something & 0x80000000) == 0);
+            Debug.Assert((uid & 0x80000000) == 0);
             //if ((something & 0x80000000) == 0) {
             stream.Read(buf, 6);
             var count = buf[0];
@@ -427,23 +427,23 @@ namespace level_machine {
             var name = new string(chars, 0, count);
             //}
 
-            var entity = new Entity { Kind = name };
+            var entity = new Entity { Uid = uid, Kind = name };
             entity.X = stream.ReadFloat(32, 8);
             entity.Y = stream.ReadFloat(32, 8);
             stream.Read(buf, 16);
-            entity.Field24 = Util.MakeU16(buf);
+            entity.Rotation = (float) (Util.MakeU16(buf) * (65536 / 360.0));
             stream.Read(buf, 8);
             entity.Field28 = buf[0];
             stream.Read(buf, 1);
-            entity.Field2C = buf[0] != 0;  // buf[0] != 0 ? 1 : -1
+            entity.FlipHorz = buf[0] != 0;  // buf[0] != 0 ? 1 : -1
             stream.Read(buf, 1);
-            entity.Field30 = buf[0] != 0;  // buf[0] != 0 ? 1 : -1;
+            entity.FlipHorz = buf[0] != 0;  // buf[0] != 0 ? 1 : -1;
             stream.Read(buf, 1);
             entity.Field34 = buf[2] != 0;
             entity.Tags = ReadKeyValueList(stream);
             Trace("entity {0} {1:N} {2:N} {3:X4} {4:X2} {5} {6} {7} {8}",
-                name, entity.X, entity.Y, entity.Field24, entity.Field28,
-                entity.Field2C, entity.Field30, entity.Field34, Util.DumpKeyValueList(entity.Tags));
+                name, entity.X, entity.Y, entity.Rotation, entity.Field28,
+                entity.FlipHorz, entity.FlipVert, entity.Field34, Util.DumpKeyValueList(entity.Tags));
             return entity;
         }
 

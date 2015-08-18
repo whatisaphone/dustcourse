@@ -102,11 +102,11 @@ export function propPalette(p: Prop) { return p[9]; }
 export function propLayerGroup(p: Prop) { return p[10]; }
 export function propLayerSub(p: Prop) { return p[11]; }
 
-export type Entity = [string, number, number, number, number, boolean, boolean, boolean, { [name: string]: any }];
-export function entityName(e: Entity) { return e[0]; }
-export function entityX(e: Entity) { return e[1]; }
-export function entityY(e: Entity) { return e[2]; }
-export function entityProperties(e: Entity) { return e[8]; }
+export type Entity = [number, string, number, number, number, number, number, number, boolean, { [name: string]: any }];
+export function entityName(e: Entity) { return e[1]; }
+export function entityX(e: Entity) { return e[2]; }
+export function entityY(e: Entity) { return e[3]; }
+export function entityProperties(e: Entity) { return e[9]; }
 
 class TileShape {
     constructor(public top: TileEdge, public right: TileEdge, public bottom: TileEdge, public left: TileEdge) { }

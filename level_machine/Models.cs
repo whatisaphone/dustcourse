@@ -61,11 +61,12 @@ namespace level_machine {
     }
 
     internal sealed class Entity {
+        public int Uid;
         public string Kind;
         public float X, Y;
-        public ushort Field24;
+        public float Rotation;
         public byte Field28;
-        public bool Field2C, Field30, Field34;
+        public bool FlipHorz, FlipVert, Field34;
         public List<Tuple<string, object>> Tags;
     }
 }
