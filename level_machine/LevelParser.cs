@@ -138,15 +138,13 @@ namespace level_machine {
                         var second = stream.ReadFloat(32, 32);
                         value = String.Format("{0}, {1}", first, second);
                         break;
+                    case 13:
+                        value = ReadKeyValueList(stream);
+                        break;
                     default:
                         throw new InvalidDataException("unknown value type");
                         value = null;
                         break;
-                }
-
-                if (valueType == 14) {
-                    throw new NotImplementedException("must test this and also figure out what it does");
-                    ReadKeyValueList(stream);
                 }
 
                 if (array != null)
