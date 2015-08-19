@@ -36,7 +36,7 @@ namespace level_machine {
                     stream.Read(thumbnailBuffer, thumbnailSize * 8);
                 }
             }
-            level.Tags = ReadKeyValueList(stream);
+            level.Tags = Util.ReadKeyValueList(stream);
 
             var itemsOffset = ((stream.BitPosition - 1) / 8 + 1) + (4 * thingCount);
 
@@ -69,91 +69,6 @@ namespace level_machine {
             stream.Read(buffer, 32);  // ignored
             stream.Read(buffer, 32);
             int nested_field_3c = Util.MakeI32(buffer);
-        }
-
-        private static List<Tuple<string, object>> ReadKeyValueList(BitStream stream) {
-            var ret = new List<Tuple<string, object>>();
-            for (; ; ) {
-                var pair = ReadKeyValuePair(stream);
-                if (pair == null)
-                    return ret;
-                ret.Add(pair);
-            }
-        }
-
-        private static Tuple<string, object> ReadKeyValuePair(BitStream stream) {
-            var buf = new byte[4];
-            stream.Read(buf, 4);
-            var valueType = buf[0];
-            if (valueType == 0)
-                return null;
-
-            stream.Read(buf, 6);
-            var charCount = Util.MakeI32(buf);
-            var keyChars = new char[64];
-            stream.ReadPackedText(keyChars, charCount);
-            var key = new string(keyChars, 0, keyChars.ToList().IndexOf('\0'));
-            //            Trace(key);
-
-            ushort valueCount = 1;
-            List<object> array = null;
-            if (valueType == 15) {
-                stream.Read(buf, 4);
-                valueType = buf[0];
-                stream.Read(buf, 16);
-                valueCount = Util.MakeU16(buf);
-                array = new List<object>();
-            }
-
-            if (valueCount == 0) {
-                Debug.Assert(array != null);
-                return Tuple.Create(key, (object)array);
-            }
-
-            var curValue = 0;
-            for (; ; ) {
-                object value;
-                switch (valueType - 1) {
-                    case 0:
-                        stream.Read(buf, 1);
-                        value = buf[0] != 0;
-                        break;
-                    case 1:
-                    case 2:
-                        stream.Read(buf, 32);
-                        value = Util.MakeI32(buf);
-                        break;
-                    case 3:
-                        value = stream.ReadFloat(32, 32);
-                        break;
-                    case 4:
-                        stream.Read(buf, 16);
-                        var strBytes = Util.MakeU16(buf);
-                        var strBuf = new byte[strBytes];
-                        stream.Read(strBuf, strBytes * 8);
-                        value = Encoding.ASCII.GetString(strBuf);
-                        break;
-                    case 9:
-                        var first = stream.ReadFloat(32, 32);
-                        var second = stream.ReadFloat(32, 32);
-                        value = String.Format("{0}, {1}", first, second);
-                        break;
-                    case 13:
-                        value = ReadKeyValueList(stream);
-                        break;
-                    default:
-                        throw new InvalidDataException("unknown value type");
-                        value = null;
-                        break;
-                }
-
-                if (array != null)
-                    array.Add(value);
-
-                ++curValue;
-                if (curValue >= valueCount)
-                    return Tuple.Create(key, array ?? value);
-            }
         }
 
         private static Block LoadBlock(byte[] data) {
@@ -438,7 +353,7 @@ namespace level_machine {
             entity.FlipHorz = buf[0] != 0;  // buf[0] != 0 ? 1 : -1;
             stream.Read(buf, 1);
             entity.Field34 = buf[2] != 0;
-            entity.Tags = ReadKeyValueList(stream);
+            entity.Tags = Util.ReadKeyValueList(stream);
             Trace("entity {0} {1:N} {2:N} {3:X4} {4:X2} {5} {6} {7} {8}",
                 name, entity.X, entity.Y, entity.Rotation, entity.Field28,
                 entity.FlipHorz, entity.FlipVert, entity.Field34, Util.DumpKeyValueList(entity.Tags));
