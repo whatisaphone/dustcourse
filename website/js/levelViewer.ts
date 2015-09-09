@@ -109,7 +109,7 @@ class PrerenderedTileScale implements wiamap.TileScale {
 
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public callback: wiamap.LayerCallback;
+    public stage = new PIXI.Container();
     private frame = 0;
     private sprites = new SpriteLoader();
     private layerParams: DustforceLayerParams;
@@ -117,34 +117,33 @@ class PropsLayer implements wiamap.Layer {
     constructor(private level: model.Level, private layerNum: number) {
         this.layerParams = dustforceLayerParams(layerNum);
         this.def = { zindex: layerNum * 10, parallax: this.layerParams.parallax };
+
+        if (this.level.currentFog)
+            applyFog(this.stage, this.level.currentFog, this.layerNum);
     }
 
-    public draw(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         ++this.frame;
 
-        var child = new PIXI.Container();
-        target.addChild(child);
+        this.stage.removeChildren();
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
                 if (model.propLayerGroup(prop) === this.layerNum)
-                    this.drawProp(child, viewport, prop);
+                    this.drawProp(viewport, prop);
             });
 
             if (this.layerNum === 18) {
                 _.each(slice.entities, entity => {
                     var ai = _.find(slice.entities, e => model.entityName(e) === 'AI_controller' &&
                                                          model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
-                    this.drawEntity(child, viewport, entity, ai);
+                    this.drawEntity(viewport, entity, ai);
                 });
             }
         });
-
-        if (this.level.currentFog)
-            applyFog(child, this.level.currentFog, this.layerNum);
     }
 
-    private drawProp(target: PIXI.Container, viewport: wiamap.Viewport, prop: model.Prop) {
+    private drawProp(viewport: wiamap.Viewport, prop: model.Prop) {
         var anim = propAnim(model.propSet(prop), model.propGroup(prop),
                           model.propIndex(prop), model.propPalette(prop));
         var sprite = this.sprites.get(anim.pathForFrame(this.frame));
@@ -172,7 +171,7 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
 
-        target.addChild(createDustforceSprite(sprite, {
+        this.stage.addChild(createDustforceSprite(sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scaleX: viewport.zoom * scaleX,
@@ -180,7 +179,7 @@ class PropsLayer implements wiamap.Layer {
         }));
     }
 
-    private drawEntity(target: PIXI.Container, viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
+    private drawEntity(viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
         var anim = entityAnim(model.entityName(entity));
         if (!anim)
             return;
@@ -199,7 +198,7 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
 
-        target.addChild(createDustforceSprite(sprite, {
+        this.stage.addChild(createDustforceSprite(sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scale: viewport.zoom,
@@ -209,14 +208,15 @@ class PropsLayer implements wiamap.Layer {
 
 class FilthLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public callback: wiamap.LayerCallback;
+    public stage = new PIXI.Container();
     private sprites = new SpriteLoader();
 
     constructor(private level: model.Level) {
         this.def = { zindex: 191, parallax: 1 };
     }
 
-    public draw(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.stage.removeChildren();
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
                 var filthX = model.filthX(filth);
@@ -224,13 +224,13 @@ class FilthLayer implements wiamap.Layer {
                 var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
                 var shape = model.tileShape(tile);
                 model.eachFilthEdge(filth, shape, (edge, center, caps) => {
-                    this.drawFilth(target, viewport, canvasRect, block, slice, filthX, filthY, edge, center, caps);
+                    this.drawFilth(viewport, canvasRect, block, slice, filthX, filthY, edge, center, caps);
                 });
             });
         });
     }
 
-    private drawFilth(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle,
+    private drawFilth(viewport: wiamap.Viewport, canvasRect: Rectangle,
                       block: model.Block, slice: model.Slice, filthX: number, filthY: number,
                       edge: model.TileEdge, center: number, caps: number) {
         var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
@@ -244,7 +244,7 @@ class FilthLayer implements wiamap.Layer {
         child.scale.x = screenRect.width / model.pixelsPerTile;
         child.scale.y = screenRect.height / model.pixelsPerTile;
         child.rotation = edge.angle;
-        target.addChild(child);
+        this.stage.addChild(child);
         var length = edge.length * model.pixelsPerFilth;
 
         if (center) {

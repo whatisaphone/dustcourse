@@ -1,7 +1,7 @@
 import { Point, Rectangle, Size } from './coords';
 import DragScroll from './dragscroll';
 
-export class Widget implements LayerCallback,DragScroll.Callback {
+export class Widget implements DragScroll.Callback {
     private renderer: PIXI.SystemRenderer;
     private container: PIXI.Container;
     public viewport: Viewport;
@@ -47,24 +47,22 @@ export class Widget implements LayerCallback,DragScroll.Callback {
     }
 
     public addLayer(layer: Layer) {
-        layer.callback = this;
         this.layers.push(layer);
         this.layers.sort((x, y) => x.def.zindex - y.def.zindex);
-    }
-
-    public redrawArea(layer: Layer, area: Rectangle) {
-        throw new Error();
+        this.container.removeChildren();
+        _.each(this.layers, layer => {
+            this.container.addChild(layer.stage);
+        });
     }
 
     private draw() {
         var screenSize = new Size(this.getElement().clientWidth, this.getElement().clientHeight);
         this.viewport = new Viewport(this.viewport.position, screenSize, this.viewport.zoom);
         this.renderer.resize(screenSize.width, screenSize.height);
-        this.container.removeChildren();
         _.each(this.layers, layer => {
             var screenRect = this.viewport.screenRect();
             var worldRect = this.viewport.screenToWorldR(layer, screenRect);
-            layer.draw(this.container, this.viewport, screenRect, worldRect);
+            layer.update(this.viewport, screenRect, worldRect);
         });
         this.renderer.render(this.container);
         requestAnimationFrame(() => { this.draw(); });
@@ -107,18 +105,14 @@ export class Viewport {
 
 export interface Layer {
     def: LayerDef;
-    callback: LayerCallback;
+    stage: PIXI.Container;
 
-    draw(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle): void;
+    update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle): void;
 }
 
 export interface LayerDef {
     zindex: number;
     parallax: number;
-}
-
-export interface LayerCallback {
-    redrawArea(layer: Layer, area: Rectangle): void;
 }
 
 export interface TileLayerDef extends LayerDef {
@@ -137,22 +131,21 @@ export interface Tile {
 }
 
 export class TileLayer implements Layer {
-    public callback: LayerCallback;
-    private container: PIXI.Container;
+    public stage = new PIXI.Container();
 
-    constructor(public def: TileLayerDef) {
-        this.container = new PIXI.Container();
-    }
+    constructor(public def: TileLayerDef) { }
 
-    public draw(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         var scale = chooseTileScale(this.def.scales, viewport.zoom);
 
+        this.stage.removeChildren();
         enumerateTiles(this, scale, worldRect, (wx, wy, tile) => {
-            this.addTile(target, viewport, canvasRect, scale, wx, wy, tile);
+            this.addTile(viewport, canvasRect, scale, wx, wy, tile);
         });
     }
 
-    private addTile(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, scale: TileScale, wx: number, wy: number, tile: Tile) {
+    private addTile(viewport: Viewport, canvasRect: Rectangle, scale: TileScale,
+                    wx: number, wy: number, tile: Tile) {
         var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
         var screenRect = viewport.worldToScreenR(this, worldRect);
         var left = Math.floor(screenRect.left - canvasRect.left);
@@ -161,7 +154,7 @@ export class TileLayer implements Layer {
         sprite.position.x = left;
         sprite.position.y = top;
         sprite.scale.x = sprite.scale.y = viewport.zoom / scale.scale;
-        target.addChild(sprite);
+        this.stage.addChild(sprite);
     }
 }
 
