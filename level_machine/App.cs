@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -24,9 +26,15 @@ namespace level_machine {
             } else if (command == "extract-sprites") {
                 foreach (var path in args.Skip(1))
                     ExtractSprites(path);
+            } else if (command == "read-stats") {
+                foreach (var filename in args.Skip(1))
+                    ReadStats(filename);
+            } else if (command == "decode-replay") {
+                DecodeReplay();
             } else {
                 Console.WriteLine("Invalid arguments");
-                ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
+                ReadStats("T:\\Steam Library\\steamapps\\common\\Dustforce\\user\\stats0");
+                //ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
                 //Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\filth");
                 //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\development");
             }
@@ -42,6 +50,32 @@ namespace level_machine {
             var level = LevelParser.LoadLevel(ReadFile(path), false);
             var result = LevelRenderer.Render(level, name);
             MipMapper.Run(name, result);
+        }
+
+        private static void ReadStats(string filename) {
+            var data = ReadFile(filename);
+            var stream = new BitStream(data.Skip(12).ToArray());
+            var pairs = Util.ReadKeyValueList(stream);
+            // HAAAACK
+            var jobj = JsonConvert.SerializeObject(pairs.Select(p => {
+                if (p.Item2 is List<object> && ((List<object>) p.Item2)[0] is List<Tuple<string, object>>)
+                    return Tuple.Create(p.Item1, (object)((List<object>) p.Item2).Select(q => (List<Tuple<string, object>>) q).Select(q => q.ToDictionary(r => r.Item1, r => r.Item2)).ToList());
+                return p;
+            }).ToDictionary(p => p.Item1, p => p.Item2));
+            Console.WriteLine(jobj);
+        }
+
+        private static void DecodeReplay() {
+            var data = ReadStdIn();
+            Console.WriteLine(ReplayReader.Read(data).ToString(Formatting.None));
+        }
+
+        private static byte[] ReadStdIn() {
+            var ret = new MemoryStream();
+            using (var stdin = Console.OpenStandardInput()) {
+                stdin.CopyTo(ret);
+            }
+            return ret.ToArray();
         }
 
         private static void Dump(string path) {
