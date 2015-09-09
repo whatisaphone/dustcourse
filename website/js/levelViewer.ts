@@ -167,7 +167,6 @@ class PropsLayer implements wiamap.Layer {
         // it's still far from perfect, but it's better than just using the numbers as found
         propX -= Math.floor(propX / 286) * 32;
         propY += Math.floor(propY / 232) * 32;
-        // TODO: rotation and scaling
 
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
