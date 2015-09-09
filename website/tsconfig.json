@@ -10,10 +10,8 @@
     ],
     "files": [
         "./index.ts",
-        "./js/algo.ts",
         "./js/coords.ts",
         "./js/dragscroll.ts",
-        "./js/imageCache.ts",
         "./js/index.ts",
         "./js/levelViewer.ts",
         "./js/model.ts",

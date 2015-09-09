@@ -1,6 +1,7 @@
 import { Rectangle } from './coords';
 
 export const pixelsPerTile = 48;
+export const pixelsPerFilth = 50;
 export const tilesPerSlice = 16;
 export const slicesPerBlock = 16;
 export const pixelsPerSlice = pixelsPerTile * tilesPerSlice;
