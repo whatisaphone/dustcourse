@@ -1,6 +1,6 @@
 import { Point, Rectangle } from './coords';
 import * as model from './model';
-import { Sprite, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
+import { Sprite, SpriteAnim, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -56,6 +56,7 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
     });
 
     widget.addLayer(new FilthLayer(level));
+    widget.addLayer(new FilthParticlesLayer(level));
 }
 
 interface DustforceLayerParams {
@@ -78,7 +79,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
     constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
         var layerParams = dustforceLayerParams(layerNum);
-        this.zindex = layerNum * 10;
+        this.zindex = layerNum * 10 + 5;
         this.parallax = layerParams.parallax;
         this.scales = _.map(layer.scales, s =>
             new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
@@ -116,7 +117,7 @@ class PropsLayer implements wiamap.Layer {
 
     constructor(private level: model.Level, private layerNum: number) {
         this.layerParams = dustforceLayerParams(layerNum);
-        this.def = { zindex: layerNum * 10, parallax: this.layerParams.parallax };
+        this.def = { zindex: layerNum * 10 + 8, parallax: this.layerParams.parallax };
 
         if (this.level.currentFog)
             applyFog(this.stage, this.level.currentFog, this.layerNum);
@@ -213,11 +214,12 @@ class FilthLayer implements wiamap.Layer {
     private sprites = new SpriteLoader();
 
     constructor(private level: model.Level) {
-        this.def = { zindex: 191, parallax: 1 };
+        this.def = { zindex: 196, parallax: 1 };
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         this.stage.removeChildren();
+
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
                 var filthX = model.filthX(filth);
@@ -271,6 +273,137 @@ class FilthLayer implements wiamap.Layer {
     }
 }
 
+class FilthParticlesLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
+    public stage = new PIXI.Container();
+    private sprites = new SpriteLoader();
+    private particles: Particle[] = [];
+
+    constructor(private level: model.Level) {
+        this.def = { zindex: 193, parallax: 1 };
+    }
+
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.stage.removeChildren();
+
+        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            _.each(slice.filth, filth => {
+                var filthX = model.filthX(filth);
+                var filthY = model.filthY(filth);
+                var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
+                var shape = model.tileShape(tile);
+                var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
+                model.eachFilthEdge(filth, shape, (edge, center, caps) => {
+                    var particle = this.maybeCreateParticle(tileRect, edge, center);
+                    if (particle)
+                        this.particles.push(particle);
+                });
+            });
+        });
+
+        for (var pi = 0; pi < this.particles.length; ++pi) {
+            var particle = this.particles[pi];
+            if (!this.drawAndUpdateParticle(viewport, particle)) {
+                this.particles.splice(pi, 1);
+                --pi;
+            }
+        }
+    }
+
+    private maybeCreateParticle(tileRect: Rectangle, tileEdge: model.TileEdge, spriteSet: number) {
+        var info = filthParticleInfos[spriteSet];
+        if (!info || Math.random() > info.spawnChance)
+            return;
+
+        var anim = info.sprites[Math.floor(Math.random() * info.sprites.length)];
+        var x = tileRect.left + (tileEdge.x1 + Math.random() * (tileEdge.x2 - tileEdge.x1)) * model.pixelsPerTile;
+        var y = tileRect.top + (tileEdge.y1 + Math.random() * (tileEdge.y2 - tileEdge.y1)) * model.pixelsPerTile;
+        var theta = info.rotate ? Math.random() * Math.PI * 2 : tileEdge.angle;
+        var [dx, dy] = this.generateParticleDrift(tileEdge.angle, info.drift[0], info.drift[1], info.drift[2], info.drift[3]);
+        var [fs, fd] = info.fade
+            ? [info.fade[0] + Math.random() * info.fade[1], info.fade[2] + Math.random() * info.fade[3]]
+            : [anim.frameCount * anim.frameDuration60, 1];
+        var fadeOutStart = 30 + Math.random() * 90;
+        var fadeOutDuration = 8 + Math.random() * 16;
+        return new Particle(anim, fs, fd, x, y, theta, dx, dy);
+    }
+
+    private generateParticleDrift(angle: number, parMin: number, parMax: number, perpMin: number, perpMax: number) {
+        var par = parMin + Math.random() * (parMax - parMin);
+        var perp = perpMin + Math.random() * (perpMax - perpMin);
+        var x = Math.cos(angle) * par + Math.sin(angle) * perp;
+        var y = Math.sin(angle) * par + Math.cos(angle) * perp;
+        return [x, -y];  // negative y, because converting from cartesian coords to computer coords
+    }
+
+    private drawAndUpdateParticle(viewport: wiamap.Viewport, particle: Particle) {
+        var sprite = this.sprites.get(particle.anim.pathForFrame(particle.frame));
+        if (sprite) {
+            var screenRect = viewport.screenRect();
+            var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
+            this.stage.addChild(createDustforceSprite(sprite, {
+                posX: screen.x - screenRect.left,
+                posY: screen.y - screenRect.top,
+                scale: viewport.zoom,
+                rotation: particle.rotation,
+                alpha: particle.alpha,
+            }))
+        }
+
+        ++particle.frame;
+        particle.x += particle.dx;
+        particle.y += particle.dy;
+        if (particle.frame >= particle.fadeOutStart) {
+            particle.alpha -= 1 / particle.fadeOutDuration;
+            if (particle.alpha <= 0)
+                return false;
+        }
+        return true;
+    }
+}
+
+class FilthParticleInfo {
+    constructor(public spawnChance: number, public rotate: boolean, public drift: number[], public fade: number[], public sprites: SpriteAnim[]) { }
+}
+
+var filthParticleInfos = [
+    null,
+    new FilthParticleInfo(0.02, false, [-0.1, 0.1, 0, 0.2], null, [
+        new SpriteAnim('area/mansion/particles/dust1_', 13, 6),
+        new SpriteAnim('area/mansion/particles/dust2_', 8, 6),
+        new SpriteAnim('area/mansion/particles/dust3_', 6, 6),
+    ]),
+    new FilthParticleInfo(0.02, true, [-0.5, 0.5, 0, 1], [30, 90, 8, 16], [
+        new SpriteAnim('area/forest/particles/leafdrift1_', 15, 6),
+        new SpriteAnim('area/forest/particles/leafdrift2_', 15, 6),
+        new SpriteAnim('area/forest/particles/leafdrift3_', 15, 6),
+        new SpriteAnim('area/forest/particles/leafspin1_', 5, 6),
+        new SpriteAnim('area/forest/particles/leafspin2_', 5, 6),
+        new SpriteAnim('area/forest/particles/leafspin3_', 5, 6),
+    ]),
+    new FilthParticleInfo(0.005, false, [-0.1, 0.1, 0, 0.2], null, [
+        new SpriteAnim('area/city/particles/bigpuff_', 5, 12),
+        new SpriteAnim('area/city/particles/medpuff_', 5, 12),
+        new SpriteAnim('area/city/particles/littlepuff_', 8, 12),
+        new SpriteAnim('area/city/particles/fly1_', 21, 6),
+    ]),
+    new FilthParticleInfo(0.01, false, [-0.1, 0.1, 0, 0.2], null, [
+        new SpriteAnim('area/laboratory/particles/bigbubble_', 18, 6),
+        new SpriteAnim('area/laboratory/particles/smallbubble_', 17, 6),
+    ]),
+    new FilthParticleInfo(0.025, true, [-0.5, 0.5, 0, 1], [120, 120, 8, 16], [
+        new SpriteAnim('area/tutorial/particles/poly1_', 8, 6),
+        new SpriteAnim('area/tutorial/particles/poly2_', 6, 6),
+    ]),
+];
+
+class Particle {
+    public frame = 1;
+    public alpha = 1;
+
+    constructor(public anim: SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+}
+
 interface DustforceSpriteOptions {
     posX?: number;
     posY?: number;
@@ -278,6 +411,7 @@ interface DustforceSpriteOptions {
     scaleX?: number;
     scaleY?: number;
     rotation?: number;
+    alpha?: number;
 }
 
 class DustforceSprite extends PIXI.Sprite {
@@ -308,6 +442,7 @@ function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions)
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
     s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
     s.rotation = options ? (options.rotation || 0) : 0;
+    s.alpha = options ? (options.alpha || 1) : 1;
     return s;
 }
 
