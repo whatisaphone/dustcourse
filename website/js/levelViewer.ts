@@ -176,6 +176,7 @@ class PropsLayer implements wiamap.Layer {
             posY: screenRect.y - canvasRect.top,
             scaleX: viewport.zoom * scaleX,
             scaleY: viewport.zoom * scaleY,
+            rotation: model.propRotation(prop),
         }));
     }
 
@@ -276,6 +277,7 @@ interface DustforceSpriteOptions {
     scale?: number;
     scaleX?: number;
     scaleY?: number;
+    rotation?: number;
 }
 
 class DustforceSprite extends PIXI.Sprite {
@@ -288,9 +290,9 @@ class DustforceSprite extends PIXI.Sprite {
     public updateTransform() {
         this.worldTransform.identity()
             .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
+            .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
             .translate(this.position.x, this.position.y)
-            .rotate(this.rotation)
             .prepend(this.parent.worldTransform);
 
         // do some other stuff that super.updateTransform does
@@ -305,6 +307,7 @@ function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions)
     s.position.y = options ? (options.posY || 0) : 0;
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
     s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
+    s.rotation = options ? (options.rotation || 0) : 0;
     return s;
 }
 

@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Text;
 
 namespace level_machine {
     internal static class LevelParser {
@@ -286,7 +285,7 @@ namespace level_machine {
                     prop.X = stream.ReadFloat(28, 4);
                     prop.Y = stream.ReadFloat(28, 4);
                     stream.Read(buf, 16);
-                    prop.Rotation = (float) (Util.MakeU16(buf) * (65536 / 360.0));
+                    prop.Rotation = (float) (Util.MakeU16(buf) / 65536.0 * 2 * Math.PI);
                     stream.Read(buf, 1);
                     prop.FlipHorz = buf[0] == 0;  // buf[0] != 0 ? 1 : -1;
                     stream.Read(buf, 1);
@@ -344,7 +343,7 @@ namespace level_machine {
             entity.X = stream.ReadFloat(32, 8);
             entity.Y = stream.ReadFloat(32, 8);
             stream.Read(buf, 16);
-            entity.Rotation = (float) (Util.MakeU16(buf) * (65536 / 360.0));
+            entity.Rotation = (float)(Util.MakeU16(buf) / 65536.0 * 2 * Math.PI);
             stream.Read(buf, 8);
             entity.Field28 = buf[0];
             stream.Read(buf, 1);
