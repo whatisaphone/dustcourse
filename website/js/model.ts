@@ -1,6 +1,7 @@
 import { Rectangle } from './coords';
 
 export const pixelsPerTile = 48;
+export const pixelsPerFilth = 50;
 export const tilesPerSlice = 16;
 export const slicesPerBlock = 16;
 export const pixelsPerSlice = pixelsPerTile * tilesPerSlice;
@@ -40,7 +41,7 @@ export function eachIntersectingSlice(level: Level, area: Rectangle, callback: (
     }
 }
 
-interface PrerenderLayer {
+export interface PrerenderLayer {
     scales: PrerenderTileScale[];
 }
 
@@ -93,8 +94,8 @@ export type Prop = [number, number, number, number, number, number, number, numb
 export function propX(p: Prop) { return p[1]; }
 export function propY(p: Prop) { return p[2]; }
 export function propRotation(p: Prop) { return p[3]; }
-export function propScaleHorz(p: Prop) { return p[4]; }
-export function propScaleVert(p: Prop) { return p[5]; }
+export function propScaleX(p: Prop) { return p[4]; }
+export function propScaleY(p: Prop) { return p[5]; }
 export function propSet(p: Prop) { return p[6]; }
 export function propGroup(p: Prop) { return p[7]; }
 export function propIndex(p: Prop) { return p[8]; }
