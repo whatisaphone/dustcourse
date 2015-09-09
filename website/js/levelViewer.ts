@@ -315,13 +315,12 @@ function applyFog(obj: PIXI.DisplayObject, fog: model.Entity, layerNum: number) 
     var fogProps = model.entityProperties(fog);
     var [r, g, b] = util.convertIntToRGB(fogProps['fog_colour'][layerNum]);
     var p = fogProps['fog_per'][layerNum];
-    var cacheKey = `${r}_${g}_${b}_${p}`;
     var f = new PIXI.filters.ColorMatrixFilter();
     f.matrix = [
-        1 - p, 0, 0, r * p, 0,
-        0, 1 - p, 0, g * p, 0,
-        0, 0, 1 - p, b * p, 0,
-        0, 0, 0, 1, 0,
+        1 - p, 0,     0,     r * p, 0,
+        0,     1 - p, 0,     g * p, 0,
+        0,     0,     1 - p, b * p, 0,
+        0,     0,     0,     1,     0,
     ];
     obj.filters = [f];
 }
