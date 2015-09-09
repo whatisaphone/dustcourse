@@ -106,7 +106,7 @@ class FilthLayer implements wiamap.Layer {
         this.def = { id: 'filth', zindex: 19, parallax: 1 };
     }
 
-    public draw(viewport: wiamap.Viewport, container: PIXI.Container, canvasRect: Rectangle, worldRect: Rectangle) {
+    public draw(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
                 var filthX = model.filthX(filth);
@@ -114,13 +114,13 @@ class FilthLayer implements wiamap.Layer {
                 var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
                 var shape = model.tileShape(tile);
                 model.eachFilthEdge(filth, shape, (edge, center, caps) => {
-                    this.drawFilth(viewport, container, canvasRect, block, slice, filthX, filthY, edge, center, caps);
+                    this.drawFilth(target, viewport, canvasRect, block, slice, filthX, filthY, edge, center, caps);
                 });
             });
         });
     }
 
-    private drawFilth(viewport: wiamap.Viewport, container: PIXI.Container, canvasRect: Rectangle,
+    private drawFilth(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle,
                       block: model.Block, slice: model.Slice, filthX: number, filthY: number,
                       edge: model.TileEdge, center: number, caps: number) {
         var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
@@ -134,7 +134,7 @@ class FilthLayer implements wiamap.Layer {
         child.scale.x = screenRect.width / model.pixelsPerTile;
         child.scale.y = screenRect.height / model.pixelsPerTile;
         child.rotation = edge.angle;
-        container.addChild(child);
+        target.addChild(child);
         var length = edge.length * model.pixelsPerFilth;
 
         if (center) {

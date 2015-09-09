@@ -63,7 +63,7 @@ export class Widget implements LayerCallback,DragScroll.Callback {
         _.each(this.layers, layer => {
             var screenRect = this.viewport.screenRect();
             var worldRect = this.viewport.screenToWorldR(layer, screenRect);
-            layer.draw(this.viewport, this.container, screenRect, worldRect);
+            layer.draw(this.container, this.viewport, screenRect, worldRect);
         });
         this.renderer.render(this.container);
         requestAnimationFrame(() => { this.draw(); });
@@ -108,7 +108,7 @@ export interface Layer {
     def: LayerDef;
     callback: LayerCallback;
 
-    draw(viewport: Viewport, container: PIXI.Container, canvasRect: Rectangle, worldRect: Rectangle): void;
+    draw(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle): void;
 }
 
 export interface LayerDef {
@@ -144,16 +144,16 @@ export class TileLayer implements Layer {
         this.container = new PIXI.Container();
     }
 
-    public draw(viewport: Viewport, container: PIXI.Container, canvasRect: Rectangle, worldRect: Rectangle) {
+    public draw(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         var scale = chooseTileScale(this.def.scales, viewport.zoom);
         //var scale = this.def.scales[0];
 
         enumerateTiles(this, scale, worldRect, (wx, wy, tile) => {
-            this.addTile(viewport, container, canvasRect, scale, wx, wy, tile);
+            this.addTile(target, viewport, canvasRect, scale, wx, wy, tile);
         });
     }
 
-    private addTile(viewport: Viewport, container: PIXI.Container, canvasRect: Rectangle, scale: TileScale, wx: number, wy: number, tile: Tile) {
+    private addTile(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, scale: TileScale, wx: number, wy: number, tile: Tile) {
         var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
         var screenRect = viewport.worldToScreenR(this, worldRect);
         var left = Math.floor(screenRect.left - canvasRect.left);
@@ -162,7 +162,7 @@ export class TileLayer implements Layer {
         sprite.position.x = left;
         sprite.position.y = top;
         sprite.scale.x = sprite.scale.y = viewport.zoom / scale.scale;
-        container.addChild(sprite);
+        target.addChild(sprite);
     }
 }
 
