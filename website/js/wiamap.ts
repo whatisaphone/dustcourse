@@ -49,6 +49,7 @@ export class Widget implements LayerCallback,DragScroll.Callback {
     public addLayer(layer: Layer) {
         layer.callback = this;
         this.layers.push(layer);
+        this.layers.sort((x, y) => x.def.zindex - y.def.zindex);
     }
 
     public redrawArea(layer: Layer, area: Rectangle) {
@@ -112,7 +113,6 @@ export interface Layer {
 }
 
 export interface LayerDef {
-    id: string;
     zindex: number;
     parallax: number;
 }
@@ -146,7 +146,6 @@ export class TileLayer implements Layer {
 
     public draw(target: PIXI.Container, viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         var scale = chooseTileScale(this.def.scales, viewport.zoom);
-        //var scale = this.def.scales[0];
 
         enumerateTiles(this, scale, worldRect, (wx, wy, tile) => {
             this.addTile(target, viewport, canvasRect, scale, wx, wy, tile);

@@ -1,6 +1,6 @@
-import { Rectangle } from './coords';
+import { Point, Rectangle } from './coords';
 import * as model from './model';
-import { Sprite, SpriteLoader } from './spriteLoader';
+import { Sprite, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -46,21 +46,24 @@ function makeSkyGradient(colors: number[], middle: number) {
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
-    var prerenderedTileLayers = _.map(level.prerenders, (layer, layerID) => {
-        var layerNum = parseInt(layerID, 10);
-        var layerParams = dustforceLayerParams(layerNum);
-        var scales = _.map(layer.scales, s =>
-            new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
-        var ret = new wiamap.TileLayer(
-            new PrerenderedTileLayerDef(level, layerID, scales, layerNum, layerParams.parallax));
-        widget.addLayer(ret);
-        return ret;
+    _.each(level.prerenders, (layer, layerID) => {
+        widget.addLayer(new wiamap.TileLayer(
+            new PrerenderedTileLayerDef(level, parseInt(layerID, 10), layer)));
+    });
+
+    _.each(_.range(1, 21), layerNum => {
+        widget.addLayer(new PropsLayer(level, layerNum));
     });
 
     widget.addLayer(new FilthLayer(level));
 }
 
-function dustforceLayerParams(layerNum: number) {
+interface DustforceLayerParams {
+    parallax: number;
+    scale: number;
+}
+
+function dustforceLayerParams(layerNum: number): DustforceLayerParams {
     var parallax = [0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95][layerNum] || 1;
     return {
         parallax: parallax,
@@ -69,10 +72,17 @@ function dustforceLayerParams(layerNum: number) {
 }
 
 class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
-    public type = "tile";
+    public zindex: number;
+    public parallax: number;
+    public scales: PrerenderedTileScale[];
 
-    constructor(private level: model.Level, public id: string,
-        public scales: wiamap.TileScale[], public zindex: number, public parallax: number) { }
+    constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
+        var layerParams = dustforceLayerParams(layerNum);
+        this.zindex = layerNum * 10;
+        this.parallax = layerParams.parallax;
+        this.scales = _.map(layer.scales, s =>
+            new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
+    }
 
     public getTile(scale: PrerenderedTileScale, x: number, y: number): wiamap.Tile {
         var realX = Math.round(x / scale.layerScale);
@@ -82,7 +92,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         return {
             imageURL: '/static/level-assets/' + this.level.path
-                + '/' + this.id + '_' + scale.scale + '_' + realX + ',' + realY + '.png',
+                + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png',
         };
     }
 }
@@ -97,13 +107,113 @@ class PrerenderedTileScale implements wiamap.TileScale {
     }
 }
 
+class PropsLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
+    public callback: wiamap.LayerCallback;
+    private frame = 0;
+    private sprites = new SpriteLoader();
+    private layerParams: DustforceLayerParams;
+
+    constructor(private level: model.Level, private layerNum: number) {
+        this.layerParams = dustforceLayerParams(layerNum);
+        this.def = { zindex: layerNum * 10, parallax: this.layerParams.parallax };
+    }
+
+    public draw(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        ++this.frame;
+
+        var child = new PIXI.Container();
+        target.addChild(child);
+
+        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            _.each(slice.props, prop => {
+                if (model.propLayerGroup(prop) === this.layerNum)
+                    this.drawProp(child, viewport, prop);
+            });
+
+            if (this.layerNum === 18) {
+                _.each(slice.entities, entity => {
+                    var ai = _.find(slice.entities, e => model.entityName(e) === 'AI_controller' &&
+                                                         model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
+                    this.drawEntity(child, viewport, entity, ai);
+                });
+            }
+        });
+
+        if (this.level.currentFog)
+            applyFog(child, this.level.currentFog, this.layerNum);
+    }
+
+    private drawProp(target: PIXI.Container, viewport: wiamap.Viewport, prop: model.Prop) {
+        var anim = propAnim(model.propSet(prop), model.propGroup(prop),
+                          model.propIndex(prop), model.propPalette(prop));
+        var sprite = this.sprites.get(anim.pathForFrame(this.frame));
+        if (!sprite)
+            return;
+
+        var propX = model.propX(prop);
+        var propY = model.propY(prop);
+        var scaleX = model.propScaleX(prop);
+        var scaleY = model.propScaleY(prop);
+
+        if (model.propLayerGroup(prop) <= 5) {
+            propX *= this.layerParams.parallax;
+            propY *= this.layerParams.parallax;
+            scaleX *= 2;
+            scaleY *= 2;
+        }
+
+        // no idea wtf is up with these constants
+        // it's still far from perfect, but it's better than just using the numbers as found
+        propX -= Math.floor(propX / 286) * 32;
+        propY += Math.floor(propY / 232) * 32;
+        // TODO: rotation and scaling
+
+        var canvasRect = viewport.screenRect();
+        var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
+
+        target.addChild(createDustforceSprite(sprite, {
+            posX: screenRect.x - canvasRect.left,
+            posY: screenRect.y - canvasRect.top,
+            scaleX: viewport.zoom * scaleX,
+            scaleY: viewport.zoom * scaleY,
+        }));
+    }
+
+    private drawEntity(target: PIXI.Container, viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
+        var anim = entityAnim(model.entityName(entity));
+        if (!anim)
+            return;
+        var sprite = this.sprites.get(anim.pathForFrame(this.frame));
+        if (!sprite)
+            return;
+
+        var entityX: number, entityY: number;
+        if (ai) {
+            [entityX, entityY] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+        } else {
+            entityX = model.entityX(entity);
+            entityY = model.entityY(entity);
+        }
+
+        var canvasRect = viewport.screenRect();
+        var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
+
+        target.addChild(createDustforceSprite(sprite, {
+            posX: screenRect.x - canvasRect.left,
+            posY: screenRect.y - canvasRect.top,
+            scale: viewport.zoom,
+        }));
+    }
+}
+
 class FilthLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public callback: wiamap.LayerCallback;
     private sprites = new SpriteLoader();
 
     constructor(private level: model.Level) {
-        this.def = { id: 'filth', zindex: 19, parallax: 1 };
+        this.def = { zindex: 191, parallax: 1 };
     }
 
     public draw(target: PIXI.Container, viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -163,13 +273,52 @@ class FilthLayer implements wiamap.Layer {
 interface DustforceSpriteOptions {
     posX?: number;
     posY?: number;
+    scale?: number;
     scaleX?: number;
+    scaleY?: number;
+}
+
+class DustforceSprite extends PIXI.Sprite {
+    constructor(private sprite: Sprite) {
+        super(PIXI.Texture.fromImage(sprite.imageURL));
+    }
+
+    // bit of a HACK here, this method isn't documented. but we need to stack transforms
+    // in a different order than pixi does, so this seems to be the logical solution
+    public updateTransform() {
+        this.worldTransform.identity()
+            .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
+            .scale(this.scale.x, this.scale.y)
+            .translate(this.position.x, this.position.y)
+            .rotate(this.rotation)
+            .prepend(this.parent.worldTransform);
+
+        // do some other stuff that super.updateTransform does
+        this.worldAlpha = this.alpha * this.parent.worldAlpha;
+        this._currentBounds = null;
+    }
 }
 
 function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions) {
-    var s = PIXI.Sprite.fromImage(sprite.imageURL);
-    s.position.x = sprite.hitbox.left + (options ? (options.posX || 0) : 0);
-    s.position.y = sprite.hitbox.top + (options ? (options.posY || 0) : 0);
-    s.scale.x = options ? (options.scaleX || 1) : 1;
+    var s = new DustforceSprite(sprite);
+    s.position.x = options ? (options.posX || 0) : 0;
+    s.position.y = options ? (options.posY || 0) : 0;
+    s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
+    s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
     return s;
+}
+
+function applyFog(obj: PIXI.DisplayObject, fog: model.Entity, layerNum: number) {
+    var fogProps = model.entityProperties(fog);
+    var [r, g, b] = util.convertIntToRGB(fogProps['fog_colour'][layerNum]);
+    var p = fogProps['fog_per'][layerNum];
+    var cacheKey = `${r}_${g}_${b}_${p}`;
+    var f = new PIXI.filters.ColorMatrixFilter();
+    f.matrix = [
+        1 - p, 0, 0, r * p, 0,
+        0, 1 - p, 0, g * p, 0,
+        0, 0, 1 - p, b * p, 0,
+        0, 0, 0, 1, 0,
+    ];
+    obj.filters = [f];
 }
