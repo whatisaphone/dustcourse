@@ -3,6 +3,7 @@ import * as model from './model';
 import { Sprite, SpriteAnim, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
 import * as util from './util';
 import * as wiamap from './wiamap';
+import { Replayer } from './replay';
 
 export function init(level: model.Level) {
     model.levelPopulate(level);
@@ -19,6 +20,7 @@ export function init(level: model.Level) {
     populateLayers(widget, level);
 
     widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
+    widget.addLayer(new Replayer(widget));
 }
 
 function findFogEntityNearestPlayer(level: model.Level) {

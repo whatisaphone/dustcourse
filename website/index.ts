@@ -15,6 +15,20 @@ app.get('/', (req, res) => {
     res.render('index');
 });
 
+app.get('/replay/:replayId', (req, res) => {
+    Promise.promisify(fs.readFile)('replay.json')
+    .then(text => {
+        res.header('Content-Type', 'application/json');
+        res.send(text);
+    })
+    .catch(err => {
+        console.log(err);
+        res.status(404);
+        res.write('sorry');
+        res.end();
+    });
+});
+
 app.get('/level/:levelName', (req, res) => {
     new Promise((resolve, reject) => {
         if (/[a-z]+/.test(req.params.levelName))
