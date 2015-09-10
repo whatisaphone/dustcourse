@@ -120,7 +120,7 @@ class PropsLayer implements wiamap.Layer {
         this.def = { zindex: layerNum * 10 + 8, parallax: this.layerParams.parallax };
 
         if (this.level.currentFog)
-            applyFog(this.stage, this.level.currentFog, this.layerNum);
+            util.applyFog(this.stage, this.level.currentFog, this.layerNum);
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -171,7 +171,7 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
 
-        this.stage.addChild(createDustforceSprite(sprite, {
+        this.stage.addChild(util.createDustforceSprite(sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scaleX: viewport.zoom * scaleX,
@@ -199,7 +199,7 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
 
-        this.stage.addChild(createDustforceSprite(sprite, {
+        this.stage.addChild(util.createDustforceSprite(sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scale: viewport.zoom,
@@ -253,21 +253,21 @@ class FilthLayer implements wiamap.Layer {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
             var sprite = this.sprites.get(url);
             if (sprite)
-                child.addChild(createDustforceSprite(sprite, { scaleX: edge.length }));
+                child.addChild(util.createDustforceSprite(sprite, { scaleX: edge.length }));
         }
 
         if (caps & 1) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
             var sprite = this.sprites.get(url);
             if (sprite)
-                child.addChild(createDustforceSprite(sprite));
+                child.addChild(util.createDustforceSprite(sprite));
         }
 
         if (caps & 2) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
             var sprite = this.sprites.get(url);
             if (sprite)
-                child.addChild(createDustforceSprite(sprite, { posX: length }));
+                child.addChild(util.createDustforceSprite(sprite, { posX: length }));
         }
     }
 }
@@ -340,7 +340,7 @@ class FilthParticlesLayer implements wiamap.Layer {
         if (sprite) {
             var screenRect = viewport.screenRect();
             var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
-            this.stage.addChild(createDustforceSprite(sprite, {
+            this.stage.addChild(util.createDustforceSprite(sprite, {
                 posX: screen.x - screenRect.left,
                 posY: screen.y - screenRect.top,
                 scale: viewport.zoom,
@@ -401,60 +401,4 @@ class Particle {
     public alpha = 1;
 
     constructor(public anim: SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
-}
-
-interface DustforceSpriteOptions {
-    posX?: number;
-    posY?: number;
-    scale?: number;
-    scaleX?: number;
-    scaleY?: number;
-    rotation?: number;
-    alpha?: number;
-}
-
-class DustforceSprite extends PIXI.Sprite {
-    constructor(private sprite: Sprite) {
-        super(PIXI.Texture.fromImage(sprite.imageURL));
-    }
-
-    // bit of a HACK here, this method isn't documented. but we need to stack transforms
-    // in a different order than pixi does, so this seems to be the logical solution
-    public updateTransform() {
-        this.worldTransform.identity()
-            .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
-            .rotate(this.rotation)
-            .scale(this.scale.x, this.scale.y)
-            .translate(this.position.x, this.position.y)
-            .prepend(this.parent.worldTransform);
-
-        // do some other stuff that super.updateTransform does
-        this.worldAlpha = this.alpha * this.parent.worldAlpha;
-        this._currentBounds = null;
-    }
-}
-
-function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions) {
-    var s = new DustforceSprite(sprite);
-    s.position.x = options ? (options.posX || 0) : 0;
-    s.position.y = options ? (options.posY || 0) : 0;
-    s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
-    s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
-    s.rotation = options ? (options.rotation || 0) : 0;
-    s.alpha = options ? (options.alpha || 1) : 1;
-    return s;
-}
-
-function applyFog(obj: PIXI.DisplayObject, fog: model.Entity, layerNum: number) {
-    var fogProps = model.entityProperties(fog);
-    var [r, g, b] = util.convertIntToRGB(fogProps['fog_colour'][layerNum]);
-    var p = fogProps['fog_per'][layerNum];
-    var f = new PIXI.filters.ColorMatrixFilter();
-    f.matrix = [
-        1 - p, 0,     0,     r * p, 0,
-        0,     1 - p, 0,     g * p, 0,
-        0,     0,     1 - p, b * p, 0,
-        0,     0,     0,     1,     0,
-    ];
-    obj.filters = [f];
 }
