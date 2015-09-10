@@ -1,5 +1,5 @@
 import * as model from './model';
-import { Sprite } from './spriteLoader';
+import { Sprite } from './sprites';
 
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -12,14 +12,16 @@ export function convertIntToRGB(color: number) {
     return [r / 255, g / 255, b / 255];
 }
 
-export function convertIntToColorRGB(color: number) {
+export function convertIntToCSSRGB(color: number) {
     var r = (color & 0xff0000) >> 16;
     var g = (color & 0xff00) >> 8;
     var b = color & 0xff;
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-export function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions) {
+export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, options?: DustforceSpriteOptions) {
+    if (!sprite.texture.texture)
+        return;
     var s = new DustforceSprite(sprite);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
@@ -27,7 +29,7 @@ export function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteO
     s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
-    return s;
+    stage.addChild(s);
 }
 
 interface DustforceSpriteOptions {
@@ -42,7 +44,7 @@ interface DustforceSpriteOptions {
 
 class DustforceSprite extends PIXI.Sprite {
     constructor(private sprite: Sprite) {
-        super(PIXI.Texture.fromImage(sprite.imageURL));
+        super(sprite.texture.texture);
     }
 
     // bit of a HACK here, this method isn't documented. but we need to stack transforms

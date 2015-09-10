@@ -8,47 +8,90 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-export class SpriteLoader {
-    private sprites: { [url: string]: Sprite } = {};
+class TextureContainer {
+    public static IDLE = 0;
+    public static LOADING = 1;
+    public static LOADED = 2;
+    public static ERROR = 3;
 
-    public get(url: string, onLoaded?: () => void) {
-        if (url in this.sprites)
-            return this.sprites[url];
+    public state: number;
+    public texture: PIXI.Texture;
 
-        this.sprites[url] = null;  // so we don't send multiple requests for the same url
+    constructor(public url: string, public priority: number) {
+        this.state = TextureContainer.IDLE;
+    }
 
-        var image = document.createElement('img');
-        image.src = '/static/sprites/' + url + '.png';
-        image.onload = () => {
-            checkBothLoaded();
-        };
+    public load() {
+        this.state = TextureContainer.LOADING;
+        this.texture = PIXI.Texture.fromImage(this.url);
+        this.texture.baseTexture.on('loaded', () => { this.imageLoaded(); });
+        this.texture.baseTexture.on('error', () => { this.imageLoaded(); });
+    }
 
-        var metadata: SpriteMetadata;
-        var self = this;
-        var xhr = new XMLHttpRequest();
-        xhr.onload = function () {
-            if (xhr.status !== 200)
-                return;
-            metadata = JSON.parse(xhr.response);
-            checkBothLoaded();
-        };
-        xhr.open('get', '/static/sprites/' + url + '.json');
-        xhr.send();
-
-        var checkBothLoaded = () => {
-            if (!image.complete || !metadata)
-                return;
-
-            var hitbox = Rectangle.ltrb(metadata.rect1.l, metadata.rect1.t, metadata.rect1.r, metadata.rect1.b);
-            this.sprites[url] = new Sprite(image.src, image, hitbox);
-            if (onLoaded)
-                onLoaded();
-        };
+    private imageLoaded() {
+        this.state = TextureContainer.LOADED;
     }
 }
 
+class TextureManager {
+    private allTextures: { [url: string]: TextureContainer } = {};
+
+    constructor() { }
+
+    public getTexture(url: string, priority: number) {
+        var tex = this.allTextures[url];
+        if (tex)
+            return tex;
+        tex = new TextureContainer(url, priority);
+        this.allTextures[url] = tex;
+        this.fillLoadQueue();
+        return tex;
+    }
+
+    private fillLoadQueue() {
+        var numLoading = _.filter(this.allTextures, t => t.state === TextureContainer.LOADING).length;
+        var unloaded = _.filter(this.allTextures, t => t.state === TextureContainer.IDLE);
+        unloaded = _.sortBy(unloaded, t => t.priority);
+        while (numLoading < 4 && unloaded.length) {
+            var tex = unloaded.pop();
+            tex.load();
+            tex.texture.baseTexture.on('loaded', () => { this.fillLoadQueue(); });
+            tex.texture.baseTexture.on('error', () => { this.fillLoadQueue(); });
+            ++numLoading;
+        }
+    }
+}
+
+var textureManager = new TextureManager();
+
+export function getTexture(url: string, priority: number) {
+    return textureManager.getTexture(url, priority);
+}
+
+var loadedSprites: { [name: string]: Sprite } = {};
+
+export function loadSprite(name: string, priority: number) {
+    if (name in loadedSprites)
+        return loadedSprites[name];
+
+    loadedSprites[name] = null;  // so we don't send multiple requests for the same url
+
+    var texture = getTexture('/static/sprites/' + name + '.png', priority);
+
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+        if (xhr.status !== 200)
+            return;  // TODO: better indication of error
+        var metadata = JSON.parse(xhr.response);
+        var hitbox = Rectangle.ltrb(metadata.rect1.l, metadata.rect1.t, metadata.rect1.r, metadata.rect1.b);
+        loadedSprites[name] = new Sprite(texture, hitbox);
+    };
+    xhr.open('get', '/static/sprites/' + name + '.json');
+    xhr.send();
+}
+
 export class Sprite {
-    constructor(public imageURL: string, public image: HTMLImageElement, public hitbox: Rectangle) { }
+    constructor(public texture: TextureContainer, public hitbox: Rectangle) { }
 }
 
 interface SpriteMetadata {

@@ -1,5 +1,5 @@
 import { Point, Rectangle } from './coords';
-import { SpriteLoader } from './spriteLoader';
+import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -21,7 +21,6 @@ export class Replayer implements wiamap.Layer {
     public def = { zindex: 199, parallax: 1 };
     public stage = new PIXI.Container();
     private replays = [temporaryTestReplayData];
-    private sprites = new SpriteLoader();
     private frame = -180;
 
     constructor(private widget: wiamap.Widget) { }
@@ -47,13 +46,13 @@ export class Replayer implements wiamap.Layer {
 
         this.stage.removeChildren();
         var playerPos = viewport.worldToScreenP(this, new Point(playerCor[1] / 10, playerCor[2] / 10 - 24));
-        var sprite = this.sprites.get('hud/head_1_0001');
+        var sprite = sprites.loadSprite('hud/head_1_0001', 200);
         if (sprite)
-            this.stage.addChild(util.createDustforceSprite(sprite, {
+            util.addDustforceSprite(this.stage, sprite, {
                 posX: playerPos.x - canvasRect.left,
                 posY: playerPos.y - canvasRect.top,
                 scale: viewport.zoom * 2,
-            }));
+            });
     }
 }
 
