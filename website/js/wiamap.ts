@@ -128,7 +128,7 @@ export interface TileScale {
 }
 
 export interface Tile {
-    imageURL: string;
+    texture: PIXI.Texture;
 }
 
 export class TileLayer implements Layer {
@@ -149,11 +149,9 @@ export class TileLayer implements Layer {
                     wx: number, wy: number, tile: Tile) {
         var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
         var screenRect = viewport.worldToScreenR(this, worldRect);
-        var left = Math.floor(screenRect.left - canvasRect.left);
-        var top = Math.floor(screenRect.top - canvasRect.top);
-        var sprite = new PIXI.Sprite(sprites.loadTexture(tile.imageURL));
-        sprite.position.x = left;
-        sprite.position.y = top;
+        var sprite = new PIXI.Sprite(tile.texture);
+        sprite.position.x = Math.floor(screenRect.left - canvasRect.left);
+        sprite.position.y = Math.floor(screenRect.top - canvasRect.top);
         sprite.scale.x = sprite.scale.y = viewport.zoom / scale.scale;
         this.stage.addChild(sprite);
     }

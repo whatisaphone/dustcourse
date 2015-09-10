@@ -91,9 +91,10 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
         if (!_.find(scale.tiles, t => t[0] === realX && t[1] === realY))
             return;
 
+        var imageURL = '/static/level-assets/' + this.level.path
+                + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
         return {
-            imageURL: '/static/level-assets/' + this.level.path
-                + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png',
+            texture: sprites.loadTexture(imageURL),
         };
     }
 }
