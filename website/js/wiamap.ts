@@ -1,5 +1,6 @@
 import { Point, Rectangle, Size } from './coords';
 import DragScroll from './dragscroll';
+import * as sprites from './sprites';
 
 export class Widget implements DragScroll.Callback {
     private renderer: PIXI.SystemRenderer;
@@ -150,7 +151,7 @@ export class TileLayer implements Layer {
         var screenRect = viewport.worldToScreenR(this, worldRect);
         var left = Math.floor(screenRect.left - canvasRect.left);
         var top = Math.floor(screenRect.top - canvasRect.top);
-        var sprite = PIXI.Sprite.fromImage(tile.imageURL);
+        var sprite = new PIXI.Sprite(sprites.loadTexture(tile.imageURL));
         sprite.position.x = left;
         sprite.position.y = top;
         sprite.scale.x = sprite.scale.y = viewport.zoom / scale.scale;

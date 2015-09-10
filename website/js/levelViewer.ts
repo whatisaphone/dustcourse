@@ -1,6 +1,6 @@
 import { Point, Rectangle } from './coords';
 import * as model from './model';
-import { Sprite, SpriteAnim, SpriteLoader, entityAnim, propAnim } from './spriteLoader';
+import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -112,7 +112,6 @@ class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new PIXI.Container();
     private frame = 0;
-    private sprites = new SpriteLoader();
     private layerParams: DustforceLayerParams;
 
     constructor(private level: model.Level, private layerNum: number) {
@@ -145,9 +144,9 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawProp(viewport: wiamap.Viewport, prop: model.Prop) {
-        var anim = propAnim(model.propSet(prop), model.propGroup(prop),
+        var anim = sprites.propAnim(model.propSet(prop), model.propGroup(prop),
                           model.propIndex(prop), model.propPalette(prop));
-        var sprite = this.sprites.get(anim.pathForFrame(this.frame));
+        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame));
         if (!sprite)
             return;
 
@@ -181,10 +180,10 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawEntity(viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
-        var anim = entityAnim(model.entityName(entity));
+        var anim = sprites.entityAnim(model.entityName(entity));
         if (!anim)
             return;
-        var sprite = this.sprites.get(anim.pathForFrame(this.frame));
+        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame));
         if (!sprite)
             return;
 
@@ -210,7 +209,6 @@ class PropsLayer implements wiamap.Layer {
 class FilthLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new PIXI.Container();
-    private sprites = new SpriteLoader();
 
     constructor(private level: model.Level) {
         this.def = { zindex: 196, parallax: 1 };
@@ -251,21 +249,21 @@ class FilthLayer implements wiamap.Layer {
 
         if (center) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
-            var sprite = this.sprites.get(url);
+            var sprite = sprites.loadSprite(url);
             if (sprite)
                 child.addChild(util.createDustforceSprite(sprite, { scaleX: edge.length }));
         }
 
         if (caps & 1) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
-            var sprite = this.sprites.get(url);
+            var sprite = sprites.loadSprite(url);
             if (sprite)
                 child.addChild(util.createDustforceSprite(sprite));
         }
 
         if (caps & 2) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
-            var sprite = this.sprites.get(url);
+            var sprite = sprites.loadSprite(url);
             if (sprite)
                 child.addChild(util.createDustforceSprite(sprite, { posX: length }));
         }
@@ -275,7 +273,6 @@ class FilthLayer implements wiamap.Layer {
 class FilthParticlesLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new PIXI.Container();
-    private sprites = new SpriteLoader();
     private particles: Particle[] = [];
 
     constructor(private level: model.Level) {
@@ -336,7 +333,7 @@ class FilthParticlesLayer implements wiamap.Layer {
     }
 
     private drawAndUpdateParticle(viewport: wiamap.Viewport, particle: Particle) {
-        var sprite = this.sprites.get(particle.anim.pathForFrame(particle.frame));
+        var sprite = sprites.loadSprite(particle.anim.pathForFrame(particle.frame));
         if (sprite) {
             var screenRect = viewport.screenRect();
             var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
@@ -362,37 +359,37 @@ class FilthParticlesLayer implements wiamap.Layer {
 }
 
 class FilthParticleInfo {
-    constructor(public spawnChance: number, public rotate: boolean, public drift: number[], public fade: number[], public sprites: SpriteAnim[]) { }
+    constructor(public spawnChance: number, public rotate: boolean, public drift: number[], public fade: number[], public sprites: sprites.SpriteAnim[]) { }
 }
 
 var filthParticleInfos = [
     null,
     new FilthParticleInfo(0.02, false, [-0.1, 0.1, 0, 0.2], null, [
-        new SpriteAnim('area/mansion/particles/dust1_', 13, 6),
-        new SpriteAnim('area/mansion/particles/dust2_', 8, 6),
-        new SpriteAnim('area/mansion/particles/dust3_', 6, 6),
+        new sprites.SpriteAnim('area/mansion/particles/dust1_', 13, 6),
+        new sprites.SpriteAnim('area/mansion/particles/dust2_', 8, 6),
+        new sprites.SpriteAnim('area/mansion/particles/dust3_', 6, 6),
     ]),
     new FilthParticleInfo(0.02, true, [-0.5, 0.5, 0, 1], [30, 90, 8, 16], [
-        new SpriteAnim('area/forest/particles/leafdrift1_', 15, 6),
-        new SpriteAnim('area/forest/particles/leafdrift2_', 15, 6),
-        new SpriteAnim('area/forest/particles/leafdrift3_', 15, 6),
-        new SpriteAnim('area/forest/particles/leafspin1_', 5, 6),
-        new SpriteAnim('area/forest/particles/leafspin2_', 5, 6),
-        new SpriteAnim('area/forest/particles/leafspin3_', 5, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafdrift1_', 15, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafdrift2_', 15, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafdrift3_', 15, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafspin1_', 5, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafspin2_', 5, 6),
+        new sprites.SpriteAnim('area/forest/particles/leafspin3_', 5, 6),
     ]),
     new FilthParticleInfo(0.005, false, [-0.1, 0.1, 0, 0.2], null, [
-        new SpriteAnim('area/city/particles/bigpuff_', 5, 12),
-        new SpriteAnim('area/city/particles/medpuff_', 5, 12),
-        new SpriteAnim('area/city/particles/littlepuff_', 8, 12),
-        new SpriteAnim('area/city/particles/fly1_', 21, 6),
+        new sprites.SpriteAnim('area/city/particles/bigpuff_', 5, 12),
+        new sprites.SpriteAnim('area/city/particles/medpuff_', 5, 12),
+        new sprites.SpriteAnim('area/city/particles/littlepuff_', 8, 12),
+        new sprites.SpriteAnim('area/city/particles/fly1_', 21, 6),
     ]),
     new FilthParticleInfo(0.01, false, [-0.1, 0.1, 0, 0.2], null, [
-        new SpriteAnim('area/laboratory/particles/bigbubble_', 18, 6),
-        new SpriteAnim('area/laboratory/particles/smallbubble_', 17, 6),
+        new sprites.SpriteAnim('area/laboratory/particles/bigbubble_', 18, 6),
+        new sprites.SpriteAnim('area/laboratory/particles/smallbubble_', 17, 6),
     ]),
     new FilthParticleInfo(0.025, true, [-0.5, 0.5, 0, 1], [120, 120, 8, 16], [
-        new SpriteAnim('area/tutorial/particles/poly1_', 8, 6),
-        new SpriteAnim('area/tutorial/particles/poly2_', 6, 6),
+        new sprites.SpriteAnim('area/tutorial/particles/poly1_', 8, 6),
+        new sprites.SpriteAnim('area/tutorial/particles/poly2_', 6, 6),
     ]),
 ];
 
@@ -400,5 +397,5 @@ class Particle {
     public frame = 1;
     public alpha = 1;
 
-    constructor(public anim: SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+    constructor(public anim: sprites.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
 }

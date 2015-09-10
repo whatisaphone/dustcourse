@@ -1,5 +1,5 @@
 import * as model from './model';
-import { Sprite } from './spriteLoader';
+import { Sprite } from './sprites';
 
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -42,7 +42,7 @@ interface DustforceSpriteOptions {
 
 class DustforceSprite extends PIXI.Sprite {
     constructor(private sprite: Sprite) {
-        super(PIXI.Texture.fromImage(sprite.imageURL));
+        super(sprite.texture);
     }
 
     // bit of a HACK here, this method isn't documented. but we need to stack transforms

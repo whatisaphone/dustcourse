@@ -8,47 +8,39 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-export class SpriteLoader {
-    private sprites: { [url: string]: Sprite } = {};
+var loadedTextures: { [url: string]: PIXI.Texture } = {};
 
-    public get(url: string, onLoaded?: () => void) {
-        if (url in this.sprites)
-            return this.sprites[url];
+export function loadTexture(url: string) {
+    if (url in loadedTextures)
+        return loadedTextures[url];
+    var tex = PIXI.Texture.fromImage(url);
+    return loadedTextures[url] = tex;
+}
 
-        this.sprites[url] = null;  // so we don't send multiple requests for the same url
+var loadedSprites: { [name: string]: Sprite } = {};
 
-        var image = document.createElement('img');
-        image.src = '/static/sprites/' + url + '.png';
-        image.onload = () => {
-            checkBothLoaded();
-        };
+export function loadSprite(name: string) {
+    if (name in loadedSprites)
+        return loadedSprites[name];
 
-        var metadata: SpriteMetadata;
-        var self = this;
-        var xhr = new XMLHttpRequest();
-        xhr.onload = function () {
-            if (xhr.status !== 200)
-                return;
-            metadata = JSON.parse(xhr.response);
-            checkBothLoaded();
-        };
-        xhr.open('get', '/static/sprites/' + url + '.json');
-        xhr.send();
+    loadedSprites[name] = null;  // so we don't send multiple requests for the same url
 
-        var checkBothLoaded = () => {
-            if (!image.complete || !metadata)
-                return;
+    var texture = loadTexture('/static/sprites/' + name + '.png');
 
-            var hitbox = Rectangle.ltrb(metadata.rect1.l, metadata.rect1.t, metadata.rect1.r, metadata.rect1.b);
-            this.sprites[url] = new Sprite(image.src, image, hitbox);
-            if (onLoaded)
-                onLoaded();
-        };
-    }
+    var xhr = new XMLHttpRequest();
+    xhr.onload = function () {
+        if (xhr.status !== 200)
+            return;  // TODO: better indication of error
+        var metadata = JSON.parse(xhr.response);
+        var hitbox = Rectangle.ltrb(metadata.rect1.l, metadata.rect1.t, metadata.rect1.r, metadata.rect1.b);
+        loadedSprites[name] = new Sprite(texture, hitbox);
+    };
+    xhr.open('get', '/static/sprites/' + name + '.json');
+    xhr.send();
 }
 
 export class Sprite {
-    constructor(public imageURL: string, public image: HTMLImageElement, public hitbox: Rectangle) { }
+    constructor(public texture: PIXI.Texture, public hitbox: Rectangle) { }
 }
 
 interface SpriteMetadata {
