@@ -9,10 +9,27 @@ const propGroups = [
 ];
 
 class TextureContainer {
+    public static IDLE = 0;
+    public static LOADING = 1;
+    public static LOADED = 2;
+    public static ERROR = 3;
+
+    public state: number;
     public texture: PIXI.Texture;
 
     constructor(public url: string, public priority: number) {
-        this.texture = PIXI.Texture.fromImage(url);
+        this.state = TextureContainer.IDLE;
+    }
+
+    public load() {
+        this.state = TextureContainer.LOADING;
+        this.texture = PIXI.Texture.fromImage(this.url);
+        this.texture.baseTexture.on('loaded', () => { this.imageLoaded(); });
+        this.texture.baseTexture.on('error', () => { this.imageLoaded(); });
+    }
+
+    private imageLoaded() {
+        this.state = TextureContainer.LOADED;
     }
 }
 
@@ -27,7 +44,21 @@ class TextureManager {
             return tex;
         tex = new TextureContainer(url, priority);
         this.allTextures[url] = tex;
+        this.fillLoadQueue();
         return tex;
+    }
+
+    private fillLoadQueue() {
+        var numLoading = _.filter(this.allTextures, t => t.state === TextureContainer.LOADING).length;
+        var unloaded = _.filter(this.allTextures, t => t.state === TextureContainer.IDLE);
+        unloaded = _.sortBy(unloaded, t => t.priority);
+        while (numLoading < 4 && unloaded.length) {
+            var tex = unloaded.pop();
+            tex.load();
+            tex.texture.baseTexture.on('loaded', () => { this.fillLoadQueue(); });
+            tex.texture.baseTexture.on('error', () => { this.fillLoadQueue(); });
+            ++numLoading;
+        }
     }
 }
 
