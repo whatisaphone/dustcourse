@@ -12,7 +12,7 @@ export function convertIntToRGB(color: number) {
     return [r / 255, g / 255, b / 255];
 }
 
-export function convertIntToColorRGB(color: number) {
+export function convertIntToCSSRGB(color: number) {
     var r = (color & 0xff0000) >> 16;
     var g = (color & 0xff00) >> 8;
     var b = color & 0xff;

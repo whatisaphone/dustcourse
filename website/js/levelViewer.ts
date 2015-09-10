@@ -40,9 +40,9 @@ function makeBackgroundGradient(level: model.Level) {
 
 function makeSkyGradient(colors: number[], middle: number) {
     return 'linear-gradient(' +
-        util.convertIntToColorRGB(colors[0]) + ',' +
-        util.convertIntToColorRGB(colors[1]) + ' ' + (middle * 100) + '%,' +
-        util.convertIntToColorRGB(colors[2]) + ')';
+        util.convertIntToCSSRGB(colors[0]) + ',' +
+        util.convertIntToCSSRGB(colors[1]) + ' ' + (middle * 100) + '%,' +
+        util.convertIntToCSSRGB(colors[2]) + ')';
 }
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
