@@ -19,7 +19,9 @@ export function convertIntToCSSRGB(color: number) {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-export function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteOptions) {
+export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, options?: DustforceSpriteOptions) {
+    if (!sprite.texture.texture)
+        return;
     var s = new DustforceSprite(sprite);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
@@ -27,7 +29,7 @@ export function createDustforceSprite(sprite: Sprite, options?: DustforceSpriteO
     s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
-    return s;
+    stage.addChild(s);
 }
 
 interface DustforceSpriteOptions {
@@ -42,7 +44,7 @@ interface DustforceSpriteOptions {
 
 class DustforceSprite extends PIXI.Sprite {
     constructor(private sprite: Sprite) {
-        super(sprite.texture);
+        super(sprite.texture.texture);
     }
 
     // bit of a HACK here, this method isn't documented. but we need to stack transforms

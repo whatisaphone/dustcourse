@@ -8,24 +8,44 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-var loadedTextures: { [url: string]: PIXI.Texture } = {};
+class TextureContainer {
+    public texture: PIXI.Texture;
 
-export function loadTexture(url: string) {
-    if (url in loadedTextures)
-        return loadedTextures[url];
-    var tex = PIXI.Texture.fromImage(url);
-    return loadedTextures[url] = tex;
+    constructor(public url: string, public priority: number) {
+        this.texture = PIXI.Texture.fromImage(url);
+    }
+}
+
+class TextureManager {
+    private allTextures: { [url: string]: TextureContainer } = {};
+
+    constructor() { }
+
+    public getTexture(url: string, priority: number) {
+        var tex = this.allTextures[url];
+        if (tex)
+            return tex;
+        tex = new TextureContainer(url, priority);
+        this.allTextures[url] = tex;
+        return tex;
+    }
+}
+
+var textureManager = new TextureManager();
+
+export function getTexture(url: string, priority: number) {
+    return textureManager.getTexture(url, priority);
 }
 
 var loadedSprites: { [name: string]: Sprite } = {};
 
-export function loadSprite(name: string) {
+export function loadSprite(name: string, priority: number) {
     if (name in loadedSprites)
         return loadedSprites[name];
 
     loadedSprites[name] = null;  // so we don't send multiple requests for the same url
 
-    var texture = loadTexture('/static/sprites/' + name + '.png');
+    var texture = getTexture('/static/sprites/' + name + '.png', priority);
 
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
@@ -40,7 +60,7 @@ export function loadSprite(name: string) {
 }
 
 export class Sprite {
-    constructor(public texture: PIXI.Texture, public hitbox: Rectangle) { }
+    constructor(public texture: TextureContainer, public hitbox: Rectangle) { }
 }
 
 interface SpriteMetadata {

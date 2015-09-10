@@ -93,9 +93,8 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         var imageURL = '/static/level-assets/' + this.level.path
                 + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
-        return {
-            texture: sprites.loadTexture(imageURL),
-        };
+        var tex = sprites.getTexture(imageURL, this.zindex);
+        return tex.texture && { texture: tex.texture };
     }
 }
 
@@ -147,7 +146,7 @@ class PropsLayer implements wiamap.Layer {
     private drawProp(viewport: wiamap.Viewport, prop: model.Prop) {
         var anim = sprites.propAnim(model.propSet(prop), model.propGroup(prop),
                           model.propIndex(prop), model.propPalette(prop));
-        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame));
+        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
         if (!sprite)
             return;
 
@@ -171,20 +170,20 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
 
-        this.stage.addChild(util.createDustforceSprite(sprite, {
+        util.addDustforceSprite(this.stage, sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scaleX: viewport.zoom * scaleX,
             scaleY: viewport.zoom * scaleY,
             rotation: model.propRotation(prop),
-        }));
+        });
     }
 
     private drawEntity(viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
         var anim = sprites.entityAnim(model.entityName(entity));
         if (!anim)
             return;
-        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame));
+        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
         if (!sprite)
             return;
 
@@ -199,11 +198,11 @@ class PropsLayer implements wiamap.Layer {
         var canvasRect = viewport.screenRect();
         var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
 
-        this.stage.addChild(util.createDustforceSprite(sprite, {
+        util.addDustforceSprite(this.stage, sprite, {
             posX: screenRect.x - canvasRect.left,
             posY: screenRect.y - canvasRect.top,
             scale: viewport.zoom,
-        }));
+        });
     }
 }
 
@@ -250,23 +249,23 @@ class FilthLayer implements wiamap.Layer {
 
         if (center) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
-            var sprite = sprites.loadSprite(url);
+            var sprite = sprites.loadSprite(url, this.def.zindex);
             if (sprite)
-                child.addChild(util.createDustforceSprite(sprite, { scaleX: edge.length }));
+                util.addDustforceSprite(child, sprite, { scaleX: edge.length });
         }
 
         if (caps & 1) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
-            var sprite = sprites.loadSprite(url);
+            var sprite = sprites.loadSprite(url, this.def.zindex);
             if (sprite)
-                child.addChild(util.createDustforceSprite(sprite));
+                util.addDustforceSprite(child, sprite);
         }
 
         if (caps & 2) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
-            var sprite = sprites.loadSprite(url);
+            var sprite = sprites.loadSprite(url, this.def.zindex);
             if (sprite)
-                child.addChild(util.createDustforceSprite(sprite, { posX: length }));
+                util.addDustforceSprite(child, sprite, { posX: length });
         }
     }
 }
@@ -334,17 +333,17 @@ class FilthParticlesLayer implements wiamap.Layer {
     }
 
     private drawAndUpdateParticle(viewport: wiamap.Viewport, particle: Particle) {
-        var sprite = sprites.loadSprite(particle.anim.pathForFrame(particle.frame));
+        var sprite = sprites.loadSprite(particle.anim.pathForFrame(particle.frame), this.def.zindex);
         if (sprite) {
             var screenRect = viewport.screenRect();
             var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
-            this.stage.addChild(util.createDustforceSprite(sprite, {
+            util.addDustforceSprite(this.stage, sprite, {
                 posX: screen.x - screenRect.left,
                 posY: screen.y - screenRect.top,
                 scale: viewport.zoom,
                 rotation: particle.rotation,
                 alpha: particle.alpha,
-            }))
+            });
         }
 
         ++particle.frame;
