@@ -229,11 +229,18 @@ class PropsLayer implements wiamap.Layer {
         var entityX = model.entityX(entity);
         var entityY = model.entityY(entity);
         var props = model.entityProperties(entity);
-        var sprite = sprites.loadSprite('entities/nexus/door/closed' + props['door_set'] + '_1_0001', this.def.zindex);
-        if (!sprite)
-            return;
+        var doorSet = props['door_set'];
+        var sprite = doorSet === 0 ? null : sprites.loadSprite('entities/nexus/door/closed' + doorSet + '_1_0001', this.def.zindex);
 
-        var s = util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        var s: PIXI.DisplayObject;
+        if (sprite) {
+            s = util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        } else {
+            s = util.transparentSprite(-78, -187, 156, 189);
+            s.position.x = entityX;
+            s.position.y = entityY;
+            this.stage.addChild(s);
+        }
         s.interactive = true;
         s.buttonMode = true;  // sets cursor to 'pointer'
         s.on('mousedown', () => {

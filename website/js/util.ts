@@ -31,6 +31,15 @@ export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, option
     return s;
 }
 
+export function transparentSprite(x: number, y: number, width: number, height: number) {
+    var g = new PIXI.Graphics();
+    g.alpha = 0;
+    g.beginFill(0);
+    g.drawRect(x, y, width, height);
+    g.endFill();
+    return g;
+}
+
 interface DustforceSpriteOptions {
     posX?: number;
     posY?: number;

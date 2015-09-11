@@ -8,7 +8,7 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-class TextureContainer {
+export class TextureContainer {
     public static IDLE = 0;
     public static LOADING = 1;
     public static LOADED = 2;
