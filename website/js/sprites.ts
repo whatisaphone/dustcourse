@@ -16,14 +16,17 @@ class TextureContainer {
 
     public state: number;
     public texture: PIXI.Texture;
+    public image: HTMLImageElement;
 
     constructor(public url: string, public priority: number) {
         this.state = TextureContainer.IDLE;
+        this.image = document.createElement('img');
+        this.texture = new PIXI.Texture(new PIXI.BaseTexture(this.image));
     }
 
     public load() {
         this.state = TextureContainer.LOADING;
-        this.texture = PIXI.Texture.fromImage(this.url);
+        this.image.src = this.url;
         this.texture.baseTexture.on('loaded', () => { this.imageLoaded(); });
         this.texture.baseTexture.on('error', () => { this.imageLoaded(); });
     }

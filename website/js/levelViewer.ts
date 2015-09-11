@@ -93,8 +93,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         var imageURL = '/static/level-assets/' + this.level.path
                 + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
-        var tex = sprites.getTexture(imageURL, this.zindex);
-        return tex.texture && { texture: tex.texture };
+        return { texture: sprites.getTexture(imageURL, this.zindex).texture };
     }
 }
 

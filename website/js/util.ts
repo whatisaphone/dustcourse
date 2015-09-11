@@ -20,8 +20,6 @@ export function convertIntToCSSRGB(color: number) {
 }
 
 export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, options?: DustforceSpriteOptions) {
-    if (!sprite.texture.texture)
-        return;
     var s = new DustforceSprite(sprite);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
