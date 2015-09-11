@@ -180,6 +180,12 @@ class PropsLayer implements wiamap.Layer {
         var entityName = model.entityName(entity);
         if (entityName.slice(0, 6) === 'enemy_')
             this.drawEnemy(entity);
+        else if (entityName === 'giga_gate')
+            this.drawnGigaGate(entity);
+        else if (entityName === 'level_door')
+            this.drawLevelDoor(entity);
+        else if (entityName === 'score_book')
+            this.drawScoreBook(entity);
     }
 
     private drawEnemy(entity: model.Entity) {
@@ -206,6 +212,39 @@ class PropsLayer implements wiamap.Layer {
             posX: entityX,
             posY: entityY,
         });
+    }
+
+    private drawnGigaGate(entity: model.Entity) {
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/nexus/interactables/redkeybarrierclosed_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+    }
+
+    private drawLevelDoor(entity: model.Entity) {
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/nexus/door/closed' + props['door_set'] + '_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+    }
+
+    private drawScoreBook(entity: model.Entity) {
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
     }
 }
 
