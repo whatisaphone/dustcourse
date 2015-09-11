@@ -45,14 +45,15 @@ export class Replayer implements wiamap.Layer {
         this.widget.viewport.position = new Point(cameraCor[1] / 10, cameraCor[2] / 10);
 
         this.stage.removeChildren();
-        var playerPos = viewport.worldToScreenP(this, new Point(playerCor[1] / 10, playerCor[2] / 10 - 24));
-        var sprite = sprites.loadSprite('hud/head_1_0001', 200);
-        if (sprite)
-            util.addDustforceSprite(this.stage, sprite, {
-                posX: playerPos.x - canvasRect.left,
-                posY: playerPos.y - canvasRect.top,
-                scale: viewport.zoom * 2,
-            });
+        var playerPos = viewport.worldToScreenP(this, new Point(playerCor[1] / 10, playerCor[2] / 10));
+
+        var texURL = sprites.spriteTextureURL('hud/head_1_0001');
+        var tex = sprites.getTexture(texURL, 250);
+        var sprite = new PIXI.Sprite(tex.texture);
+        sprite.position.x = playerPos.x - canvasRect.left;
+        sprite.position.y = playerPos.y - canvasRect.top - 84 * viewport.zoom;
+        sprite.scale.x = sprite.scale.y = viewport.zoom * 2.5;
+        this.stage.addChild(sprite);
     }
 }
 
