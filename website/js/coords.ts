@@ -17,9 +17,9 @@ export class Rectangle {
 
 	public bottomRight() { return new Point(this.left + this.width, this.top + this.height); }
 
-	public intersects(that: Rectangle) {
-		return (this.right() >= that.left || this.left <= that.right()) &&
-			(this.bottom() >= that.top || this.top <= that.bottom());
+	public contains(point: Point) {
+		return point.x >= this.left && point.y >= this.top &&
+			point.x < this.right() && point.y < this.bottom();
 	}
 }
 

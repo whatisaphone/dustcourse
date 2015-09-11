@@ -81,7 +81,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
     constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
         var layerParams = dustforceLayerParams(layerNum);
-        this.zindex = layerNum * 10 + 5;
+        this.zindex = layerNum * 10 + 3;
         this.parallax = layerParams.parallax;
         this.scales = _.map(layer.scales, s =>
             new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
@@ -95,8 +95,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         var imageURL = '/static/level-assets/' + this.level.path
                 + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
-        var tex = sprites.getTexture(imageURL, this.zindex);
-        return tex.texture && { texture: tex.texture };
+        return { texture: sprites.getTexture(imageURL, this.zindex).texture };
     }
 }
 
@@ -118,7 +117,7 @@ class PropsLayer implements wiamap.Layer {
 
     constructor(private level: model.Level, private layerNum: number) {
         this.layerParams = dustforceLayerParams(layerNum);
-        this.def = { zindex: layerNum * 10 + 8, parallax: this.layerParams.parallax };
+        this.def = { zindex: layerNum * 10 + 5, parallax: this.layerParams.parallax };
 
         if (this.level.currentFog)
             util.applyFog(this.stage, this.level.currentFog, this.layerNum);
@@ -213,7 +212,7 @@ class FilthLayer implements wiamap.Layer {
     public stage = new PIXI.Container();
 
     constructor(private level: model.Level) {
-        this.def = { zindex: 196, parallax: 1 };
+        this.def = { zindex: 198, parallax: 1 };
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -278,7 +277,7 @@ class FilthParticlesLayer implements wiamap.Layer {
     private particles: Particle[] = [];
 
     constructor(private level: model.Level) {
-        this.def = { zindex: 193, parallax: 1 };
+        this.def = { zindex: 197, parallax: 1 };
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {

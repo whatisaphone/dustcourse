@@ -16,14 +16,17 @@ class TextureContainer {
 
     public state: number;
     public texture: PIXI.Texture;
+    public image: HTMLImageElement;
 
     constructor(public url: string, public priority: number) {
         this.state = TextureContainer.IDLE;
+        this.image = document.createElement('img');
+        this.texture = new PIXI.Texture(new PIXI.BaseTexture(this.image));
     }
 
     public load() {
         this.state = TextureContainer.LOADING;
-        this.texture = PIXI.Texture.fromImage(this.url);
+        this.image.src = this.url;
         this.texture.baseTexture.on('loaded', () => { this.imageLoaded(); });
         this.texture.baseTexture.on('error', () => { this.imageLoaded(); });
     }
@@ -68,6 +71,10 @@ export function getTexture(url: string, priority: number) {
     return textureManager.getTexture(url, priority);
 }
 
+export function spriteTextureURL(name: string) {
+    return '/static/sprites/' + name + '.png';
+}
+
 var loadedSprites: { [name: string]: Sprite } = {};
 
 export function loadSprite(name: string, priority: number) {
@@ -76,7 +83,7 @@ export function loadSprite(name: string, priority: number) {
 
     loadedSprites[name] = null;  // so we don't send multiple requests for the same url
 
-    var texture = getTexture('/static/sprites/' + name + '.png', priority);
+    var texture = getTexture(spriteTextureURL(name), priority);
 
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
