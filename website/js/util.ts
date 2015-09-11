@@ -28,6 +28,7 @@ export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, option
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
     stage.addChild(s);
+    return s;
 }
 
 interface DustforceSpriteOptions {

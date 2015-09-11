@@ -233,7 +233,12 @@ class PropsLayer implements wiamap.Layer {
         if (!sprite)
             return;
 
-        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        var s = util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        s.interactive = true;
+        s.buttonMode = true;  // sets cursor to 'pointer'
+        s.on('mousedown', () => {
+            location.href = '/level/' + props['file_name'];
+        });
     }
 
     private drawScoreBook(entity: model.Entity) {
