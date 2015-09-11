@@ -186,6 +186,8 @@ class PropsLayer implements wiamap.Layer {
             this.drawEnemy(entity);
         else if (entityName === 'giga_gate')
             this.drawGigaGate(entity);
+        else if (entityName === 'hittable_apple')
+            this.drawHittableApple(entity);
         else if (entityName === 'level_door')
             this.drawLevelDoor(entity);
         else if (entityName === 'score_book')
@@ -225,6 +227,16 @@ class PropsLayer implements wiamap.Layer {
         var [entityX, entityY] = this.getEntityOrAIPosition(entity);
         var props = model.entityProperties(entity);
         var sprite = sprites.loadSprite('entities/nexus/interactables/redkeybarrierclosed_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+    }
+
+    private drawHittableApple(entity: model.Entity) {
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/forest/apple/idle_1_0001', this.def.zindex);
         if (!sprite)
             return;
 
