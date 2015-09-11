@@ -132,20 +132,18 @@ class PropsLayer implements wiamap.Layer {
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
                 if (model.propLayerGroup(prop) === this.layerNum)
-                    this.drawProp(viewport, prop);
+                    this.drawProp(prop);
             });
 
             if (this.layerNum === 18) {
                 _.each(slice.entities, entity => {
-                    var ai = _.find(slice.entities, e => model.entityName(e) === 'AI_controller' &&
-                                                         model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
-                    this.drawEntity(viewport, entity, ai);
+                    this.drawEntity(entity);
                 });
             }
         });
     }
 
-    private drawProp(viewport: wiamap.Viewport, prop: model.Prop) {
+    private drawProp(prop: model.Prop) {
         var anim = sprites.propAnim(model.propSet(prop), model.propGroup(prop),
                           model.propIndex(prop), model.propPalette(prop));
         var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
@@ -178,8 +176,15 @@ class PropsLayer implements wiamap.Layer {
         });
     }
 
-    private drawEntity(viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
-        var anim = sprites.entityAnim(model.entityName(entity));
+    private drawEntity(entity: model.Entity) {
+        var entityName = model.entityName(entity);
+        if (entityName.slice(0, 6) === 'enemy_')
+            this.drawEnemy(entity);
+    }
+
+    private drawEnemy(entity: model.Entity) {
+        var entityName = model.entityName(entity);
+        var anim = sprites.entityAnim(entityName);
         if (!anim)
             return;
         var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
@@ -187,6 +192,8 @@ class PropsLayer implements wiamap.Layer {
             return;
 
         var entityX: number, entityY: number;
+        var ai = _.find(this.level.allEntities, e => model.entityName(e) === 'AI_controller' &&
+                                                     model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
         if (ai) {
             var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
             [entityX, entityY] = _.map(entityPos, p => parseInt(p, 10));
