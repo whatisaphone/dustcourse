@@ -12,7 +12,7 @@ app.set('view engine', 'jade');
 
 app.get('/', (req, res) => {
     var levelName = req.params.level;
-    res.render('index');
+    res.redirect(302, '/level/Main Nexus DX');
 });
 
 app.get('/replay/:replayId', (req, res) => {

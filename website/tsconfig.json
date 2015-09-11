@@ -12,6 +12,7 @@
         "./index.ts",
         "./js/coords.ts",
         "./js/dragscroll.ts",
+        "./js/hud.ts",
         "./js/index.ts",
         "./js/levelViewer.ts",
         "./js/model.ts",

@@ -1,26 +1,30 @@
 import { Point, Rectangle } from './coords';
+import * as hud from './hud';
 import * as model from './model';
 import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
-import { Replayer } from './replay';
+import { ReplayUI } from './replay';
 
 export function init(level: model.Level) {
-    model.levelPopulate(level);
-
     var widget = new wiamap.Widget();
-
     var el = widget.getElement();
-    el.setAttribute('class', 'wiamap-stage');
-    document.body.appendChild(el);
+    el.className = 'level-canvas';
 
+    model.levelPopulate(level);
     level.currentFog = findFogEntityNearestPlayer(level);
     el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
 
-    widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
-    widget.addLayer(new Replayer(widget));
+    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
+    if (level.properties['level_type'] === 0)
+        new ReplayUI(level, widget);
+
+    if (level.path === 'Main Nexus DX')  // first impressions matter
+        widget.scrollTo(1182.91, -1200, 0.5);
+    else
+        widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
 function findFogEntityNearestPlayer(level: model.Level) {
@@ -57,6 +61,7 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
         widget.addLayer(new PropsLayer(level, layerNum));
     });
 
+    widget.addLayer(new StarsLayer(level));
     widget.addLayer(new FilthLayer(level));
     widget.addLayer(new FilthParticlesLayer(level));
 }
@@ -111,7 +116,7 @@ class PrerenderedTileScale implements wiamap.TileScale {
 
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public stage = new PIXI.Container();
+    public stage = new util.ChunkContainer();
     private frame = 0;
     private layerParams: DustforceLayerParams;
 
@@ -127,24 +132,25 @@ class PropsLayer implements wiamap.Layer {
         ++this.frame;
 
         this.stage.removeChildren();
+        this.stage.position.x = -worldRect.left;
+        this.stage.position.y = -worldRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
                 if (model.propLayerGroup(prop) === this.layerNum)
-                    this.drawProp(viewport, prop);
+                    this.drawProp(prop);
             });
 
             if (this.layerNum === 18) {
                 _.each(slice.entities, entity => {
-                    var ai = _.find(slice.entities, e => model.entityName(e) === 'AI_controller' &&
-                                                         model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
-                    this.drawEntity(viewport, entity, ai);
+                    this.drawEntity(entity);
                 });
             }
         });
     }
 
-    private drawProp(viewport: wiamap.Viewport, prop: model.Prop) {
+    private drawProp(prop: model.Prop) {
         var anim = sprites.propAnim(model.propSet(prop), model.propGroup(prop),
                           model.propIndex(prop), model.propPalette(prop));
         var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
@@ -168,42 +174,110 @@ class PropsLayer implements wiamap.Layer {
         propX -= Math.floor(propX / 286) * 32;
         propY += Math.floor(propY / 232) * 32;
 
-        var canvasRect = viewport.screenRect();
-        var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
-
         util.addDustforceSprite(this.stage, sprite, {
-            posX: screenRect.x - canvasRect.left,
-            posY: screenRect.y - canvasRect.top,
-            scaleX: viewport.zoom * scaleX,
-            scaleY: viewport.zoom * scaleY,
+            posX: propX,
+            posY: propY,
+            scaleX: scaleX,
+            scaleY: scaleY,
             rotation: model.propRotation(prop),
         });
     }
 
-    private drawEntity(viewport: wiamap.Viewport, entity: model.Entity, ai: model.Entity) {
-        var anim = sprites.entityAnim(model.entityName(entity));
+    private drawEntity(entity: model.Entity) {
+        var entityName = model.entityName(entity);
+        if (entityName.slice(0, 6) === 'enemy_')
+            this.drawEnemy(entity);
+        else if (entityName === 'giga_gate')
+            this.drawGigaGate(entity);
+        else if (entityName === 'hittable_apple')
+            this.drawHittableApple(entity);
+        else if (entityName === 'level_door')
+            this.drawLevelDoor(entity);
+        else if (entityName === 'score_book')
+            this.drawScoreBook(entity);
+    }
+
+    private getEntityOrAIPosition(entity: model.Entity) {
+        var entityX: number, entityY: number;
+        var ai = _.find(this.level.allEntities, e => model.entityName(e) === 'AI_controller' &&
+                                                     model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
+        if (ai) {
+            var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+            return _.map(entityPos, p => parseInt(p, 10));
+        } else {
+            return [model.entityX(entity), model.entityY(entity)];
+        }
+    }
+
+    private drawEnemy(entity: model.Entity) {
+        var entityName = model.entityName(entity);
+        var anim = sprites.entityAnim(entityName);
         if (!anim)
             return;
         var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
         if (!sprite)
             return;
 
-        var entityX: number, entityY: number;
-        if (ai) {
-            [entityX, entityY] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
-        } else {
-            entityX = model.entityX(entity);
-            entityY = model.entityY(entity);
-        }
-
-        var canvasRect = viewport.screenRect();
-        var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
 
         util.addDustforceSprite(this.stage, sprite, {
-            posX: screenRect.x - canvasRect.left,
-            posY: screenRect.y - canvasRect.top,
-            scale: viewport.zoom,
+            posX: entityX,
+            posY: entityY,
         });
+    }
+
+    private drawGigaGate(entity: model.Entity) {
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/nexus/interactables/redkeybarrierclosed_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+    }
+
+    private drawHittableApple(entity: model.Entity) {
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/forest/apple/idle_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+    }
+
+    private drawLevelDoor(entity: model.Entity) {
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+        var props = model.entityProperties(entity);
+        var doorSet = props['door_set'];
+        var sprite = doorSet === 0 ? null : sprites.loadSprite('entities/nexus/door/closed' + doorSet + '_1_0001', this.def.zindex);
+
+        var s: PIXI.DisplayObject;
+        if (sprite) {
+            s = util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        } else {
+            s = util.transparentSprite(-78, -187, 156, 189);
+            s.position.x = entityX;
+            s.position.y = entityY;
+            this.stage.addChild(s);
+        }
+        s.interactive = true;
+        s.buttonMode = true;  // sets cursor to 'pointer'
+        s.on('mousedown', () => {
+            location.href = '/level/' + props['file_name'];
+        });
+    }
+
+    private drawScoreBook(entity: model.Entity) {
+        var entityX = model.entityX(entity);
+        var entityY = model.entityY(entity);
+        var props = model.entityProperties(entity);
+        var sprite = sprites.loadSprite('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_1_0001', this.def.zindex);
+        if (!sprite)
+            return;
+
+        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
     }
 }
 
@@ -399,4 +473,84 @@ class Particle {
     public alpha = 1;
 
     constructor(public anim: sprites.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+}
+
+class StarsLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
+    public stage = new util.ViewportParticleContainer();
+    private universeBounds = new Rectangle(0, 0, 0, 0);
+
+    constructor(private level: model.Level) {
+        this.def = { zindex: 4, parallax: 0.02 };
+        this.stage.blendMode = PIXI.BLEND_MODES.ADD;
+        if (this.level.currentFog)
+            util.applyFog(this.stage, this.level.currentFog, 0);
+    }
+
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        // something is weird with the coordinates here, I have to figure that out before I can enable this
+        //return;
+
+        if (!this.level.currentFog) {
+            this.stage.visible = false;
+            return;
+        }
+        var fog = model.entityProperties(this.level.currentFog);
+
+        this.stage.alpha = Math.max(0, Math.min(1, (viewport.zoom - 0.2) * 3.5));
+        if (this.stage.alpha <= 0) {
+            this.stage.visible = false;
+            return;
+        }
+
+        this.stage.visible = true;
+        this.stage.position.x = -worldRect.left - canvasRect.left;
+        this.stage.position.y = -worldRect.top - canvasRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+
+        this.expandUniverse(worldRect);
+
+        var midpoint = worldRect.top + fog['gradient_middle'] * worldRect.height;
+        for (var ci = 0, cl = this.stage.children.length; ci < cl; ++ci) {
+            var child = this.stage.children[ci];
+            var [topY, botY, topA, botA] = child.position.y < midpoint
+                ? [worldRect.top, midpoint, fog['star_top'], fog['star_middle']]
+                : [midpoint, worldRect.bottom(), fog['star_middle'], fog['star_bottom']];
+            var pct = (child.position.y - topY) / (botY - topY);
+            child.alpha = Math.max(0, Math.min(1, topA * (1 - pct) + botA * pct));
+        }
+    }
+
+    private expandUniverse(area: Rectangle) {
+        if (!this.level.currentFog)
+            return;
+        var galaxySize = 96;
+        var minX = Math.floor(area.left / galaxySize) * galaxySize;
+        var minY = Math.floor(area.top / galaxySize) * galaxySize;
+        var maxX = Math.floor(area.right() / galaxySize) * galaxySize;
+        var maxY = Math.floor(area.bottom() / galaxySize) * galaxySize;
+        for (var galaxyX = minX; galaxyX < maxX; galaxyX += galaxySize)
+        for (var galaxyY = minY; galaxyY < maxY; galaxyY += galaxySize) {
+            if (this.universeBounds.contains(new Point(galaxyX, galaxyY)))
+                continue;
+            for (var s = 0; s < 4; ++s) {
+                var x = galaxyX + Math.random() * galaxySize;
+                var y = galaxyY + Math.random() * galaxySize;
+
+                var texURL = sprites.spriteTextureURL('effects/stars/star_' + Math.floor(Math.random() * 3 + 1) + '_0001');
+                var tex = sprites.getTexture(texURL, this.def.zindex);
+                var sprite = new PIXI.Sprite(tex.texture);
+                sprite.position.x = x;
+                sprite.position.y = y;
+                sprite.scale.x = sprite.scale.y = 2;
+                sprite.scale
+                this.stage.addChild(sprite);
+            }
+        }
+        this.universeBounds = Rectangle.ltrb(
+            Math.min(minX, this.universeBounds.left),
+            Math.min(minY, this.universeBounds.top),
+            Math.max(maxX, this.universeBounds.right()),
+            Math.max(maxY, this.universeBounds.bottom()));
+    }
 }

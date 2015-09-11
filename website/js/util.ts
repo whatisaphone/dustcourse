@@ -28,6 +28,16 @@ export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, option
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
     stage.addChild(s);
+    return s;
+}
+
+export function transparentSprite(x: number, y: number, width: number, height: number) {
+    var g = new PIXI.Graphics();
+    g.alpha = 0;
+    g.beginFill(0);
+    g.drawRect(x, y, width, height);
+    g.endFill();
+    return g;
 }
 
 interface DustforceSpriteOptions {
@@ -40,13 +50,46 @@ interface DustforceSpriteOptions {
     alpha?: number;
 }
 
-class DustforceSprite extends PIXI.Sprite {
+// These classes exist because I needed finer control over the transformation matrix than pixi.js provides
+// updateTransform isn't actually documented, but it seems like a logical enough solution
+
+export class ChunkContainer extends PIXI.Container {
+    public updateTransform() {
+        this.worldTransform.identity()
+            .translate(this.position.x, this.position.y)
+            .scale(this.scale.x, this.scale.y)
+            .prepend(this.parent.worldTransform);
+
+        // copied from PIXI.DisplayObject.updateTransform
+        this.worldAlpha = this.alpha * this.parent.worldAlpha;
+        this._currentBounds = null;
+
+        for (var ci = 0, cl = this.children.length; ci < cl; ++ci)
+            this.children[ci].updateTransform();
+    }
+}
+
+export class ViewportParticleContainer extends PIXI.ParticleContainer {
+    public updateTransform() {
+        this.worldTransform.identity()
+            .translate(this.position.x, this.position.y)
+            .scale(this.scale.x, this.scale.y)
+            .prepend(this.parent.worldTransform);
+
+        // copied from PIXI.DisplayObject.updateTransform
+        this.worldAlpha = this.alpha * this.parent.worldAlpha;
+        this._currentBounds = null;
+
+        for (var ci = 0, cl = this.children.length; ci < cl; ++ci)
+            this.children[ci].updateTransform();
+    }
+}
+
+export class DustforceSprite extends PIXI.Sprite {
     constructor(private sprite: Sprite) {
         super(sprite.texture.texture);
     }
 
-    // bit of a HACK here, this method isn't documented. but we need to stack transforms
-    // in a different order than pixi does, so this seems to be the logical solution
     public updateTransform() {
         this.worldTransform.identity()
             .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
@@ -55,7 +98,7 @@ class DustforceSprite extends PIXI.Sprite {
             .translate(this.position.x, this.position.y)
             .prepend(this.parent.worldTransform);
 
-        // do some other stuff that super.updateTransform does
+        // copied from PIXI.DisplayObject.updateTransform
         this.worldAlpha = this.alpha * this.parent.worldAlpha;
         this._currentBounds = null;
     }
