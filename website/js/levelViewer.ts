@@ -55,6 +55,7 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
         widget.addLayer(new PropsLayer(level, layerNum));
     });
 
+    widget.addLayer(new StarsLayer(level));
     widget.addLayer(new FilthLayer(level));
     widget.addLayer(new FilthParticlesLayer(level));
 }
@@ -454,4 +455,84 @@ class Particle {
     public alpha = 1;
 
     constructor(public anim: sprites.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+}
+
+class StarsLayer implements wiamap.Layer {
+    public def: wiamap.LayerDef;
+    public stage = new util.ViewportParticleContainer();
+    private universeBounds = new Rectangle(0, 0, 0, 0);
+
+    constructor(private level: model.Level) {
+        this.def = { zindex: 4, parallax: 0.02 };
+        this.stage.blendMode = PIXI.BLEND_MODES.ADD;
+        if (this.level.currentFog)
+            util.applyFog(this.stage, this.level.currentFog, 0);
+    }
+
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        // something is weird with the coordinates here, I have to figure that out before I can enable this
+        //return;
+
+        if (!this.level.currentFog) {
+            this.stage.visible = false;
+            return;
+        }
+        var fog = model.entityProperties(this.level.currentFog);
+
+        this.stage.alpha = Math.max(0, Math.min(1, (viewport.zoom - 0.2) * 3.5));
+        if (this.stage.alpha <= 0) {
+            this.stage.visible = false;
+            return;
+        }
+
+        this.stage.visible = true;
+        this.stage.position.x = -worldRect.left - canvasRect.left;
+        this.stage.position.y = -worldRect.top - canvasRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+
+        this.expandUniverse(worldRect);
+
+        var midpoint = worldRect.top + fog['gradient_middle'] * worldRect.height;
+        for (var ci = 0, cl = this.stage.children.length; ci < cl; ++ci) {
+            var child = this.stage.children[ci];
+            var [topY, botY, topA, botA] = child.position.y < midpoint
+                ? [worldRect.top, midpoint, fog['star_top'], fog['star_middle']]
+                : [midpoint, worldRect.bottom(), fog['star_middle'], fog['star_bottom']];
+            var pct = (child.position.y - topY) / (botY - topY);
+            child.alpha = Math.max(0, Math.min(1, topA * (1 - pct) + botA * pct));
+        }
+    }
+
+    private expandUniverse(area: Rectangle) {
+        if (!this.level.currentFog)
+            return;
+        var galaxySize = 96;
+        var minX = Math.floor(area.left / galaxySize) * galaxySize;
+        var minY = Math.floor(area.top / galaxySize) * galaxySize;
+        var maxX = Math.floor(area.right() / galaxySize) * galaxySize;
+        var maxY = Math.floor(area.bottom() / galaxySize) * galaxySize;
+        for (var galaxyX = minX; galaxyX < maxX; galaxyX += galaxySize)
+        for (var galaxyY = minY; galaxyY < maxY; galaxyY += galaxySize) {
+            if (this.universeBounds.contains(new Point(galaxyX, galaxyY)))
+                continue;
+            for (var s = 0; s < 4; ++s) {
+                var x = galaxyX + Math.random() * galaxySize;
+                var y = galaxyY + Math.random() * galaxySize;
+
+                var texURL = sprites.spriteTextureURL('effects/stars/star_' + Math.floor(Math.random() * 3 + 1) + '_0001');
+                var tex = sprites.getTexture(texURL, this.def.zindex);
+                var sprite = new PIXI.Sprite(tex.texture);
+                sprite.position.x = x;
+                sprite.position.y = y;
+                sprite.scale.x = sprite.scale.y = 2;
+                sprite.scale
+                this.stage.addChild(sprite);
+            }
+        }
+        this.universeBounds = Rectangle.ltrb(
+            Math.min(minX, this.universeBounds.left),
+            Math.min(minY, this.universeBounds.top),
+            Math.max(maxX, this.universeBounds.right()),
+            Math.max(maxY, this.universeBounds.bottom()));
+    }
 }

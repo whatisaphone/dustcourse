@@ -69,6 +69,22 @@ export class ChunkContainer extends PIXI.Container {
     }
 }
 
+export class ViewportParticleContainer extends PIXI.ParticleContainer {
+    public updateTransform() {
+        this.worldTransform.identity()
+            .translate(this.position.x, this.position.y)
+            .scale(this.scale.x, this.scale.y)
+            .prepend(this.parent.worldTransform);
+
+        // copied from PIXI.DisplayObject.updateTransform
+        this.worldAlpha = this.alpha * this.parent.worldAlpha;
+        this._currentBounds = null;
+
+        for (var ci = 0, cl = this.children.length; ci < cl; ++ci)
+            this.children[ci].updateTransform();
+    }
+}
+
 export class DustforceSprite extends PIXI.Sprite {
     constructor(private sprite: Sprite) {
         super(sprite.texture.texture);
