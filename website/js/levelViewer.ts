@@ -181,11 +181,23 @@ class PropsLayer implements wiamap.Layer {
         if (entityName.slice(0, 6) === 'enemy_')
             this.drawEnemy(entity);
         else if (entityName === 'giga_gate')
-            this.drawnGigaGate(entity);
+            this.drawGigaGate(entity);
         else if (entityName === 'level_door')
             this.drawLevelDoor(entity);
         else if (entityName === 'score_book')
             this.drawScoreBook(entity);
+    }
+
+    private getEntityOrAIPosition(entity: model.Entity) {
+        var entityX: number, entityY: number;
+        var ai = _.find(this.level.allEntities, e => model.entityName(e) === 'AI_controller' &&
+                                                     model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
+        if (ai) {
+            var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+            return _.map(entityPos, p => parseInt(p, 10));
+        } else {
+            return [model.entityX(entity), model.entityY(entity)];
+        }
     }
 
     private drawEnemy(entity: model.Entity) {
@@ -197,16 +209,7 @@ class PropsLayer implements wiamap.Layer {
         if (!sprite)
             return;
 
-        var entityX: number, entityY: number;
-        var ai = _.find(this.level.allEntities, e => model.entityName(e) === 'AI_controller' &&
-                                                     model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
-        if (ai) {
-            var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
-            [entityX, entityY] = _.map(entityPos, p => parseInt(p, 10));
-        } else {
-            entityX = model.entityX(entity);
-            entityY = model.entityY(entity);
-        }
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
 
         util.addDustforceSprite(this.stage, sprite, {
             posX: entityX,
@@ -214,9 +217,8 @@ class PropsLayer implements wiamap.Layer {
         });
     }
 
-    private drawnGigaGate(entity: model.Entity) {
-        var entityX = model.entityX(entity);
-        var entityY = model.entityY(entity);
+    private drawGigaGate(entity: model.Entity) {
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
         var props = model.entityProperties(entity);
         var sprite = sprites.loadSprite('entities/nexus/interactables/redkeybarrierclosed_1_0001', this.def.zindex);
         if (!sprite)
