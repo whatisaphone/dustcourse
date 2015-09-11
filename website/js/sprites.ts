@@ -71,6 +71,10 @@ export function getTexture(url: string, priority: number) {
     return textureManager.getTexture(url, priority);
 }
 
+export function spriteTextureURL(name: string) {
+    return '/static/sprites/' + name + '.png';
+}
+
 var loadedSprites: { [name: string]: Sprite } = {};
 
 export function loadSprite(name: string, priority: number) {
@@ -79,7 +83,7 @@ export function loadSprite(name: string, priority: number) {
 
     loadedSprites[name] = null;  // so we don't send multiple requests for the same url
 
-    var texture = getTexture('/static/sprites/' + name + '.png', priority);
+    var texture = getTexture(spriteTextureURL(name), priority);
 
     var xhr = new XMLHttpRequest();
     xhr.onload = function () {
