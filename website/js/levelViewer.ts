@@ -109,7 +109,7 @@ class PrerenderedTileScale implements wiamap.TileScale {
 
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public stage = new PIXI.Container();
+    public stage = new util.ChunkContainer();
     private frame = 0;
     private layerParams: DustforceLayerParams;
 
@@ -125,6 +125,9 @@ class PropsLayer implements wiamap.Layer {
         ++this.frame;
 
         this.stage.removeChildren();
+        this.stage.position.x = -worldRect.left;
+        this.stage.position.y = -worldRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
@@ -166,14 +169,11 @@ class PropsLayer implements wiamap.Layer {
         propX -= Math.floor(propX / 286) * 32;
         propY += Math.floor(propY / 232) * 32;
 
-        var canvasRect = viewport.screenRect();
-        var screenRect = viewport.worldToScreenP(this, new Point(propX, propY));
-
         util.addDustforceSprite(this.stage, sprite, {
-            posX: screenRect.x - canvasRect.left,
-            posY: screenRect.y - canvasRect.top,
-            scaleX: viewport.zoom * scaleX,
-            scaleY: viewport.zoom * scaleY,
+            posX: propX,
+            posY: propY,
+            scaleX: scaleX,
+            scaleY: scaleY,
             rotation: model.propRotation(prop),
         });
     }
@@ -188,19 +188,16 @@ class PropsLayer implements wiamap.Layer {
 
         var entityX: number, entityY: number;
         if (ai) {
-            [entityX, entityY] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+            var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+            [entityX, entityY] = _.map(entityPos, p => parseInt(p, 10));
         } else {
             entityX = model.entityX(entity);
             entityY = model.entityY(entity);
         }
 
-        var canvasRect = viewport.screenRect();
-        var screenRect = viewport.worldToScreenP(this, new Point(entityX, entityY));
-
         util.addDustforceSprite(this.stage, sprite, {
-            posX: screenRect.x - canvasRect.left,
-            posY: screenRect.y - canvasRect.top,
-            scale: viewport.zoom,
+            posX: entityX,
+            posY: entityY,
         });
     }
 }
