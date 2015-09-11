@@ -1,24 +1,27 @@
 import { Point, Rectangle } from './coords';
+import * as hud from './hud';
 import * as model from './model';
 import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
 export function init(level: model.Level) {
-    model.levelPopulate(level);
-
     var widget = new wiamap.Widget();
-
     var el = widget.getElement();
-    el.setAttribute('class', 'wiamap-stage');
-    document.body.appendChild(el);
+    el.className = 'level-canvas';
 
+    model.levelPopulate(level);
     level.currentFog = findFogEntityNearestPlayer(level);
     el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
 
-    widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
+    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
+
+    if (level.path === 'Main Nexus DX')  // first impressions matter
+        widget.scrollTo(1182.91, -1200, 0.5);
+    else
+        widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
 function findFogEntityNearestPlayer(level: model.Level) {

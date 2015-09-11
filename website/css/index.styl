@@ -1,16 +1,58 @@
+$font-size-base = 16px
+$brand-primary = hsl(270, 65%, 70%)
+$link-color = $brand-primary
+$link-hover-color = $brand-primary
+$btn-default-bg = rgba(255, 255, 255, 0.4)
+$btn-default-active = rgba(255, 255, 255, 0.55)
+@import 'bootstrap'
+.btn
+	&:hover, &:focus, &:active
+		background: $btn-default-active
+
 @import 'nib'
 
-.wiamap-stage
-	position: absolute
-	left: 0
-	top: 0
-	width: 100%
-	height: 100%
-	overflow: hidden
-.map-overlay
-	position: absolute
-	left: 0
-	top: 0
-	width: 100%
-	height: 100%
+$hud-text-color = #ccc
+$hud-shadow-color = #000
+
+text-outline($color, $size = 1px)
+	text-shadow: (-($size)) (-($size)) 0 $color, (-($size)) 0 0 $color, (-($size)) $size 0 $color, 0 (-($size)) 0 $color, 0 $size 0 $color, $size (-($size)) 0 $color, $size 0 0 $color, $size $size 0 $color
+
+html
+	user-select: none
 	pointer-events: none
+canvas
+	pointer-events: auto
+a
+	pointer-events: auto
+
+.page-header
+	display: flex
+	padding: 2rem
+.page-header-brand
+	margin-top: -1rem
+	font-size: 3.5rem
+	font-weight: bold
+	color: $hud-text-color
+	text-outline($hud-shadow-color)
+.page-header-level
+	font-size: 2.5rem
+	color: $hud-text-color
+	text-outline($hud-shadow-color)
+.page-header-middle
+	flex: 1
+
+.page-footer
+	position: absolute
+	bottom: 0
+	right: 0
+	padding: 0.5rem 1rem
+	color: $hud-text-color
+	text-shadow: 1px 1px 0 $hud-shadow-color
+
+.level-canvas
+	position: absolute
+	left: 0
+	top: 0
+	width: 100%
+	height: 100%
+	z-index: -1

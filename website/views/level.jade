@@ -5,9 +5,19 @@ meta(name='viewport' content='width=device-width, initial-scale=1.0, maximum-sca
 link(rel='icon' href='/favicon.png')
 link(rel='stylesheet', href='/static/index.css')
 
-h1 #{level.properties.level_name}
+.page-header
+  div
+    .page-header-brand Dustworld
+    .page-header-level #{level.properties.level_name}
+  .page-header-middle
+  .page-header-btns.btn-group
 
-| TODO: non-js content
+canvas
+    | Looks like your web browser is too outdated to use this site, sorry.
+
+.page-footer
+  | Dustforce was created by <a href="http://hitboxteam.com/" target="_blank">Hitbox Team</a>
+  | and these graphics are used <a href="http://dustforce.com/terms" target="_blank">with permission</a>.
 
 script(src='//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js')
 script(src='//cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.7/pixi.min.js')

@@ -10,7 +10,8 @@ export class Widget implements DragScroll.Callback {
     private scroll: DragScroll;
 
     constructor() {
-        this.renderer = PIXI.autoDetectRenderer(640, 360, { transparent: true });
+        var view = <HTMLCanvasElement>document.querySelector('canvas');
+        this.renderer = PIXI.autoDetectRenderer(640, 360, { view: view, transparent: true });
         this.container = new PIXI.Container();
         this.layers = [];
         this.viewport = new Viewport(new Point(0, 0), new Size(0, 0), 1);

@@ -1,0 +1,15 @@
+{
+  "name": "DustWorld",
+  "version": "0.0.0",
+  "authors": [
+    "John Simon <john@johnsoft.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
