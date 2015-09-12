@@ -5,18 +5,84 @@ import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
-export function init(level: model.Level) {
-    var widget = new wiamap.Widget();
-    var el = widget.getElement();
-    el.className = 'level-canvas';
+export function init(levelName: string) {
+    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
 
+    var widget = new wiamap.Widget();
+
+    new LevelDownloader(widget, levelName).download();
+}
+
+class LevelDownloader {
+    private xhr: XMLHttpRequest;
+    private overlay: HTMLElement;
+
+    constructor(private widget: wiamap.Widget, private levelName: string) { }
+
+    public download() {
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'opaque-overlay';
+        (<any>this.overlay).innerHTML = '<div class="progress" style="width:60%">' +
+            '<div class="progress-bar progress-bar-striped active">' +
+        '</div>';
+        document.body.appendChild(this.overlay);
+
+        this.xhr = new XMLHttpRequest();
+        this.xhr.open('get', '/static/level-assets/' + this.levelName + '/manifest.json');
+        this.xhr.send();
+        this.xhr.onprogress = e => { this.progress(e); };
+        this.xhr.onload = () => { this.loaded(); };
+        this.xhr.onerror = () => { this.error(); };
+    }
+
+    private progress(event: ProgressEvent) {
+        if (event.lengthComputable)
+            this.setProgress(event.loaded / event.total);
+    }
+
+    private setProgress(progress: number) {
+        var progressBar = <HTMLElement>this.overlay.querySelector('.progress-bar');
+        progressBar.style.width = (progress * 100) + '%';
+    }
+
+    private error() {
+        hud.setLevelName('Error downloading ' + this.levelName);
+        this.setProgress(0);
+    }
+
+    private loaded() {
+        if (this.xhr.status === 404) {
+            hud.setLevelName('Level ' + this.levelName + ' does not exist');
+            this.setProgress(0);
+            return;
+        }
+        if (this.xhr.status !== 200) {
+            this.error();
+            return;
+        }
+
+        this.setProgress(1);
+        this.overlay.style.opacity = '0';
+        setTimeout(() => { this.overlay.parentNode.removeChild(this.overlay); }, 2000);
+
+        setTimeout(() => {
+            var level = JSON.parse(this.xhr.response);
+
+            setTimeout(() => {
+                hud.setLevelName(level.properties['level_name']);
+                populateLevelViewer(this.widget, level);
+            }, 0);
+        }, 0);
+    }
+}
+
+function populateLevelViewer(widget: wiamap.Widget, level: model.Level) {
     model.levelPopulate(level);
     level.currentFog = findFogEntityNearestPlayer(level);
+    var el = widget.getElement();
     el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
-
-    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);
