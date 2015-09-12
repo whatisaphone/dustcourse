@@ -46,13 +46,13 @@ class LevelDownloader {
     }
 
     private error() {
-        hud.setLevelName('Error downloading ' + this.levelName);
+        hud.setLevelName('There was an error downloading "' + this.levelName + '".');
         this.setProgress(0);
     }
 
     private loaded() {
         if (this.xhr.status === 404) {
-            hud.setLevelName('Level ' + this.levelName + ' does not exist');
+            hud.setLevelName('The level "' + this.levelName + '" was not found on the server.');
             this.setProgress(0);
             return;
         }
