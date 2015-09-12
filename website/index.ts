@@ -30,21 +30,7 @@ app.get('/replay/:replayId', (req, res) => {
 });
 
 app.get('/level/:levelName', (req, res) => {
-    new Promise((resolve, reject) => {
-        if (/[a-z]+/.test(req.params.levelName))
-            resolve(req.params.levelName);
-        else
-            reject(void 0);
-    })
-    .then(levelName => Promise.promisify(fs.readFile)('static/level-assets/' + levelName + '/manifest.json'))
-    .then(text => new Promise(r => r(JSON.parse(<any>text))))
-    .then(level => res.render('level', { level: level }))
-    .catch(err => {
-        console.log(err);
-        res.status(404);
-        res.write('sorry');
-        res.end();
-    });
+    res.render('level', { levelName: req.params.levelName });
 });
 
 app.use('/static', express.static('static'));

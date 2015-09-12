@@ -11,7 +11,7 @@ namespace level_machine {
         public const int TilesPerSlice = 16;
         public const int SlicesPerBlock = 16;
         public const int PixelsPerSlice = PixelsPerTile * TilesPerSlice;
-        public const string SpritesPath = "T:\\Dev\\Projects\\Dustworld\\build\\sprites";
+        public const string SpritesPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\static\\sprites";
         public const string IntermediatePath = "T:\\Dev\\Projects\\Dustworld\\build\\intermediate";
         public const string LevelAssetsOutputPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\static\\level-assets";
 

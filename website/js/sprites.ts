@@ -89,8 +89,8 @@ export function loadSprite(name: string, priority: number) {
     xhr.onload = function () {
         if (xhr.status !== 200)
             return;  // TODO: better indication of error
-        var metadata = JSON.parse(xhr.response);
-        var hitbox = Rectangle.ltrb(metadata.rect1.l, metadata.rect1.t, metadata.rect1.r, metadata.rect1.b);
+        var metadata: SpriteMetadata = JSON.parse(xhr.response);
+        var hitbox = Rectangle.ltrb(metadata.hitbox[1], metadata.hitbox[0], metadata.hitbox[3], metadata.hitbox[2]);
         loadedSprites[name] = new Sprite(texture, hitbox);
     };
     xhr.open('get', '/static/sprites/' + name + '.json');
@@ -102,7 +102,7 @@ export class Sprite {
 }
 
 interface SpriteMetadata {
-    rect1: { t: number, l: number, b: number, r: number };
+    hitbox: [number, number, number, number];
 }
 
 export class SpriteAnim {

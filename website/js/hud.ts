@@ -5,3 +5,7 @@ export function addPageHeaderButton(text: string) {
     document.querySelector('.page-header-btns').appendChild(a);
     return a;
 }
+
+export function setLevelName(levelName: string) {
+    document.querySelector('.page-header-level').textContent = levelName;
+}

@@ -1,25 +1,93 @@
 import { Point, Rectangle } from './coords';
 import * as hud from './hud';
 import * as model from './model';
+import { ReplayUI } from './replay';
 import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
-import { ReplayUI } from './replay';
 
-export function init(level: model.Level) {
+export function init(levelName: string) {
+    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
+
     var widget = new wiamap.Widget();
-    var el = widget.getElement();
-    el.className = 'level-canvas';
+
+    new LevelDownloader(widget, levelName).download();
+}
+
+class LevelDownloader {
+    private xhr: XMLHttpRequest;
+    private overlay: HTMLElement;
+
+    constructor(private widget: wiamap.Widget, private levelName: string) { }
+
+    public download() {
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'opaque-overlay';
+        (<any>this.overlay).innerHTML = '<div class="progress" style="width:60%">' +
+            '<div class="progress-bar progress-bar-striped active">' +
+        '</div>';
+        document.body.appendChild(this.overlay);
+
+        this.xhr = new XMLHttpRequest();
+        this.xhr.open('get', '/static/level-assets/' + this.levelName + '/manifest.json');
+        this.xhr.send();
+        this.xhr.onprogress = e => { this.progress(e); };
+        this.xhr.onload = () => { this.loaded(); };
+        this.xhr.onerror = () => { this.error(); };
+    }
+
+    private progress(event: ProgressEvent) {
+        if (event.lengthComputable)
+            this.setProgress(event.loaded / event.total);
+    }
+
+    private setProgress(progress: number) {
+        var progressBar = <HTMLElement>this.overlay.querySelector('.progress-bar');
+        progressBar.style.width = (progress * 100) + '%';
+    }
+
+    private error() {
+        hud.setLevelName('Error downloading ' + this.levelName);
+        this.setProgress(0);
+    }
+
+    private loaded() {
+        if (this.xhr.status === 404) {
+            hud.setLevelName('Level ' + this.levelName + ' does not exist');
+            this.setProgress(0);
+            return;
+        }
+        if (this.xhr.status !== 200) {
+            this.error();
+            return;
+        }
+
+        this.setProgress(1);
+        this.overlay.style.opacity = '0';
+        setTimeout(() => { this.overlay.parentNode.removeChild(this.overlay); }, 2000);
+
+        setTimeout(() => {
+            var level = JSON.parse(this.xhr.response);
+
+            setTimeout(() => {
+                populateLevelViewer(this.widget, level);
+            }, 0);
+        }, 0);
+    }
+}
+
+function populateLevelViewer(widget: wiamap.Widget, level: model.Level) {
+    hud.setLevelName(level.properties['level_name']);
+
+    if (level.properties['level_type'] === 0)
+        new ReplayUI(level, widget);
 
     model.levelPopulate(level);
     level.currentFog = findFogEntityNearestPlayer(level);
+    var el = widget.getElement();
     el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
-
-    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
-    if (level.properties['level_type'] === 0)
-        new ReplayUI(level, widget);
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);
@@ -53,8 +121,7 @@ function makeSkyGradient(colors: number[], middle: number) {
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
     _.each(level.prerenders, (layer, layerID) => {
-        widget.addLayer(new wiamap.TileLayer(
-            new PrerenderedTileLayerDef(level, parseInt(layerID, 10), layer)));
+        widget.addLayer(new PrerenderedTileLayer(level, parseInt(layerID, 10), layer));
     });
 
     _.each(_.range(1, 21), layerNum => {
@@ -114,6 +181,18 @@ class PrerenderedTileScale implements wiamap.TileScale {
     }
 }
 
+class PrerenderedTileLayer extends wiamap.TileLayer {
+    constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
+        super(new PrerenderedTileLayerDef(level, layerNum, layer));
+    }
+
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        super.update(viewport, canvasRect, worldRect);
+
+        util.applyFog(this.stage, this.level, this.layerNum);
+    }
+}
+
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new util.ChunkContainer();
@@ -123,9 +202,6 @@ class PropsLayer implements wiamap.Layer {
     constructor(private level: model.Level, private layerNum: number) {
         this.layerParams = dustforceLayerParams(layerNum);
         this.def = { zindex: layerNum * 10 + 5, parallax: this.layerParams.parallax };
-
-        if (this.level.currentFog)
-            util.applyFog(this.stage, this.level.currentFog, this.layerNum);
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -135,6 +211,8 @@ class PropsLayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+
+        util.applyFog(this.stage, this.level, this.layerNum);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
@@ -483,8 +561,6 @@ class StarsLayer implements wiamap.Layer {
     constructor(private level: model.Level) {
         this.def = { zindex: 4, parallax: 0.02 };
         this.stage.blendMode = PIXI.BLEND_MODES.ADD;
-        if (this.level.currentFog)
-            util.applyFog(this.stage, this.level.currentFog, 0);
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -507,6 +583,7 @@ class StarsLayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left - canvasRect.left;
         this.stage.position.y = -worldRect.top - canvasRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+        util.applyFog(this.stage, this.level, 0);
 
         this.expandUniverse(worldRect);
 

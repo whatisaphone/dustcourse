@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -37,7 +36,7 @@ namespace level_machine {
             DoMipMap(768 / 2, 1.0f / 2);
             DoMipMap(768 / 2, 1.0f / 4);
             DoMipMap(768 / 2, 1.0f / 8);
-            DoMipMap(768 / 8, 1.0f / 16);
+            DoMipMap(768 / 2, 1.0f / 16);
 
             var path = Path.Combine(App.LevelAssetsOutputPath, name, "manifest.json");
             using (var file = File.Open(path, FileMode.Create, FileAccess.Write))

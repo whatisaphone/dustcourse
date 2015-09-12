@@ -12,7 +12,10 @@ Restart the first command if it crashes. Restart the second whenever the server-
 
 ## Building
 
-    # Extract sprites
-    ./level_machine/bin/Debug/level_machine extract-sprites "T:\Steam Library\steamapps\common\Dustforce\content\sprites\*"
-    # Build levels
-    ./level_machine/bin/Debug/level_machine render "T:\Steam Library\steamapps\common\Dustforce\content\levels2\*"
+    # Extract sprites (takes about 2 hours)
+    ./level_machine/bin/Debug/level_machine extract-sprites "T:\Steam Library\steamapps\common\Dustforce\content\sprites"/*
+    # Build levels (takes about 7 hours)
+    ./level_machine/bin/Debug/level_machine render "T:\Steam Library\steamapps\common\Dustforce\content\levels2"/*
+
+The reason these take so long is because they create tens of thousands of files. They spend
+most of their time inside the file system driver. Optimization opportunities abound.
