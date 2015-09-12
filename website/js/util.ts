@@ -104,16 +104,25 @@ export class DustforceSprite extends PIXI.Sprite {
     }
 }
 
-export function applyFog(obj: PIXI.DisplayObject, fog: model.Entity, layerNum: number) {
+export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: number) {
+    var fog = level.currentFog;
+    if (!fog)
+        return;
+
+    // as you can see, this function doesn't play nice with other filters on the passed object. oh well.
+    var filter = obj.filters && <PIXI.filters.ColorMatrixFilter>obj.filters[0];
+    if (!filter) {
+        filter = new PIXI.filters.ColorMatrixFilter();
+        obj.filters = [filter];
+    }
+
     var fogProps = model.entityProperties(fog);
     var [r, g, b] = convertIntToRGB(fogProps['fog_colour'][layerNum]);
     var p = fogProps['fog_per'][layerNum];
-    var f = new PIXI.filters.ColorMatrixFilter();
-    f.matrix = [
+    filter.matrix = [
         1 - p, 0,     0,     r * p, 0,
         0,     1 - p, 0,     g * p, 0,
         0,     0,     1 - p, b * p, 0,
         0,     0,     0,     1,     0,
     ];
-    obj.filters = [f];
 }

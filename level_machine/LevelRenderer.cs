@@ -89,7 +89,7 @@ namespace level_machine {
                 return false;
 
             var attrs = new ImageAttributes();
-            attrs.SetColorMatrix(MakeFogMatrix(layer));
+            //attrs.SetColorMatrix(MakeFogMatrix(layer));
 
             foreach (var tile in tiles)
                 DrawTileCenter(canvas, tile, tileShapes[tile.Shape], attrs);
@@ -346,8 +346,8 @@ namespace level_machine {
             if (prop.FlipVert)
                 dstRect = new Rectangle(dstRect.Left, dstRect.Bottom - sprite.Hitbox.Top - sprite.Hitbox.Bottom, dstRect.Width, -dstRect.Height);
 
-            var attrs = new ImageAttributes();
-            attrs.SetColorMatrix(MakeFogMatrix(prop.LayerGroup));
+            //var attrs = new ImageAttributes();
+            //attrs.SetColorMatrix(MakeFogMatrix(prop.LayerGroup));
 
             dstRect.X += sprite.Hitbox.Left;
             dstRect.Y += sprite.Hitbox.Top;

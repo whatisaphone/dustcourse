@@ -50,8 +50,7 @@ function makeSkyGradient(colors: number[], middle: number) {
 
 function populateLayers(widget: wiamap.Widget, level: model.Level) {
     _.each(level.prerenders, (layer, layerID) => {
-        widget.addLayer(new wiamap.TileLayer(
-            new PrerenderedTileLayerDef(level, parseInt(layerID, 10), layer)));
+        widget.addLayer(new PrerenderedTileLayer(level, parseInt(layerID, 10), layer));
     });
 
     _.each(_.range(1, 21), layerNum => {
@@ -111,6 +110,18 @@ class PrerenderedTileScale implements wiamap.TileScale {
     }
 }
 
+class PrerenderedTileLayer extends wiamap.TileLayer {
+    constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
+        super(new PrerenderedTileLayerDef(level, layerNum, layer));
+    }
+
+    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        super.update(viewport, canvasRect, worldRect);
+
+        util.applyFog(this.stage, this.level, this.layerNum);
+    }
+}
+
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new util.ChunkContainer();
@@ -120,9 +131,6 @@ class PropsLayer implements wiamap.Layer {
     constructor(private level: model.Level, private layerNum: number) {
         this.layerParams = dustforceLayerParams(layerNum);
         this.def = { zindex: layerNum * 10 + 5, parallax: this.layerParams.parallax };
-
-        if (this.level.currentFog)
-            util.applyFog(this.stage, this.level.currentFog, this.layerNum);
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -132,6 +140,8 @@ class PropsLayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+
+        util.applyFog(this.stage, this.level, this.layerNum);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.props, prop => {
@@ -480,8 +490,6 @@ class StarsLayer implements wiamap.Layer {
     constructor(private level: model.Level) {
         this.def = { zindex: 4, parallax: 0.02 };
         this.stage.blendMode = PIXI.BLEND_MODES.ADD;
-        if (this.level.currentFog)
-            util.applyFog(this.stage, this.level.currentFog, 0);
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -504,6 +512,7 @@ class StarsLayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left - canvasRect.left;
         this.stage.position.y = -worldRect.top - canvasRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+        util.applyFog(this.stage, this.level, 0);
 
         this.expandUniverse(worldRect);
 
