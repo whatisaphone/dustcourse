@@ -19,6 +19,7 @@ app.get('/level/:levelName', (req, res) => {
     res.render('level', { levelName: req.params.levelName });
 });
 
+app.use('/assets', express.static('assets'));
 app.use('/static', express.static('static'));
 
 var port: number = +process.env.PORT || 3000;

@@ -28,7 +28,7 @@ class LevelDownloader {
         document.body.appendChild(this.overlay);
 
         this.xhr = new XMLHttpRequest();
-        this.xhr.open('get', '/static/level-assets/' + this.levelName + '/manifest.json');
+        this.xhr.open('get', '/assets/levels/' + this.levelName + '/manifest.json');
         this.xhr.send();
         this.xhr.onprogress = e => { this.progress(e); };
         this.xhr.onload = () => { this.loaded(); };
@@ -160,7 +160,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
         if (!_.find(scale.tiles, t => t[0] === realX && t[1] === realY))
             return;
 
-        var imageURL = '/static/level-assets/' + this.level.path
+        var imageURL = '/assets/levels/' + this.level.path
                 + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
         return { texture: sprites.getTexture(imageURL, this.zindex).texture };
     }

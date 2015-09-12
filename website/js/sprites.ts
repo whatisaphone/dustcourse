@@ -72,7 +72,7 @@ export function getTexture(url: string, priority: number) {
 }
 
 export function spriteTextureURL(name: string) {
-    return '/static/sprites/' + name + '.png';
+    return '/assets/sprites/' + name + '.png';
 }
 
 var loadedSprites: { [name: string]: Sprite } = {};
@@ -93,7 +93,7 @@ export function loadSprite(name: string, priority: number) {
         var hitbox = Rectangle.ltrb(metadata.hitbox[1], metadata.hitbox[0], metadata.hitbox[3], metadata.hitbox[2]);
         loadedSprites[name] = new Sprite(texture, hitbox);
     };
-    xhr.open('get', '/static/sprites/' + name + '.json');
+    xhr.open('get', '/assets/sprites/' + name + '.json');
     xhr.send();
 }
 
