@@ -424,7 +424,7 @@ class FilthParticlesLayer implements wiamap.Layer {
     private particles: Particle[] = [];
 
     constructor(private level: model.Level) {
-        this.def = { zindex: 197, parallax: 1 };
+        this.def = { zindex: 191, parallax: 1 };
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
