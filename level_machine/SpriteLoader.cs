@@ -1,10 +1,10 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace level_machine {
     internal sealed class SpriteLoader {
@@ -16,6 +16,7 @@ namespace level_machine {
             null, null, "backleaves", "leaves", "trunks", "boulders", "backdrops", "temple",
             "npc", "symbol", "cars", "sidewalk", "machinery"
         };
+
         private readonly Dictionary<string, Sprite> cache = new Dictionary<string, Sprite>();
 
         public Sprite LoadTile(int spriteSet, int spriteTile, int spritePalette, int chunk) {
@@ -67,24 +68,17 @@ namespace level_machine {
             using (var jtr = new JsonTextReader(sr))
                 manifest = JObject.Load(jtr);
 
+            var hitbox = manifest.Value<JArray>("hitbox");
             return new Sprite {
                 Image = bitmap,
-                Rect1 = Rectangle.FromLTRB(
-                    manifest.Value<JObject>("rect1").Value<int>("l"),
-                    manifest.Value<JObject>("rect1").Value<int>("t"),
-                    manifest.Value<JObject>("rect1").Value<int>("r"),
-                    manifest.Value<JObject>("rect1").Value<int>("b")),
-                Rect2 = Rectangle.FromLTRB(
-                    manifest.Value<JObject>("rect2").Value<int>("l"),
-                    manifest.Value<JObject>("rect2").Value<int>("t"),
-                    manifest.Value<JObject>("rect2").Value<int>("r"),
-                    manifest.Value<JObject>("rect2").Value<int>("b")),
+                Hitbox = Rectangle.FromLTRB(
+                    hitbox.Value<int>(1), hitbox.Value<int>(0), hitbox.Value<int>(3), hitbox.Value<int>(2)),
             };
         }
     }
 
     internal sealed class Sprite {
         public Image Image;
-        public Rectangle Rect1, Rect2;
+        public Rectangle Hitbox;
     }
 }

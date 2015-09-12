@@ -118,7 +118,7 @@ namespace level_machine {
             var sy = (tile.Y & 1) * 48;
             canvas.DrawImage(sprite.Image,
                 new Rectangle(0, 0, 48, 48),
-                sx - sprite.Rect1.Left, sy - sprite.Rect1.Top, 48, 48, GraphicsUnit.Pixel, attrs);
+                sx - sprite.Hitbox.Left, sy - sprite.Hitbox.Top, 48, 48, GraphicsUnit.Pixel, attrs);
 
             canvas.ResetClip();
             canvas.ResetTransform();
@@ -144,22 +144,22 @@ namespace level_machine {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 17 + (tile.X / 2) % 3);
                 var sx = (tile.X & 1) * 48;
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(0, sprite.Rect1.Top, length, sprite.Rect1.Height),
-                    sx - sprite.Rect1.Left, 0, 48, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(0, sprite.Hitbox.Top, length, sprite.Hitbox.Height),
+                    sx - sprite.Hitbox.Left, 0, 48, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawLeftCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 16);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawRightCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 20);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left + length, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
@@ -185,22 +185,22 @@ namespace level_machine {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 22 + (tile.Y / 2) % 3);
                 var sx = (tile.X & 1) * 48;
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(0, sprite.Rect1.Top, length, sprite.Rect1.Height),
-                    sx - sprite.Rect1.Left, 0, 48, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(0, sprite.Hitbox.Top, length, sprite.Hitbox.Height),
+                    sx - sprite.Hitbox.Left, 0, 48, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawLeftCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 21);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawRightCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 25);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left + length, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
@@ -226,22 +226,22 @@ namespace level_machine {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 27 + (tile.Y / 2) % 3);
                 var sy = (tile.Y & 1) * 48;
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, 0, sprite.Rect1.Width, length),
-                    0, sy - sprite.Rect1.Top, sprite.Rect1.Width, 48, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, 0, sprite.Hitbox.Width, length),
+                    0, sy - sprite.Hitbox.Top, sprite.Hitbox.Width, 48, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawTopCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 26);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawBottomCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 30);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top + length, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top + length, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
@@ -267,22 +267,22 @@ namespace level_machine {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 27 + (tile.Y / 2) % 3);
                 var sy = (tile.Y & 1) * 48;
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, 0, sprite.Rect1.Width, length),
-                    0, sy - sprite.Rect1.Top, sprite.Rect1.Width, 48, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, 0, sprite.Hitbox.Width, length),
+                    0, sy - sprite.Hitbox.Top, sprite.Hitbox.Width, 48, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawTopCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 26);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             if (drawBottomCap) {
                 var sprite = sprites.LoadTile(tile.SpriteSet, tile.SpriteTile, tile.SpritePalette, 30);
                 canvas.DrawImage(sprite.Image,
-                    new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top + length, sprite.Rect1.Width, sprite.Rect1.Height),
-                    0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+                    new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top + length, sprite.Hitbox.Width, sprite.Hitbox.Height),
+                    0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel, attrs);
             }
 
             canvas.ResetTransform();
@@ -316,7 +316,7 @@ namespace level_machine {
             if (sprite == null)
                 return;
 
-            var dstRect = new Rectangle((int) prop.X, (int) prop.Y, sprite.Rect1.Width, sprite.Rect1.Height);
+            var dstRect = new Rectangle((int) prop.X, (int) prop.Y, sprite.Hitbox.Width, sprite.Hitbox.Height);
 
             // no idea what the deal with this is. it isn't perfect, but it's at least closer than just using the raw numbers, usually…
             // no idea what significance the constants have.
@@ -331,31 +331,31 @@ namespace level_machine {
             }
 
             if (prop.FlipHorz)
-//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Hitbox.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Hitbox.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Hitbox.Left - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left - dstRect.Width - sprite.Hitbox.Left - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
 //                dstRect = new Rectangle(dstRect.Left                , dstRect.Top, -dstRect.Width, dstRect.Height);
 //                dstRect = new Rectangle(dstRect.Left + dstRect.Width, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Rect1.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
-//                dstRect = new Rectangle(dstRect.Left                 - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
-                dstRect = new Rectangle(dstRect.Right - sprite.Rect1.Left - sprite.Rect1.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Hitbox.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Hitbox.Left, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left + dstRect.Width - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+//                dstRect = new Rectangle(dstRect.Left                 - sprite.Hitbox.Left - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
+                dstRect = new Rectangle(dstRect.Right - sprite.Hitbox.Left - sprite.Hitbox.Right, dstRect.Top, -dstRect.Width, dstRect.Height);
             if (prop.FlipVert)
-                dstRect = new Rectangle(dstRect.Left, dstRect.Bottom - sprite.Rect1.Top - sprite.Rect1.Bottom, dstRect.Width, -dstRect.Height);
+                dstRect = new Rectangle(dstRect.Left, dstRect.Bottom - sprite.Hitbox.Top - sprite.Hitbox.Bottom, dstRect.Width, -dstRect.Height);
 
             var attrs = new ImageAttributes();
             attrs.SetColorMatrix(MakeFogMatrix(prop.LayerGroup));
 
-            dstRect.X += sprite.Rect1.Left;
-            dstRect.Y += sprite.Rect1.Top;
+            dstRect.X += sprite.Hitbox.Left;
+            dstRect.Y += sprite.Hitbox.Top;
             dstRect.X -= (block.X * App.SlicesPerBlock + slice.Header.X) * App.PixelsPerSlice;
             dstRect.Y -= (block.Y * App.SlicesPerBlock + slice.Header.Y) * App.PixelsPerSlice;
             dstRect.X += sliceOverdraw;
             dstRect.Y += sliceOverdraw;
-            canvas.DrawImage(sprite.Image, dstRect, 0, 0, sprite.Rect1.Width, sprite.Rect1.Height, GraphicsUnit.Pixel, attrs);
+            canvas.DrawImage(sprite.Image, dstRect, 0, 0, sprite.Hitbox.Width, sprite.Hitbox.Height, GraphicsUnit.Pixel);
         }
 
         private void DrawFilth(Graphics canvas, Slice slice, Filth filth) {
@@ -380,17 +380,17 @@ namespace level_machine {
 
             if (center != 0) {
                 var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 2 + (tile.X + tile.Y) % 5);
-                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Rect1.Left, sprite.Rect1.Top, length, sprite.Rect1.Height));
+                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Hitbox.Left, sprite.Hitbox.Top, length, sprite.Hitbox.Height));
             }
 
             if ((caps & 1) != 0) {
                 var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 1);
-                canvas.DrawImage(sprite.Image, sprite.Rect1);
+                canvas.DrawImage(sprite.Image, sprite.Hitbox);
             }
 
             if ((caps & 2) != 0) {
                 var sprite = sprites.LoadFilth(center & 7, (center & 8) != 0, 7);
-                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Rect1.Left + length, sprite.Rect1.Top, sprite.Rect1.Width, sprite.Rect1.Height));
+                canvas.DrawImage(sprite.Image, new Rectangle(sprite.Hitbox.Left + length, sprite.Hitbox.Top, sprite.Hitbox.Width, sprite.Hitbox.Height));
             }
 
             canvas.ResetTransform();

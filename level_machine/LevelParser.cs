@@ -349,7 +349,7 @@ namespace level_machine {
             stream.Read(buf, 1);
             entity.FlipHorz = buf[0] != 0;  // buf[0] != 0 ? 1 : -1
             stream.Read(buf, 1);
-            entity.FlipHorz = buf[0] != 0;  // buf[0] != 0 ? 1 : -1;
+            entity.FlipVert = buf[0] != 0;  // buf[0] != 0 ? 1 : -1;
             stream.Read(buf, 1);
             entity.Field34 = buf[2] != 0;
             entity.Tags = Util.ReadKeyValueList(stream);

@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -7,8 +9,6 @@ using System.IO;
 using System.IO.Compression;
 using System.Runtime.InteropServices;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace level_machine {
     internal static class SpriteExtractor {
@@ -261,11 +261,12 @@ namespace level_machine {
                         image.Save(filename + ".png");
 
                         var manifest = new JObject {
-                            {"field0", frame.Field0},
-                            {"field4", frame.Field4},
-                            {"rect1", new JObject {{"t", frame.Rect1.Top}, {"l", frame.Rect1.Left}, {"b", frame.Rect1.Bottom}, {"r", frame.Rect1.Right}}},
-                            {"rect2", new JObject {{"t", frame.Rect2.Top}, {"l", frame.Rect2.Left}, {"b", frame.Rect2.Bottom}, {"r", frame.Rect2.Right}}},
-                            {"field28", frame.Field28},
+                            //{"field0", frame.Field0},
+                            //{"field4", frame.Field4},
+                            {"hitbox", new JArray {frame.Rect1.Top, frame.Rect1.Left, frame.Rect1.Bottom, frame.Rect1.Right}},
+                            // this "rect2" might be the bounds within a texture the spray is stored on the GPU? not sure. doesn't seem important.
+                            //{"rect2", new JArray {frame.Rect2.Top, frame.Rect2.Left, frame.Rect2.Bottom, frame.Rect2.Right}},
+                            //{"field28", frame.Field28},
                         };
 
                         using (var file = File.Open(filename + ".json", FileMode.Create, FileAccess.Write))
