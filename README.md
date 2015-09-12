@@ -17,5 +17,6 @@ Restart the first command if it crashes. Restart the second whenever the server-
     # Build levels (takes about 7 hours)
     ./level_machine/bin/Debug/level_machine render "T:\Steam Library\steamapps\common\Dustforce\content\levels2"/*
 
-The reason these take so long is because they create tens of thousands of files. They spend
-most of their time inside the file system driver. Optimization opportunities abound.
+The reason these take so long is because they create between between tens of
+thousands and millions of files. They spend most of their time inside the file
+system driver. Optimization opportunities abound.
