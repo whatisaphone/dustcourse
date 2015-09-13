@@ -26,3 +26,41 @@ export class Rectangle {
 export class Size {
 	public constructor(public width: number, public height: number) { }
 }
+
+interface LayerShim {
+	def: { parallax: number };
+}
+
+export class Viewport {
+    constructor(public position: Point, public size: Size, public zoom: number) { }
+
+    public screenRect() {
+        return new Rectangle(-this.size.width / 2, -this.size.height / 2, this.size.width, this.size.height);
+    }
+
+    public screenToWorldP(layer: LayerShim, screenP: Point) {
+        var tileScale = 1;
+        var x = screenP.x / this.zoom / tileScale + this.position.x * layer.def.parallax;
+        var y = screenP.y / this.zoom / tileScale + this.position.y * layer.def.parallax;
+        return new Point(x, y);
+    }
+
+    public worldToScreenP(layer: LayerShim, worldP: Point) {
+        var tileScale = 1;
+        var x = (worldP.x - this.position.x * layer.def.parallax) * this.zoom * tileScale;
+        var y = (worldP.y - this.position.y * layer.def.parallax) * this.zoom * tileScale;
+        return new Point(x, y);
+    }
+
+    public screenToWorldR(layer: LayerShim, screenR: Rectangle) {
+        var tileScale = 1;
+        var topLeft = this.screenToWorldP(layer, screenR.topLeft());
+        return new Rectangle(topLeft.x, topLeft.y, screenR.width / tileScale / this.zoom, screenR.height / tileScale / this.zoom);
+    }
+
+    public worldToScreenR(layer: LayerShim, worldR: Rectangle) {
+        var tileScale = 1;
+        var topLeft = this.worldToScreenP(layer, worldR.topLeft());
+        return new Rectangle(topLeft.x, topLeft.y, worldR.width * tileScale * this.zoom, worldR.height * tileScale * this.zoom);
+    }
+}

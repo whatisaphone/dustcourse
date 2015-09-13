@@ -1,4 +1,4 @@
-import { Point, Rectangle } from './coords';
+import { Point, Rectangle, Viewport } from './coords';
 import * as hud from './hud';
 import * as model from './model';
 import * as gfx from './gfx';
@@ -182,7 +182,7 @@ class PrerenderedTileLayer extends wiamap.TileLayer {
         super(new PrerenderedTileLayerDef(level, layerNum, layer));
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         super.update(viewport, canvasRect, worldRect);
 
         util.applyFog(this.stage, this.level, this.layerNum);
@@ -200,7 +200,7 @@ class PropsLayer implements wiamap.Layer {
         this.def = { zindex: layerNum * 10 + 5, parallax: this.layerParams.parallax };
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         ++this.frame;
 
         this.stage.removeChildren();
@@ -356,7 +356,7 @@ class FilthLayer implements wiamap.Layer {
         this.def = { zindex: 198, parallax: 1 };
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         this.stage.removeChildren();
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
@@ -368,7 +368,7 @@ class FilthLayer implements wiamap.Layer {
         });
     }
 
-    private drawFilth(viewport: wiamap.Viewport, canvasRect: Rectangle,
+    private drawFilth(viewport: Viewport, canvasRect: Rectangle,
                       block: model.Block, slice: model.Slice, filthX: number, filthY: number,
                       edge: model.TileEdge, center: number, caps: number) {
         var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
@@ -417,7 +417,7 @@ class FilthParticlesLayer implements wiamap.Layer {
         this.def = { zindex: 191, parallax: 1 };
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         this.stage.alpha = Math.max(0, Math.min(1, (viewport.zoom - 0.15) * 5));
         if (this.stage.alpha <= 0) {
             this.stage.visible = false;
@@ -473,7 +473,7 @@ class FilthParticlesLayer implements wiamap.Layer {
         return [x, -y];  // negative y, because converting from cartesian coords to computer coords
     }
 
-    private drawAndUpdateParticle(viewport: wiamap.Viewport, particle: Particle) {
+    private drawAndUpdateParticle(viewport: Viewport, particle: Particle) {
         var fc = gfx.getFrame(particle.anim.frameName(particle.frame), this.def.zindex);
         if (fc.frame) {
             var screenRect = viewport.screenRect();
@@ -551,7 +551,7 @@ class StarsLayer implements wiamap.Layer {
         this.stage.blendMode = PIXI.BLEND_MODES.ADD;
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         // something is weird with the coordinates here, I have to figure that out before I can enable this
         //return;
 
