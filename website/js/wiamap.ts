@@ -1,4 +1,4 @@
-import { Point, Rectangle, Size } from './coords';
+import { Point, Rectangle, Size, Viewport } from './coords';
 import DragScroll from './dragscroll';
 
 export class Widget implements DragScroll.Callback {
@@ -29,22 +29,11 @@ export class Widget implements DragScroll.Callback {
     }
 
     public getViewport() {
-        return new Rectangle(this.viewport.position.x - this.viewport.size.width / this.viewport.zoom / 2,
-            this.viewport.position.y - this.viewport.size.height / this.viewport.zoom / 2,
-            this.viewport.size.width / this.viewport.zoom, this.viewport.size.height / this.viewport.zoom);
+        return this.viewport;
     }
 
-    public setViewport(viewport: Rectangle) {
-        var x = viewport.left + viewport.width / 2;
-        var y = viewport.top + viewport.height / 2;
-        var zoom = Math.max(0.05, Math.min(2, this.viewport.size.width / viewport.width));
-        this.viewport = new Viewport(new Point(x, y), this.viewport.size, zoom);
-    }
-
-    public scrollRelative(x: number, y: number) {
-        var newX = this.viewport.position.x + x / this.viewport.zoom;
-        var newY = this.viewport.position.y + y / this.viewport.zoom;
-        this.viewport = new Viewport(new Point(newX, newY), this.viewport.size, this.viewport.zoom);
+    public setViewport(viewport: Viewport) {
+        this.viewport = viewport;
     }
 
     public addLayer(layer: Layer) {

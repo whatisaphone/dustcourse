@@ -1,4 +1,4 @@
-import { Point, Rectangle } from './coords';
+import { Point, Rectangle, Viewport } from './coords';
 import { addWheelListener } from './mousewheel';
 
 class DragScroll {
@@ -25,7 +25,10 @@ class DragScroll {
     public mousemove(event: MouseEvent) {
         if (!this.scrolling)
             return;
-        this.callback.scrollRelative(this.lastX - event.pageX, this.lastY - event.pageY);
+        var v = this.callback.getViewport();
+        var relX = (this.lastX - event.pageX) / v.zoom;
+        var relY = (this.lastY - event.pageY) / v.zoom;
+        this.callback.setViewport(new Viewport(new Point(v.position.x + relX, v.position.y + relY), v.size, v.zoom));
         this.lastX = event.pageX;
         this.lastY = event.pageY;
     }
@@ -38,29 +41,33 @@ class DragScroll {
         if (this.scrolling)
             return;
 
+        var viewport = this.callback.getViewport();
+        var screen = viewport.screenRect();
+        var aroundPoint = new Point(event.pageX + screen.left, event.pageY + screen.top);
+
         var lines = event.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? event.deltaY / (100 / 3)
             : event.deltaMode === WheelEvent.DOM_DELTA_LINE ? event.deltaY
             : event.deltaY * 4;
-        var ratio = Math.pow(1.1, lines);
-        var viewport = this.callback.getViewport();
-        var aroundPoint = new Point(event.pageX, event.pageY)
-        var aroundPoint = new Point(viewport.left + viewport.width / 2, viewport.top + viewport.height / 2);
+        var ratio = Math.pow(1.1, -lines);
+        ratio = Math.max(0.05 / viewport.zoom, Math.min(2 / viewport.zoom, ratio));
 
-        viewport.left -= aroundPoint.x;
-        viewport.top -= aroundPoint.y;
-        viewport = Rectangle.ltrb(viewport.left * ratio, viewport.top * ratio, viewport.right() * ratio, viewport.bottom() * ratio);
-        viewport.left += aroundPoint.x;
-        viewport.top += aroundPoint.y;
+        screen.left -= aroundPoint.x;
+        screen.top -= aroundPoint.y;
+        screen = Rectangle.ltrb(screen.left / ratio, screen.top / ratio, screen.right() / ratio, screen.bottom() / ratio);
+        screen.left += aroundPoint.x;
+        screen.top += aroundPoint.y;
 
-        this.callback.setViewport(viewport);
+        var world = viewport.screenToWorldR({ def: { parallax: 1 }}, screen);
+        var center = new Point(world.left + world.width / 2, world.top + world.height / 2);
+        var zoom = Math.max(0.05, Math.min(2, viewport.zoom * ratio));
+        this.callback.setViewport(new Viewport(center, viewport.size, zoom));
     }
 }
 
 module DragScroll {
     export interface Callback {
-        scrollRelative(x: number, y: number): void;
-        getViewport(): Rectangle;
-        setViewport(viewport: Rectangle): void;
+        getViewport(): Viewport;
+        setViewport(viewport: Viewport): void;
     }
 }
 
