@@ -300,23 +300,11 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawGigaGate(entity: model.Entity) {
-        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
-        var props = model.entityProperties(entity);
-        var sprite = sprites.loadSprite('entities/nexus/interactables/redkeybarrierclosed_1_0001', this.def.zindex);
-        if (!sprite)
-            return;
-
-        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        this.drawSimpleEntity(entity, new sprites.SpriteAnim('entities/nexus/interactables/redkeybarrierclosed_', 1, 1));
     }
 
     private drawHittableApple(entity: model.Entity) {
-        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
-        var props = model.entityProperties(entity);
-        var sprite = sprites.loadSprite('entities/forest/apple/idle_1_0001', this.def.zindex);
-        if (!sprite)
-            return;
-
-        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        this.drawSimpleEntity(entity, new sprites.SpriteAnim('entities/forest/apple/idle_', 1, 1));
     }
 
     private drawLevelDoor(entity: model.Entity) {
@@ -343,10 +331,14 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawScoreBook(entity: model.Entity) {
-        var entityX = model.entityX(entity);
-        var entityY = model.entityY(entity);
         var props = model.entityProperties(entity);
-        var sprite = sprites.loadSprite('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_1_0001', this.def.zindex);
+        var namePrefix = 'entities/nexus/interactables/' + props['book_type'] + 'bookclosed_';
+        this.drawSimpleEntity(entity, new sprites.SpriteAnim(namePrefix, 1, 1));
+    }
+
+    private drawSimpleEntity(entity: model.Entity, anim: sprites.SpriteAnim) {
+        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
+        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
         if (!sprite)
             return;
 
