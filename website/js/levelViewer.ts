@@ -377,6 +377,8 @@ class FilthLayer implements wiamap.Layer {
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         this.stage.removeChildren();
 
+        util.applyFog(this.stage, this.level, 19);
+
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
                 filth.eachEdge((edge, center, caps) => {
@@ -444,6 +446,8 @@ class FilthParticlesLayer implements wiamap.Layer {
 
         this.stage.visible = true;
         this.stage.removeChildren();
+
+        util.applyFog(this.stage, this.level, 19);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
