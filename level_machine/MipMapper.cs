@@ -101,9 +101,9 @@ namespace level_machine {
             var renderMaxX = render.Tiles.Max(s => s.Area.Right);
             var renderMinY = render.Tiles.Min(s => s.Area.Y);
             var renderMaxY = render.Tiles.Max(s => s.Area.Bottom);
-            var minX = (renderMinX / srcSize) * srcSize;
+            var minX = (renderMinX / srcSize - 1) * srcSize;
             var maxX = (renderMaxX / srcSize + 1) * srcSize;
-            var minY = (renderMinY / srcSize) * srcSize;
+            var minY = (renderMinY / srcSize - 1) * srcSize;
             var maxY = (renderMaxY / srcSize + 1) * srcSize;
 
             foreach (var bucket in render.Tiles.GroupBy(o => o.Bucket)) {
