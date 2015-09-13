@@ -42,16 +42,24 @@ export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: 
 }
 
 export function eachIntersectingSlice(level: Level, area: Rectangle, callback: (b: Block, s: Slice) => void) {
-    for (var bx = Math.floor(area.left / pixelsPerBlock); bx < Math.ceil(area.right() / pixelsPerBlock); ++bx) {
-        for (var by = Math.floor(area.top / pixelsPerBlock); by < Math.ceil(area.bottom() / pixelsPerBlock); ++by) {
-            _.each(_.filter(level.blocks, b => b.x === bx && b.y === by), block => {
-                var blockX = bx * pixelsPerBlock;
-                var blockY = by * pixelsPerBlock;
-                // TODO: prune to only intersecting slices
-                _.each(block.slices, s => { callback(block, s); });
-            });
-        }
-    }
+    var blockXStart = Math.floor(area.left / pixelsPerBlock);
+    var blockXEnd = Math.ceil(area.right() / pixelsPerBlock);
+    var blockYStart = Math.floor(area.top / pixelsPerBlock);
+    var blockYEnd = Math.ceil(area.bottom() / pixelsPerBlock);
+    _.each(level.blocks, block => {
+        if (!(block.x >= blockXStart && block.x < blockXEnd && block.y >= blockYStart && block.y < blockYEnd))
+            return;
+        var blockX = block.x * pixelsPerBlock;
+        var blockY = block.y * pixelsPerBlock;
+        var sliceXStart = Math.floor((area.left - block.x * pixelsPerBlock) / pixelsPerSlice);
+        var sliceXEnd = Math.ceil((area.right() - block.x * pixelsPerBlock) / pixelsPerSlice);
+        var sliceYStart = Math.floor((area.top - block.y * pixelsPerBlock) / pixelsPerSlice);
+        var sliceYEnd = Math.ceil((area.bottom() - block.y * pixelsPerBlock) / pixelsPerSlice);
+        _.each(block.slices, slice => {
+            if (slice.x >= sliceXStart && slice.x < sliceXEnd && slice.y >= sliceYStart && slice.y < sliceYEnd)
+                callback(block, slice);
+        });
+    });
 }
 
 export interface PrerenderLayer {

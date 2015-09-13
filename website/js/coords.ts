@@ -21,6 +21,11 @@ export class Rectangle {
 		return point.x >= this.left && point.y >= this.top &&
 			point.x < this.right() && point.y < this.bottom();
 	}
+
+	public intersects(rect: Rectangle) {
+		return rect.left < this.right() && this.left < rect.right() &&
+            rect.top < this.bottom() && this.top < rect.bottom();
+	}
 }
 
 export class Size {
