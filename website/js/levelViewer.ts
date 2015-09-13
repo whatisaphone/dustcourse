@@ -78,11 +78,9 @@ class LevelDownloader {
 
 function populateLevelViewer(widget: wiamap.Widget, level: model.Level) {
     model.levelPopulate(level);
-    level.currentFog = findFogEntityNearestPlayer(level);
-    var el = widget.getElement();
-    el.style.background = makeBackgroundGradient(level);
 
     populateLayers(widget, level);
+    var fogger = new FogMachine(widget, level);
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);
@@ -90,11 +88,9 @@ function populateLevelViewer(widget: wiamap.Widget, level: model.Level) {
         widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
-function findFogEntityNearestPlayer(level: model.Level) {
-    var p1_x = level.properties['p1_x'];
-    var p1_y = level.properties['p1_y'];
+function findClosestFogEntity(level: model.Level, x: number, y: number) {
     var fogs = _.filter(level.allEntities, e => model.entityName(e) == 'fog_trigger');
-    var closestFog = _.min(fogs, e => util.distance(p1_x, p1_y, model.entityX(e), model.entityY(e)));
+    var closestFog = _.min(fogs, e => util.distance(x, y, model.entityX(e), model.entityY(e)));
     return <any>closestFog !== Infinity ? closestFog : null;
 }
 
@@ -138,6 +134,28 @@ function dustforceLayerParams(layerNum: number): DustforceLayerParams {
     return {
         parallax: parallax,
         scale: layerNum <= 5 ? 1 : parallax,
+    }
+}
+
+class FogMachine {
+    constructor(private widget: wiamap.Widget, private level: model.Level) {
+        widget.getElement().addEventListener('mousemove', e => { this.handleMouseMove(e); })
+
+        var fog = findClosestFogEntity(level, level.properties['p1_x'], level.properties['p1_y']);
+        this.applyFog(fog);
+    }
+
+    private handleMouseMove(e: MouseEvent) {
+        var v = this.widget.viewport;
+        var s = v.screenRect();
+        var p = v.screenToWorldP({ def: { parallax: 1 }}, new Point(s.left + e.pageX, s.top + e.pageY));
+        this.applyFog(findClosestFogEntity(this.level, p.x, p.y));
+    }
+
+    private applyFog(fog: model.Entity) {
+        this.level.currentFog = fog;
+        var el = this.widget.getElement();
+        el.style.background = makeBackgroundGradient(this.level);
     }
 }
 
