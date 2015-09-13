@@ -40,7 +40,7 @@ gulp.task('js', function () {
 gulp.task('css', function () {
     return gulp.src('./website/css/index.styl')
         .pipe(plumber())
-        .pipe(stylus({paths: ['vendor'], use: [nib()]}))
+        .pipe(stylus({paths: ['vendor'], use: [nib()], compress: !gulp.env.dev}))
         .pipe(gulp.dest('./build/website/static'));
 });
 
