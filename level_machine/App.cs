@@ -97,9 +97,9 @@ namespace level_machine {
                         Console.WriteLine("    filth x={0:X2} y={1:X2} e={2:X4} c={3:X2} | {4}", filth.X, filth.Y, filth.Edges, filth.EndCaps, Util.Hexify(filth.RawData));
                     }
                     foreach (var prop in slice.Props) {
-                        Console.WriteLine("    prop x={0:N} y={1:N} rot={2:0.#} fh={3} fv={4} ps={5:X2} pg={6:X4} pi={7:X4} pal={8:X2} lg={9:X2} ls={10:X2}",
-                            prop.X, prop.Y, prop.Rotation, prop.FlipHorz ? 'Y' : 'N', prop.FlipVert ? 'Y' : 'N', prop.PropSet,
-                            prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
+                        Console.WriteLine("    prop ?={0:X4} x={1:N} y={2:N} rot={3:0.#} fh={4} fv={5} ps={6:X2} pg={7:X4} pi={8:X4} pal={9:X2} lg={10:X2} ls={11:X2}",
+                            prop.Field4, prop.X, prop.Y, prop.Rotation, prop.FlipHorz ? 'Y' : 'N', prop.FlipVert ? 'Y' : 'N',
+                            prop.PropSet, prop.PropGroup, prop.PropIndex, prop.Palette, prop.LayerGroup, prop.LayerSub);
                     }
                     foreach (var entity in slice.Entities) {
                         Console.WriteLine("    entity uid={0} \"{1}\" x={2:N} y={3:N} rot={4:0.#} ?={5:X2} fh={6} fv={7} ?={8} | {9}",
