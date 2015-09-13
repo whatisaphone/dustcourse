@@ -331,9 +331,14 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawScoreBook(entity: model.Entity) {
+        var irregulars: { [type: string]: sprites.SpriteAnim } = {
+            'cl': new sprites.SpriteAnim('entities/nexus/interactables/playcustom_', 2, 6),
+            'dlc': new sprites.SpriteAnim('entities/nexus/interactables/dlclevels_', 2, 6),
+            'le': new sprites.SpriteAnim('entities/nexus/interactables/customlevels_', 2, 6),
+        };
         var props = model.entityProperties(entity);
-        var namePrefix = 'entities/nexus/interactables/' + props['book_type'] + 'bookclosed_';
-        this.drawSimpleEntity(entity, new sprites.SpriteAnim(namePrefix, 1, 1));
+        var anim: sprites.SpriteAnim = irregulars[props['book_type']] || new sprites.SpriteAnim('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_', 1, 1);
+        this.drawSimpleEntity(entity, anim);
     }
 
     private drawSimpleEntity(entity: model.Entity, anim: sprites.SpriteAnim) {
