@@ -59,8 +59,10 @@
 
             Read(buf, 1);
             bool sign = buf[0] != 0;
+            buf[0] = buf[1] = buf[2] = buf[3] = 0;
             Read(buf, bitsA - 1);
             var part1 = Util.MakeI32(buf);
+            buf[0] = buf[1] = buf[2] = buf[3] = 0;
             Read(buf, bitsB);
             var part2 = Util.MakeI32(buf);
 

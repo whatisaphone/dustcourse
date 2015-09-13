@@ -37,6 +37,7 @@ namespace level_machine {
                 //ExtractSprites("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\sprites\\props3");
                 //Render("T:\\Dev\\Projects\\DustWorld\\reversing\\level testcases\\filth");
                 //Render("T:\\Steam Library\\steamapps\\common\\Dustforce\\content\\levels2\\development");
+                //Dump("C:\\Users\\John\\AppData\\Roaming\\Dustforce\\user\\level_src\\proppos -255,0 more left");
             }
         }
 

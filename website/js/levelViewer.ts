@@ -243,17 +243,6 @@ class PropsLayer implements wiamap.Layer {
             scaleY *= 2;
         }
 
-        // no idea what is up with these calculations, but they seem to get within
-        // one tile of the correct position 99% of the time
-        if (propX > 0)
-            propX -= Math.floor(propX / (256 + 32)) * 32;
-        else
-            propX += Math.floor((propX + 31) / (256 - 32) + 1) * 32;
-        if (propY > 0)
-            propY -= Math.floor(propY / (256 + 32)) * 32;
-        else
-            propY += Math.floor((propY + 31) / (256 - 32) + 1) * 32;
-
         util.addDustforceSprite(this.stage, fc.frame, {
             posX: propX,
             posY: propY,
