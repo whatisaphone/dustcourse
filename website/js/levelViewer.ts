@@ -422,6 +422,13 @@ class FilthParticlesLayer implements wiamap.Layer {
     }
 
     public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.stage.alpha = Math.max(0, Math.min(1, (viewport.zoom - 0.15) * 5));
+        if (this.stage.alpha <= 0) {
+            this.stage.visible = false;
+            return;
+        }
+
+        this.stage.visible = true;
         this.stage.removeChildren();
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
