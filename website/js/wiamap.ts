@@ -1,6 +1,5 @@
 import { Point, Rectangle, Size } from './coords';
 import DragScroll from './dragscroll';
-import * as sprites from './sprites';
 
 export class Widget implements DragScroll.Callback {
     private renderer: PIXI.SystemRenderer;

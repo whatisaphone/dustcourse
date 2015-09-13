@@ -12,11 +12,11 @@
         "./index.ts",
         "./js/coords.ts",
         "./js/dragscroll.ts",
+        "./js/gfx.ts",
         "./js/hud.ts",
         "./js/index.ts",
         "./js/levelViewer.ts",
         "./js/model.ts",
-        "./js/sprites.ts",
         "./js/util.ts",
         "./js/wiamap.ts"
     ]

@@ -1,5 +1,5 @@
 import * as model from './model';
-import { Sprite } from './sprites';
+import { Frame } from './gfx';
 
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -19,8 +19,8 @@ export function convertIntToCSSRGB(color: number) {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, options?: DustforceSpriteOptions) {
-    var s = new DustforceSprite(sprite);
+export function addDustforceSprite(stage: PIXI.Container, frame: Frame, options?: DustforceSpriteOptions) {
+    var s = new DustforceSprite(frame);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
@@ -86,13 +86,13 @@ export class ViewportParticleContainer extends PIXI.ParticleContainer {
 }
 
 export class DustforceSprite extends PIXI.Sprite {
-    constructor(private sprite: Sprite) {
-        super(sprite.texture.texture);
+    constructor(private frame: Frame) {
+        super(frame.texture);
     }
 
     public updateTransform() {
         this.worldTransform.identity()
-            .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
+            .translate(this.frame.hitbox.left, this.frame.hitbox.top)
             .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
             .translate(this.position.x, this.position.y)

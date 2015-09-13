@@ -1,7 +1,7 @@
 import { Point, Rectangle } from './coords';
 import * as hud from './hud';
 import * as model from './model';
-import * as sprites from './sprites';
+import * as gfx from './gfx';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -162,7 +162,8 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         var imageURL = '/assets/levels/' + this.level.path
                 + '/' + this.layerNum + '_' + scale.scale + '_' + realX + ',' + realY + '.png';
-        return { texture: sprites.getTexture(imageURL, this.zindex).texture };
+        var fc = gfx.getFrameFromRawImage(imageURL, this.zindex);
+        return { texture: fc.texture };
     }
 }
 
@@ -224,10 +225,10 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawProp(prop: model.Prop) {
-        var anim = sprites.propAnim(model.propSet(prop), model.propGroup(prop),
-                          model.propIndex(prop), model.propPalette(prop));
-        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
-        if (!sprite)
+        var anim = gfx.propAnim(model.propSet(prop), model.propGroup(prop),
+                                model.propIndex(prop), model.propPalette(prop));
+        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
+        if (!fc.frame)
             return;
 
         var propX = model.propX(prop);
@@ -247,7 +248,7 @@ class PropsLayer implements wiamap.Layer {
         propX -= Math.floor(propX / 286) * 32;
         propY += Math.floor(propY / 232) * 32;
 
-        util.addDustforceSprite(this.stage, sprite, {
+        util.addDustforceSprite(this.stage, fc.frame, {
             posX: propX,
             posY: propY,
             scaleX: scaleX,
@@ -284,27 +285,27 @@ class PropsLayer implements wiamap.Layer {
 
     private drawEnemy(entity: model.Entity) {
         var entityName = model.entityName(entity);
-        var anim = sprites.entityAnim(entityName);
+        var anim = gfx.entityAnim(entityName);
         if (!anim)
             return;
-        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
-        if (!sprite)
+        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
+        if (!fc.frame)
             return;
 
         var [entityX, entityY] = this.getEntityOrAIPosition(entity);
 
-        util.addDustforceSprite(this.stage, sprite, {
+        util.addDustforceSprite(this.stage, fc.frame, {
             posX: entityX,
             posY: entityY,
         });
     }
 
     private drawGigaGate(entity: model.Entity) {
-        this.drawSimpleEntity(entity, new sprites.SpriteAnim('entities/nexus/interactables/redkeybarrierclosed_', 1, 1));
+        this.drawSimpleEntity(entity, new gfx.SpriteAnim('entities/nexus/interactables/redkeybarrierclosed_', 1, 1));
     }
 
     private drawHittableApple(entity: model.Entity) {
-        this.drawSimpleEntity(entity, new sprites.SpriteAnim('entities/forest/apple/idle_', 1, 1));
+        this.drawSimpleEntity(entity, new gfx.SpriteAnim('entities/forest/apple/idle_', 1, 1));
     }
 
     private drawLevelDoor(entity: model.Entity) {
@@ -312,11 +313,12 @@ class PropsLayer implements wiamap.Layer {
         var entityY = model.entityY(entity);
         var props = model.entityProperties(entity);
         var doorSet = props['door_set'];
-        var sprite = doorSet === 0 ? null : sprites.loadSprite('entities/nexus/door/closed' + doorSet + '_1_0001', this.def.zindex);
+        var frame = doorSet === 0 ? null
+            : gfx.getFrame('entities/nexus/door/closed' + doorSet + '_1_0001', this.def.zindex).frame;
 
         var s: PIXI.DisplayObject;
-        if (sprite) {
-            s = util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        if (frame) {
+            s = util.addDustforceSprite(this.stage, frame, { posX: entityX, posY: entityY });
         } else {
             s = util.transparentSprite(-78, -187, 156, 189);
             s.position.x = entityX;
@@ -331,23 +333,23 @@ class PropsLayer implements wiamap.Layer {
     }
 
     private drawScoreBook(entity: model.Entity) {
-        var irregulars: { [type: string]: sprites.SpriteAnim } = {
-            'cl': new sprites.SpriteAnim('entities/nexus/interactables/playcustom_', 2, 6),
-            'dlc': new sprites.SpriteAnim('entities/nexus/interactables/dlclevels_', 2, 6),
-            'le': new sprites.SpriteAnim('entities/nexus/interactables/customlevels_', 2, 6),
+        var irregulars: { [type: string]: gfx.SpriteAnim } = {
+            'cl': new gfx.SpriteAnim('entities/nexus/interactables/playcustom_', 2, 6),
+            'dlc': new gfx.SpriteAnim('entities/nexus/interactables/dlclevels_', 2, 6),
+            'le': new gfx.SpriteAnim('entities/nexus/interactables/customlevels_', 2, 6),
         };
         var props = model.entityProperties(entity);
-        var anim: sprites.SpriteAnim = irregulars[props['book_type']] || new sprites.SpriteAnim('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_', 1, 1);
+        var anim: gfx.SpriteAnim = irregulars[props['book_type']] || new gfx.SpriteAnim('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_', 1, 1);
         this.drawSimpleEntity(entity, anim);
     }
 
-    private drawSimpleEntity(entity: model.Entity, anim: sprites.SpriteAnim) {
+    private drawSimpleEntity(entity: model.Entity, anim: gfx.SpriteAnim) {
         var [entityX, entityY] = this.getEntityOrAIPosition(entity);
-        var sprite = sprites.loadSprite(anim.pathForFrame(this.frame), this.def.zindex);
-        if (!sprite)
+        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
+        if (!fc.frame)
             return;
 
-        util.addDustforceSprite(this.stage, sprite, { posX: entityX, posY: entityY });
+        util.addDustforceSprite(this.stage, fc.frame, { posX: entityX, posY: entityY });
     }
 }
 
@@ -394,23 +396,23 @@ class FilthLayer implements wiamap.Layer {
 
         if (center) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
-            var sprite = sprites.loadSprite(url, this.def.zindex);
-            if (sprite)
-                util.addDustforceSprite(child, sprite, { scaleX: edge.length });
+            var fc = gfx.getFrame(url, this.def.zindex);
+            if (fc.frame)
+                util.addDustforceSprite(child, fc.frame, { scaleX: edge.length });
         }
 
         if (caps & 1) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
-            var sprite = sprites.loadSprite(url, this.def.zindex);
-            if (sprite)
-                util.addDustforceSprite(child, sprite);
+            var fc = gfx.getFrame(url, this.def.zindex);
+            if (fc.frame)
+                util.addDustforceSprite(child, fc.frame);
         }
 
         if (caps & 2) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
-            var sprite = sprites.loadSprite(url, this.def.zindex);
-            if (sprite)
-                util.addDustforceSprite(child, sprite, { posX: length });
+            var fc = gfx.getFrame(url, this.def.zindex);
+            if (fc.frame)
+                util.addDustforceSprite(child, fc.frame, { posX: length });
         }
     }
 }
@@ -478,11 +480,11 @@ class FilthParticlesLayer implements wiamap.Layer {
     }
 
     private drawAndUpdateParticle(viewport: wiamap.Viewport, particle: Particle) {
-        var sprite = sprites.loadSprite(particle.anim.pathForFrame(particle.frame), this.def.zindex);
-        if (sprite) {
+        var fc = gfx.getFrame(particle.anim.frameName(particle.frame), this.def.zindex);
+        if (fc.frame) {
             var screenRect = viewport.screenRect();
             var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
-            util.addDustforceSprite(this.stage, sprite, {
+            util.addDustforceSprite(this.stage, fc.frame, {
                 posX: screen.x - screenRect.left,
                 posY: screen.y - screenRect.top,
                 scale: viewport.zoom,
@@ -504,37 +506,37 @@ class FilthParticlesLayer implements wiamap.Layer {
 }
 
 class FilthParticleInfo {
-    constructor(public spawnChance: number, public rotate: boolean, public drift: number[], public fade: number[], public sprites: sprites.SpriteAnim[]) { }
+    constructor(public spawnChance: number, public rotate: boolean, public drift: number[], public fade: number[], public sprites: gfx.SpriteAnim[]) { }
 }
 
 var filthParticleInfos = [
     null,
     new FilthParticleInfo(0.02, false, [-0.1, 0.1, 0, 0.2], null, [
-        new sprites.SpriteAnim('area/mansion/particles/dust1_', 13, 6),
-        new sprites.SpriteAnim('area/mansion/particles/dust2_', 8, 6),
-        new sprites.SpriteAnim('area/mansion/particles/dust3_', 6, 6),
+        new gfx.SpriteAnim('area/mansion/particles/dust1_', 13, 6),
+        new gfx.SpriteAnim('area/mansion/particles/dust2_', 8, 6),
+        new gfx.SpriteAnim('area/mansion/particles/dust3_', 6, 6),
     ]),
     new FilthParticleInfo(0.02, true, [-0.5, 0.5, 0, 1], [30, 90, 8, 16], [
-        new sprites.SpriteAnim('area/forest/particles/leafdrift1_', 15, 6),
-        new sprites.SpriteAnim('area/forest/particles/leafdrift2_', 15, 6),
-        new sprites.SpriteAnim('area/forest/particles/leafdrift3_', 15, 6),
-        new sprites.SpriteAnim('area/forest/particles/leafspin1_', 5, 6),
-        new sprites.SpriteAnim('area/forest/particles/leafspin2_', 5, 6),
-        new sprites.SpriteAnim('area/forest/particles/leafspin3_', 5, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafdrift1_', 15, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafdrift2_', 15, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafdrift3_', 15, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafspin1_', 5, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafspin2_', 5, 6),
+        new gfx.SpriteAnim('area/forest/particles/leafspin3_', 5, 6),
     ]),
     new FilthParticleInfo(0.005, false, [-0.1, 0.1, 0, 0.2], null, [
-        new sprites.SpriteAnim('area/city/particles/bigpuff_', 5, 12),
-        new sprites.SpriteAnim('area/city/particles/medpuff_', 5, 12),
-        new sprites.SpriteAnim('area/city/particles/littlepuff_', 8, 12),
-        new sprites.SpriteAnim('area/city/particles/fly1_', 21, 6),
+        new gfx.SpriteAnim('area/city/particles/bigpuff_', 5, 12),
+        new gfx.SpriteAnim('area/city/particles/medpuff_', 5, 12),
+        new gfx.SpriteAnim('area/city/particles/littlepuff_', 8, 12),
+        new gfx.SpriteAnim('area/city/particles/fly1_', 21, 6),
     ]),
     new FilthParticleInfo(0.01, false, [-0.1, 0.1, 0, 0.2], null, [
-        new sprites.SpriteAnim('area/laboratory/particles/bigbubble_', 18, 6),
-        new sprites.SpriteAnim('area/laboratory/particles/smallbubble_', 17, 6),
+        new gfx.SpriteAnim('area/laboratory/particles/bigbubble_', 18, 6),
+        new gfx.SpriteAnim('area/laboratory/particles/smallbubble_', 17, 6),
     ]),
     new FilthParticleInfo(0.025, true, [-0.5, 0.5, 0, 1], [120, 120, 8, 16], [
-        new sprites.SpriteAnim('area/tutorial/particles/poly1_', 8, 6),
-        new sprites.SpriteAnim('area/tutorial/particles/poly2_', 6, 6),
+        new gfx.SpriteAnim('area/tutorial/particles/poly1_', 8, 6),
+        new gfx.SpriteAnim('area/tutorial/particles/poly2_', 6, 6),
     ]),
 ];
 
@@ -542,7 +544,7 @@ class Particle {
     public frame = 1;
     public alpha = 1;
 
-    constructor(public anim: sprites.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+    constructor(public anim: gfx.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
 }
 
 class StarsLayer implements wiamap.Layer {
@@ -606,13 +608,12 @@ class StarsLayer implements wiamap.Layer {
                 var x = galaxyX + Math.random() * galaxySize;
                 var y = galaxyY + Math.random() * galaxySize;
 
-                var texURL = sprites.spriteTextureURL('effects/stars/star_' + Math.floor(Math.random() * 3 + 1) + '_0001');
-                var tex = sprites.getTexture(texURL, this.def.zindex);
-                var sprite = new PIXI.Sprite(tex.texture);
+                var texURL = gfx.frameImageURL('effects/stars/star_' + Math.floor(Math.random() * 3 + 1) + '_0001');
+                var tex = gfx.getFrameFromRawImage(texURL, this.def.zindex).texture;
+                var sprite = new PIXI.Sprite(tex);
                 sprite.position.x = x;
                 sprite.position.y = y;
                 sprite.scale.x = sprite.scale.y = 2;
-                sprite.scale
                 this.stage.addChild(sprite);
             }
         }
