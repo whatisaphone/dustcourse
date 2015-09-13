@@ -15,11 +15,10 @@ export interface Level {
     prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
     currentFog: Entity;
+    currentFogFilters: { [layerNum: number]: [PIXI.filters.ColorMatrixFilter] };
 }
 
 export function levelPopulate(level: Level) {
-    var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
-    level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
     _.each(level.blocks, block => {
         _.each(block.slices, slice => {
             slice.tiles = _.object(_.map(slice.tiles, (l, n) => [n, l.map((t: any) => {
@@ -33,6 +32,11 @@ export function levelPopulate(level: Level) {
             });
         });
     });
+
+    var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
+    level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
+
+    level.currentFogFilters = {};
 }
 
 export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: number) {

@@ -109,20 +109,30 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
     if (!fog)
         return;
 
+    var filter = level.currentFogFilters[layerNum];
+    if (!filter)
+        filter = level.currentFogFilters[layerNum] = [new PIXI.filters.ColorMatrixFilter()];
     // as you can see, this function doesn't play nice with other filters on the passed object. oh well.
-    var filter = obj.filters && <PIXI.filters.ColorMatrixFilter>obj.filters[0];
-    if (!filter) {
-        filter = new PIXI.filters.ColorMatrixFilter();
-        obj.filters = [filter];
-    }
+    if (!obj.filters)
+        obj.filters = filter;
 
     var fogProps = model.entityProperties(fog);
     var [r, g, b] = convertIntToRGB(fogProps['fog_colour'][layerNum]);
     var p = fogProps['fog_per'][layerNum];
-    filter.matrix = [
-        1 - p, 0,     0,     r * p, 0,
-        0,     1 - p, 0,     g * p, 0,
-        0,     0,     1 - p, b * p, 0,
-        0,     0,     0,     1,     0,
-    ];
+
+    // filter.matrix = [
+    //     1 - p, 0,     0,     r * p, 0,
+    //     0,     1 - p, 0,     g * p, 0,
+    //     0,     0,     1 - p, b * p, 0,
+    //     0,     0,     0,     1,     0,
+    // ];
+
+    // This is ugly, but it avoids allocs
+    var m = filter[0].matrix;
+    m[0] = 1 - p;
+    m[3] = r * p;
+    m[6] = 1 - p;
+    m[8] = g * p;
+    m[12] = 1 - p;
+    m[13] = b * p;
 }
