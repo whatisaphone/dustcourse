@@ -20,3 +20,13 @@ Restart the first command if it crashes. Restart the second whenever the server-
 The reason these take so long is because they create between between tens of
 thousands and millions of files. They spend most of their time inside the file
 system driver. Optimization opportunities abound.
+
+## Deploying
+
+To deploy the website:
+
+    deploy/deploy.sh user@whatever.server.com
+
+To update the game assets (several GB; best to do this overnight unless it's a tiny change):
+
+    deploy/upload-assets.sh user@whatever.server.com
