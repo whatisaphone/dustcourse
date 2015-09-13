@@ -37,7 +37,7 @@ export class Widget implements DragScroll.Callback {
     public setViewport(viewport: Rectangle) {
         var x = viewport.left + viewport.width / 2;
         var y = viewport.top + viewport.height / 2;
-        var zoom = Math.min(2, this.viewport.size.width / viewport.width);
+        var zoom = Math.max(0.05, Math.min(2, this.viewport.size.width / viewport.width));
         this.viewport = new Viewport(new Point(x, y), this.viewport.size, zoom);
     }
 
