@@ -20,6 +20,19 @@ export interface Level {
 export function levelPopulate(level: Level) {
     var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
+    _.each(level.blocks, block => {
+        _.each(block.slices, slice => {
+            slice.tiles = _.object(_.map(slice.tiles, (l, n) => [n, l.map((t: any) => {
+                var d = atob(t[2]);
+                return new Tile(t[0], t[1], d.charCodeAt(0));
+            })]));
+            slice.filth = _.map(slice.filth, (f: any) => {
+                var d = atob(f[2]);
+                var tile = _.find(slice.tiles[19], t => t.x === f[0] && t.y === f[1]);
+                return new Filth(f[0], f[1], d.charCodeAt(0) | (d.charCodeAt(1) << 8), d.charCodeAt(10), tile.shapeIndex);
+            });
+        });
+    });
 }
 
 export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: number) {
@@ -64,30 +77,30 @@ export interface Slice {
     filth_count: number;
     tile_edge_count: number;
     filth_blocks: number;
-    tiles: Tile[][];
+    tiles: { [layer: string]: Tile[] };
     filth: Filth[];
     props: Prop[];
     entities: Entity[];
 }
 
-type Tile = [number, number, string];
-export function tileX(t: Tile) { return t[0]; }
-export function tileY(t: Tile) { return t[1]; }
-export function tileShape(t: Tile) { var d = atob(t[2]); return tileShapes[d.charCodeAt(0)] || tileShapes[0x80]; }
+class Tile {
+    constructor(public x: number, public y: number, public shapeIndex: number) { }
 
-type Filth = [number, number, string];
-export function filthX(f: Filth) { return f[0]; }
-export function filthY(f: Filth) { return f[1]; }
-export function filthEdges(f: Filth) { var d = atob(f[2]); return d.charCodeAt(0) | (d.charCodeAt(1) << 8); }
-export function filthCaps(f: Filth) { var d = atob(f[2]); return d.charCodeAt(10); }
+    public shape() {
+        return tileShapes[this.shapeIndex] || tileShapes[0x80];
+    }
+}
 
-export function eachFilthEdge(filth: Filth, shape: TileShape, callback: (e: TileEdge, m: number, c: number) => void) {
-    var edges = filthEdges(filth);
-    var caps = filthCaps(filth);
-    if ((edges >> 0) & 0xf)  callback(shape.top,    (edges >> 0) & 0xf,  (caps >> 0) & 0x3);
-    if ((edges >> 4) & 0xf)  callback(shape.bottom, (edges >> 4) & 0xf,  (caps >> 2) & 0x3);
-    if ((edges >> 8) & 0xf)  callback(shape.left,   (edges >> 8) & 0xf,  (caps >> 4) & 0x3);
-    if ((edges >> 12) & 0xf) callback(shape.right,  (edges >> 12) & 0xf, (caps >> 6) & 0x3);
+class Filth {
+    constructor(public x: number, public y: number, public edges: number, public caps: number, public shapeIndex: number) { }
+
+    public eachEdge(callback: (e: TileEdge, m: number, c: number) => void) {
+        var shape = tileShapes[this.shapeIndex] || tileShapes[0x80];
+        if ((this.edges >> 0) & 0xf)  callback(shape.top,    (this.edges >> 0) & 0xf,  (this.caps >> 0) & 0x3);
+        if ((this.edges >> 4) & 0xf)  callback(shape.bottom, (this.edges >> 4) & 0xf,  (this.caps >> 2) & 0x3);
+        if ((this.edges >> 8) & 0xf)  callback(shape.left,   (this.edges >> 8) & 0xf,  (this.caps >> 4) & 0x3);
+        if ((this.edges >> 12) & 0xf) callback(shape.right,  (this.edges >> 12) & 0xf, (this.caps >> 6) & 0x3);
+    }
 }
 
 export type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];

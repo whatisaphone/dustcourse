@@ -361,12 +361,8 @@ class FilthLayer implements wiamap.Layer {
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
-                var filthX = model.filthX(filth);
-                var filthY = model.filthY(filth);
-                var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
-                var shape = model.tileShape(tile);
-                model.eachFilthEdge(filth, shape, (edge, center, caps) => {
-                    this.drawFilth(viewport, canvasRect, block, slice, filthX, filthY, edge, center, caps);
+                filth.eachEdge((edge, center, caps) => {
+                    this.drawFilth(viewport, canvasRect, block, slice, filth.x, filth.y, edge, center, caps);
                 });
             });
         });
@@ -433,12 +429,8 @@ class FilthParticlesLayer implements wiamap.Layer {
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
-                var filthX = model.filthX(filth);
-                var filthY = model.filthY(filth);
-                var tile = _.find(slice.tiles[19], t => model.tileX(t) === filthX && model.tileY(t) === filthY);
-                var shape = model.tileShape(tile);
-                var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
-                model.eachFilthEdge(filth, shape, (edge, center, caps) => {
+                var tileRect = model.tileWorldRect(block, slice, filth.x, filth.y);
+                filth.eachEdge((edge, center, caps) => {
                     var particle = this.maybeCreateParticle(tileRect, edge, center);
                     if (particle)
                         this.particles.push(particle);
@@ -583,14 +575,26 @@ class StarsLayer implements wiamap.Layer {
 
         this.expandUniverse(worldRect);
 
-        var midpoint = worldRect.top + fog['gradient_middle'] * worldRect.height;
+        // Yeah, yeah, I know stuff like this belongs in a shader. I don't
+        // feel like figuring that out right now
+
+        var topY = worldRect.top;
+        var midY = worldRect.top + fog['gradient_middle'] * worldRect.height;
+        var botY = worldRect.bottom();
+        var topA = fog['star_top'];
+        var midA = fog['star_middle'];
+        var botA = fog['star_bottom'];
+
         for (var ci = 0, cl = this.stage.children.length; ci < cl; ++ci) {
             var child = this.stage.children[ci];
-            var [topY, botY, topA, botA] = child.position.y < midpoint
-                ? [worldRect.top, midpoint, fog['star_top'], fog['star_middle']]
-                : [midpoint, worldRect.bottom(), fog['star_middle'], fog['star_bottom']];
-            var pct = (child.position.y - topY) / (botY - topY);
-            child.alpha = Math.max(0, Math.min(1, topA * (1 - pct) + botA * pct));
+            if (child.position.y < midY) {
+                var pct = (child.position.y - topY) / (midY - topY);
+                var alpha = topA * (1 - pct) + midA * pct;
+            } else {
+                var pct = (child.position.y - midY) / (botY - midY);
+                var alpha = midA * (1 - pct) + botA * pct;
+            }
+            child.alpha = Math.max(0, Math.min(1, alpha));
         }
     }
 
