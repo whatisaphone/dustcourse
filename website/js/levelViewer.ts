@@ -471,7 +471,7 @@ class FilthLayer implements wiamap.Layer {
 
 class FilthParticlesLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public stage = new PIXI.Container();
+    public stage = new util.ChunkContainer();
     private particles: Particle[] = [];
 
     constructor(private level: model.Level) {
@@ -486,17 +486,22 @@ class FilthParticlesLayer implements wiamap.Layer {
         }
 
         this.stage.visible = true;
-        this.stage.removeChildren();
 
+        this.stage.position.x = -worldRect.left;
+        this.stage.position.y = -worldRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
         util.applyFog(this.stage, this.level, 19);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
             _.each(slice.filth, filth => {
                 var tileRect = model.tileWorldRect(block, slice, filth.x, filth.y);
                 filth.eachEdge((edge, center, caps) => {
-                    var particle = this.maybeCreateParticle(tileRect, edge, center);
-                    if (particle)
-                        this.particles.push(particle);
+                    var p = this.maybeCreateParticle(tileRect, edge, center);
+                    if (p) {
+                        this.particles.push(p);
+                        p.sprite = util.createDustforceSprite(null, p.x, p.y, { rotation: p.rotation });
+                        this.stage.addChild(p.sprite);
+                    }
                 });
             });
         });
@@ -504,6 +509,7 @@ class FilthParticlesLayer implements wiamap.Layer {
         for (var pi = 0; pi < this.particles.length; ++pi) {
             var particle = this.particles[pi];
             if (!this.drawAndUpdateParticle(viewport, particle)) {
+                this.stage.removeChild(particle.sprite);
                 this.particles.splice(pi, 1);
                 --pi;
             }
@@ -538,17 +544,11 @@ class FilthParticlesLayer implements wiamap.Layer {
 
     private drawAndUpdateParticle(viewport: Viewport, particle: Particle) {
         var fc = gfx.getFrame(particle.anim.frameName(particle.frame), this.def.zindex);
-        if (fc.frame) {
-            var screenRect = viewport.screenRect();
-            var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
-            util.addDustforceSprite(this.stage, fc, {
-                posX: screen.x - screenRect.left,
-                posY: screen.y - screenRect.top,
-                scale: viewport.zoom,
-                rotation: particle.rotation,
-                alpha: particle.alpha,
-            });
-        }
+        particle.sprite.setFrame(fc);
+
+        particle.sprite.position.x = particle.x;
+        particle.sprite.position.y = particle.y;
+        particle.sprite.alpha = particle.alpha;
 
         ++particle.frame;
         particle.x += particle.dx;
@@ -600,6 +600,7 @@ var filthParticleInfos = [
 class Particle {
     public frame = 1;
     public alpha = 1;
+    public sprite: util.DustforceSprite;
 
     constructor(public anim: gfx.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
 }
