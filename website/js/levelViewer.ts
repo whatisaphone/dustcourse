@@ -317,7 +317,7 @@ class PropsLayer implements wiamap.Layer {
         var anim = gfx.propAnim(model.propSet(prop), model.propGroup(prop),
                                 model.propIndex(prop), model.propPalette(prop));
         var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
-        this.propSprites[model.propUid(prop)].setFrame(fc.frame);
+        this.propSprites[model.propUid(prop)].setFrame(fc);
     }
 
     private addEntity(stage: PIXI.Container, entity: model.Entity) {
@@ -359,7 +359,7 @@ class SimpleEntity implements Entity {
 
     public update() {
         var fc = gfx.getFrame(this.anim.frameName(this.level.frame), 185);
-        this.sprite.setFrame(fc.frame);
+        this.sprite.setFrame(fc);
     }
 }
 
@@ -393,7 +393,7 @@ class LevelDoorEntity implements Entity {
 
     public update() {
         if (this.fc)
-            (<util.DustforceSprite>this.sprite).setFrame(this.fc.frame);
+            (<util.DustforceSprite>this.sprite).setFrame(this.fc);
     }
 }
 
@@ -411,62 +411,60 @@ function createScoreBookEntity(level: model.Level, entity: model.Entity) {
 
 class FilthLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
-    public stage = new PIXI.Container();
+    public stage = new util.ChunkContainer();
+    private sliceStages: { [sliceKey: string]: PIXI.Container } = {};
 
     constructor(private level: model.Level) {
         this.def = { zindex: 198, parallax: 1 };
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        this.stage.removeChildren();
-
+        this.stage.position.x = -worldRect.left;
+        this.stage.position.y = -worldRect.top;
+        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
         util.applyFog(this.stage, this.level, 19);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
-            _.each(slice.filth, filth => {
-                filth.eachEdge((edge, center, caps) => {
-                    this.drawFilth(viewport, canvasRect, block, slice, filth.x, filth.y, edge, center, caps);
+            var sliceKey = model.sliceKey(block, slice);
+            var sliceStage = this.sliceStages[sliceKey];
+            if (!sliceStage) {
+                sliceStage = new PIXI.Container();
+                this.sliceStages[sliceKey] = sliceStage;
+                this.stage.addChild(sliceStage);
+
+                _.each(slice.filth, filth => {
+                    filth.eachEdge((edge, center, caps) => {
+                        this.drawFilth(sliceStage, block, slice, filth.x, filth.y, edge, center, caps);
+                    });
                 });
-            });
+            }
         });
     }
 
-    private drawFilth(viewport: Viewport, canvasRect: Rectangle,
-                      block: model.Block, slice: model.Slice, filthX: number, filthY: number,
-                      edge: model.TileEdge, center: number, caps: number) {
+    private drawFilth(stage: PIXI.Container, block: model.Block, slice: model.Slice,
+                      filthX: number, filthY: number, edge: model.TileEdge, center: number, caps: number) {
         var tileRect = model.tileWorldRect(block, slice, filthX, filthY);
         tileRect.left += edge.x1 * model.pixelsPerTile;
         tileRect.top += edge.y1 * model.pixelsPerTile;
-        var screenRect = viewport.worldToScreenR(this, tileRect);
 
-        var child = new PIXI.Container();
-        child.position.x = screenRect.left - canvasRect.left;
-        child.position.y = screenRect.top - canvasRect.top;
-        child.scale.x = screenRect.width / model.pixelsPerTile;
-        child.scale.y = screenRect.height / model.pixelsPerTile;
-        child.rotation = edge.angle;
-        this.stage.addChild(child);
+        var container = util.createDustforceSprite(null, tileRect.left, tileRect.top, { rotation: edge.angle });
+        stage.addChild(container);
         var length = edge.length * model.pixelsPerFilth;
 
         if (center) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
-            if (fc.frame)
-                util.addDustforceSprite(child, fc.frame, { scaleX: edge.length });
+            container.addChild(util.createDustforceSprite(fc, 0, 0, { scaleX: edge.length }));
         }
-
         if (caps & 1) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
-            if (fc.frame)
-                util.addDustforceSprite(child, fc.frame);
+            container.addChild(util.createDustforceSprite(fc, 0, 0));
         }
-
         if (caps & 2) {
             var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
-            if (fc.frame)
-                util.addDustforceSprite(child, fc.frame, { posX: length });
+            container.addChild(util.createDustforceSprite(fc, length, 0));
         }
     }
 }
@@ -543,7 +541,7 @@ class FilthParticlesLayer implements wiamap.Layer {
         if (fc.frame) {
             var screenRect = viewport.screenRect();
             var screen = viewport.worldToScreenP(this, new Point(particle.x, particle.y));
-            util.addDustforceSprite(this.stage, fc.frame, {
+            util.addDustforceSprite(this.stage, fc, {
                 posX: screen.x - screenRect.left,
                 posY: screen.y - screenRect.top,
                 scale: viewport.zoom,

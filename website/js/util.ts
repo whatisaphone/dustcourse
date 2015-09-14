@@ -20,8 +20,8 @@ export function convertIntToCSSRGB(color: number) {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-export function addDustforceSprite(stage: PIXI.Container, frame: Frame, options?: DustforceSpriteOptions) {
-    var s = new DustforceSprite(frame);
+export function addDustforceSprite(stage: PIXI.Container, fc: FrameContainer, options?: DustforceSpriteOptions) {
+    var s = new DustforceSprite(fc);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
@@ -33,7 +33,7 @@ export function addDustforceSprite(stage: PIXI.Container, frame: Frame, options?
 }
 
 export function createDustforceSprite(fc: FrameContainer, x: number, y: number, options?: DustforceSpriteOptions) {
-    var s = new DustforceSprite(fc && fc.frame);
+    var s = new DustforceSprite(fc);
     s.position.x = x;
     s.position.y = y;
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
@@ -98,20 +98,24 @@ export class ViewportParticleContainer extends PIXI.ParticleContainer {
 }
 
 export class DustforceSprite extends PIXI.Sprite {
-    constructor(private frame?: Frame) {
-        super(frame && frame.texture);
+    constructor(private fc?: FrameContainer) {
+        super(fc && fc.frame && fc.frame.texture);
     }
 
-    public setFrame(frame: Frame) {
-        this.frame = frame;
-        var texture = frame ? frame.texture : PIXI.Texture.EMPTY;
+    public setFrame(fc: FrameContainer) {
+        this.fc = fc;
+        var texture = fc && fc.frame && fc.frame.texture || PIXI.Texture.EMPTY;
         if (this.texture !== texture)
             this.texture = texture;
     }
 
     public updateTransform() {
+        this.setFrame(this.fc);
+
+        var hitbox = this.fc && this.fc.frame && this.fc.frame.hitbox;
+
         this.worldTransform.identity()
-            .translate(this.frame ? this.frame.hitbox.left : 0, this.frame ? this.frame.hitbox.top : 0)
+            .translate(hitbox ? hitbox.left : 0, hitbox ? hitbox.top : 0)
             .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
             .translate(this.position.x, this.position.y)
@@ -120,6 +124,9 @@ export class DustforceSprite extends PIXI.Sprite {
         // copied from PIXI.DisplayObject.updateTransform
         this.worldAlpha = this.alpha * this.parent.worldAlpha;
         this._currentBounds = null;
+
+        for (var ci = 0, cl = this.children.length; ci < cl; ++ci)
+            this.children[ci].updateTransform();
     }
 }
 
