@@ -233,25 +233,39 @@ class PropsLayer implements wiamap.Layer {
 
         util.applyFog(this.stage, this.level, this.layerNum);
 
-        model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
-            var sliceKey = model.sliceKey(block, slice);
-            var stage = this.sliceStages[sliceKey];
-            if (!stage)
-                stage = this.populateSliceStage(block, slice);
-
-            _.each(slice.props, prop => {
-                if (model.propLayerGroup(prop) === this.layerNum)
-                    this.updateProp(prop);
-            });
-
-            if (this.layerNum === 18) {
-                _.each(slice.entities, entity => {
-                    var ent = this.sliceEntities[sliceKey][model.entityUid(entity)];
-                    if (ent)
-                        ent.update();
+        if (this.layerNum <= 5) {
+            // background layers use weird coordinates and since there aren't usually many
+            // props back there it's not that bad to just process every slice every time
+            _.each(this.level.blocks, block => {
+                _.each(block.slices, slice => {
+                    this.runSlice(block, slice);
                 });
-            }
+            });
+        } else {
+            model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+                this.runSlice(block, slice);
+            });
+        }
+    }
+
+    private runSlice(block: model.Block, slice: model.Slice) {
+        var sliceKey = model.sliceKey(block, slice);
+        var stage = this.sliceStages[sliceKey];
+        if (!stage)
+            stage = this.populateSliceStage(block, slice);
+
+        _.each(slice.props, prop => {
+            if (model.propLayerGroup(prop) === this.layerNum)
+                this.updateProp(prop);
         });
+
+        if (this.layerNum === 18) {
+            _.each(slice.entities, entity => {
+                var ent = this.sliceEntities[sliceKey][model.entityUid(entity)];
+                if (ent)
+                    ent.update();
+            });
+        }
     }
 
     private populateSliceStage(block: model.Block, slice: model.Slice) {
