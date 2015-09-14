@@ -8,16 +8,14 @@ import * as wiamap from './wiamap';
 export function init(levelName: string) {
     hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
 
-    var widget = new wiamap.Widget();
-
-    new LevelDownloader(widget, levelName).download();
+    new LevelDownloader(levelName).download();
 }
 
 class LevelDownloader {
     private xhr: XMLHttpRequest;
     private overlay: HTMLElement;
 
-    constructor(private widget: wiamap.Widget, private levelName: string) { }
+    constructor(private levelName: string) { }
 
     public download() {
         this.overlay = document.createElement('div');
@@ -67,17 +65,22 @@ class LevelDownloader {
 
         setTimeout(() => {
             var level = JSON.parse(this.xhr.response);
+            model.levelPopulate(level);
 
             setTimeout(() => {
                 hud.setLevelName(level.properties['level_name']);
-                populateLevelViewer(this.widget, level);
+                createLevelViewer(level);
             }, 0);
         }, 0);
     }
 }
 
-function populateLevelViewer(widget: wiamap.Widget, level: model.Level) {
-    model.levelPopulate(level);
+function createLevelViewer(level: model.Level) {
+    var widget = new wiamap.Widget();
+    widget.advanceFrame = () => {
+        ++level.frame;
+        wiamap.Widget.prototype.advanceFrame.call(widget);
+    };
 
     populateLayers(widget, level);
     var fogger = new FogMachine(widget, level);
@@ -210,6 +213,9 @@ class PrerenderedTileLayer extends wiamap.TileLayer {
 class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new util.ChunkContainer();
+    private sliceStages: { [sliceKey: string]: PIXI.Container } = {};
+    private propSprites: { [uid: number]: util.DustforceSprite } = {};
+    private sliceEntities: { [sliceKey: string]: { [uid: number]: Entity } } = {};
     private frame = 0;
     private layerParams: DustforceLayerParams;
 
@@ -221,7 +227,6 @@ class PropsLayer implements wiamap.Layer {
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         ++this.frame;
 
-        this.stage.removeChildren();
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
@@ -229,26 +234,50 @@ class PropsLayer implements wiamap.Layer {
         util.applyFog(this.stage, this.level, this.layerNum);
 
         model.eachIntersectingSlice(this.level, worldRect, (block, slice) => {
+            var sliceKey = model.sliceKey(block, slice);
+            var stage = this.sliceStages[sliceKey];
+            if (!stage)
+                stage = this.populateSliceStage(block, slice);
+
             _.each(slice.props, prop => {
                 if (model.propLayerGroup(prop) === this.layerNum)
-                    this.drawProp(prop);
+                    this.updateProp(prop);
             });
 
             if (this.layerNum === 18) {
                 _.each(slice.entities, entity => {
-                    this.drawEntity(entity);
+                    var ent = this.sliceEntities[sliceKey][model.entityUid(entity)];
+                    if (ent)
+                        ent.update();
                 });
             }
         });
     }
 
-    private drawProp(prop: model.Prop) {
-        var anim = gfx.propAnim(model.propSet(prop), model.propGroup(prop),
-                                model.propIndex(prop), model.propPalette(prop));
-        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
-        if (!fc.frame)
-            return;
+    private populateSliceStage(block: model.Block, slice: model.Slice) {
+        var sliceKey = model.sliceKey(block, slice);
+        var stage = new PIXI.Container();
+        this.sliceStages[sliceKey] = stage;
+        this.stage.addChild(stage);
+        this.sliceEntities[sliceKey] = {};
 
+        _.each(slice.props, prop => {
+            if (model.propLayerGroup(prop) === this.layerNum)
+                this.propSprites[model.propUid(prop)] = this.addProp(stage, prop);
+        });
+
+        if (this.layerNum === 18) {
+            _.each(slice.entities, entity => {
+                var ent = this.addEntity(stage, entity);
+                if (ent)
+                    this.sliceEntities[sliceKey][model.entityUid(entity)] = ent;
+            });
+        }
+
+        return stage;
+    }
+
+    private addProp(stage: PIXI.Container, prop: model.Prop) {
         var propX = model.propX(prop);
         var propY = model.propY(prop);
         var scaleX = model.propScaleX(prop);
@@ -261,109 +290,109 @@ class PropsLayer implements wiamap.Layer {
             scaleY *= 2;
         }
 
-        util.addDustforceSprite(this.stage, fc.frame, {
-            posX: propX,
-            posY: propY,
+        var sprite = util.createDustforceSprite(null, propX, propY, {
             scaleX: scaleX,
             scaleY: scaleY,
             rotation: model.propRotation(prop),
         });
+        stage.addChild(sprite);
+        return sprite;
     }
 
-    private drawEntity(entity: model.Entity) {
-        var entityName = model.entityName(entity);
-        if (entityName.slice(0, 6) === 'enemy_')
-            this.drawEnemy(entity);
-        else if (entityName === 'giga_gate')
-            this.drawGigaGate(entity);
-        else if (entityName === 'hittable_apple')
-            this.drawHittableApple(entity);
-        else if (entityName === 'level_door')
-            this.drawLevelDoor(entity);
-        else if (entityName === 'score_book')
-            this.drawScoreBook(entity);
-    }
-
-    private getEntityOrAIPosition(entity: model.Entity) {
-        var entityX: number, entityY: number;
-        var ai = _.find(this.level.allEntities, e => model.entityName(e) === 'AI_controller' &&
-                                                     model.entityProperties(e)['puppet_id'] === model.entityUid(entity));
-        if (ai) {
-            var entityPos: string[] = model.entityProperties(ai)['nodes'][0].split(/[,\s]+/);
-            return _.map(entityPos, p => parseInt(p, 10));
-        } else {
-            return [model.entityX(entity), model.entityY(entity)];
-        }
-    }
-
-    private drawEnemy(entity: model.Entity) {
-        var entityName = model.entityName(entity);
-        var anim = gfx.entityAnim(entityName);
-        if (!anim)
-            return;
+    private updateProp(prop: model.Prop) {
+        var anim = gfx.propAnim(model.propSet(prop), model.propGroup(prop),
+                                model.propIndex(prop), model.propPalette(prop));
         var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
-        if (!fc.frame)
-            return;
-
-        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
-
-        util.addDustforceSprite(this.stage, fc.frame, {
-            posX: entityX,
-            posY: entityY,
-        });
+        this.propSprites[model.propUid(prop)].setFrame(fc.frame);
     }
 
-    private drawGigaGate(entity: model.Entity) {
-        this.drawSimpleEntity(entity, new gfx.SpriteAnim('entities/nexus/interactables/redkeybarrierclosed_', 1, 1));
-    }
+    private addEntity(stage: PIXI.Container, entity: model.Entity) {
+        var entityName = model.entityName(entity);
+        var ent: Entity;
+        if (entityName.slice(0, 6) === 'enemy_')
+            ent = new SimpleEntity(this.level, entity, gfx.entityAnim(entityName));
+        else if (entityName === 'giga_gate')
+            ent = new SimpleEntity(this.level, entity, new gfx.SpriteAnim('entities/nexus/interactables/redkeybarrierclosed_', 1, 1));
+        else if (entityName === 'hittable_apple')
+            ent = new SimpleEntity(this.level, entity, new gfx.SpriteAnim('entities/forest/apple/idle_', 1, 1));
+        else if (entityName === 'level_door')
+            ent = new LevelDoorEntity(this.level, entity);
+        else if (entityName === 'score_book')
+            ent = createScoreBookEntity(this.level, entity);
 
-    private drawHittableApple(entity: model.Entity) {
-        this.drawSimpleEntity(entity, new gfx.SpriteAnim('entities/forest/apple/idle_', 1, 1));
-    }
-
-    private drawLevelDoor(entity: model.Entity) {
-        var entityX = model.entityX(entity);
-        var entityY = model.entityY(entity);
-        var props = model.entityProperties(entity);
-        var doorSet = props['door_set'];
-        var frame = doorSet === 0 ? null
-            : gfx.getFrame('entities/nexus/door/closed' + doorSet + '_1_0001', this.def.zindex).frame;
-
-        var s: PIXI.DisplayObject;
-        if (frame) {
-            s = util.addDustforceSprite(this.stage, frame, { posX: entityX, posY: entityY });
-        } else {
-            s = util.transparentSprite(-78, -187, 156, 189);
-            s.position.x = entityX;
-            s.position.y = entityY;
-            this.stage.addChild(s);
+        if (ent) {
+            ent.add(stage);
+            return ent;
         }
-        s.interactive = true;
-        s.buttonMode = true;  // sets cursor to 'pointer'
-        s.on('mousedown', () => {
+    }
+}
+
+interface Entity {
+    add(stage: PIXI.Container): void;
+    update(): void;
+}
+
+class SimpleEntity implements Entity {
+    private sprite: util.DustforceSprite;
+
+    constructor(private level: model.Level, private entity: model.Entity, private anim: gfx.SpriteAnim) { }
+
+    public add(stage: PIXI.Container) {
+        var [entityX, entityY] = model.getEntityOrAIPosition(this.level, this.entity);
+        this.sprite = util.createDustforceSprite(null, entityX, entityY);
+        stage.addChild(this.sprite);
+    }
+
+    public update() {
+        var fc = gfx.getFrame(this.anim.frameName(this.level.frame), 185);
+        this.sprite.setFrame(fc.frame);
+    }
+}
+
+class LevelDoorEntity implements Entity {
+    private fc: gfx.FrameContainer;
+    private sprite: PIXI.DisplayObject;
+
+    constructor(private level: model.Level, private entity: model.Entity) { }
+
+    public add(stage: PIXI.Container) {
+        var [entityX, entityY] = model.getEntityOrAIPosition(this.level, this.entity);
+        var props = model.entityProperties(this.entity);
+        var doorSet = props['door_set'];
+
+        if (doorSet === 0) {
+            this.sprite = util.transparentSprite(-78, -187, 156, 189);
+            this.sprite.position.x = entityX;
+            this.sprite.position.y = entityY;
+        } else {
+            this.fc = gfx.getFrame('entities/nexus/door/closed' + doorSet + '_1_0001', 185);
+            this.sprite = util.createDustforceSprite(this.fc, entityX, entityY);
+        }
+        this.sprite.interactive = true;
+        this.sprite.buttonMode = true;  // sets mouse cursor to 'pointer' (i.e., hand)
+        this.sprite.on('mousedown', () => {
             location.href = '/level/' + props['file_name'];
         });
+
+        stage.addChild(this.sprite);
     }
 
-    private drawScoreBook(entity: model.Entity) {
-        var irregulars: { [type: string]: gfx.SpriteAnim } = {
-            'cl': new gfx.SpriteAnim('entities/nexus/interactables/playcustom_', 2, 6),
-            'dlc': new gfx.SpriteAnim('entities/nexus/interactables/dlclevels_', 2, 6),
-            'le': new gfx.SpriteAnim('entities/nexus/interactables/customlevels_', 2, 6),
-        };
-        var props = model.entityProperties(entity);
-        var anim: gfx.SpriteAnim = irregulars[props['book_type']] || new gfx.SpriteAnim('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_', 1, 1);
-        this.drawSimpleEntity(entity, anim);
+    public update() {
+        if (this.fc)
+            (<util.DustforceSprite>this.sprite).setFrame(this.fc.frame);
     }
+}
 
-    private drawSimpleEntity(entity: model.Entity, anim: gfx.SpriteAnim) {
-        var [entityX, entityY] = this.getEntityOrAIPosition(entity);
-        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
-        if (!fc.frame)
-            return;
-
-        util.addDustforceSprite(this.stage, fc.frame, { posX: entityX, posY: entityY });
-    }
+function createScoreBookEntity(level: model.Level, entity: model.Entity) {
+    var irregulars: { [type: string]: gfx.SpriteAnim } = {
+        'cl': new gfx.SpriteAnim('entities/nexus/interactables/playcustom_', 2, 6),
+        'dlc': new gfx.SpriteAnim('entities/nexus/interactables/dlclevels_', 2, 6),
+        'le': new gfx.SpriteAnim('entities/nexus/interactables/customlevels_', 2, 6),
+    };
+    var props = model.entityProperties(entity);
+    var anim: gfx.SpriteAnim = irregulars[props['book_type']] ||
+        new gfx.SpriteAnim('entities/nexus/interactables/' + props['book_type'] + 'bookclosed_', 1, 1);
+    return new SimpleEntity(level, entity, anim);
 }
 
 class FilthLayer implements wiamap.Layer {

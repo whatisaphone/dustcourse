@@ -14,7 +14,7 @@ export class Widget implements DragScroll.Callback {
         this.container = new PIXI.Container();
         this.layers = [];
         this.viewport = new Viewport(new Point(0, 0), new Size(0, 0), 1);
-        this.draw();
+        this.advanceFrame();
 
         this.scroll = new DragScroll(this);
         this.scroll.bindEvents(this.getElement());
@@ -45,7 +45,7 @@ export class Widget implements DragScroll.Callback {
         });
     }
 
-    private draw() {
+    public advanceFrame() {
         var screenSize = new Size(this.getElement().clientWidth, this.getElement().clientHeight);
         this.viewport = new Viewport(this.viewport.position, screenSize, this.viewport.zoom);
         this.renderer.resize(screenSize.width, screenSize.height);
@@ -55,7 +55,7 @@ export class Widget implements DragScroll.Callback {
             layer.update(this.viewport, screenRect, worldRect);
         });
         this.renderer.render(this.container);
-        requestAnimationFrame(() => { this.draw(); });
+        requestAnimationFrame(() => { this.advanceFrame(); });
     }
 }
 

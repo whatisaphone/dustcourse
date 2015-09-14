@@ -1,5 +1,6 @@
+import { Rectangle } from './coords';
 import * as model from './model';
-import { Frame } from './gfx';
+import { Frame, FrameContainer } from './gfx';
 
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -28,6 +29,17 @@ export function addDustforceSprite(stage: PIXI.Container, frame: Frame, options?
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
     stage.addChild(s);
+    return s;
+}
+
+export function createDustforceSprite(fc: FrameContainer, x: number, y: number, options?: DustforceSpriteOptions) {
+    var s = new DustforceSprite(fc && fc.frame);
+    s.position.x = x;
+    s.position.y = y;
+    s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
+    s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
+    s.rotation = options ? (options.rotation || 0) : 0;
+    s.alpha = options ? (options.alpha || 1) : 1;
     return s;
 }
 
@@ -86,13 +98,20 @@ export class ViewportParticleContainer extends PIXI.ParticleContainer {
 }
 
 export class DustforceSprite extends PIXI.Sprite {
-    constructor(private frame: Frame) {
-        super(frame.texture);
+    constructor(private frame?: Frame) {
+        super(frame && frame.texture);
+    }
+
+    public setFrame(frame: Frame) {
+        this.frame = frame;
+        var texture = frame ? frame.texture : PIXI.Texture.EMPTY;
+        if (this.texture !== texture)
+            this.texture = texture;
     }
 
     public updateTransform() {
         this.worldTransform.identity()
-            .translate(this.frame.hitbox.left, this.frame.hitbox.top)
+            .translate(this.frame ? this.frame.hitbox.left : 0, this.frame ? this.frame.hitbox.top : 0)
             .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
             .translate(this.position.x, this.position.y)

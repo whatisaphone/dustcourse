@@ -14,6 +14,8 @@ export interface Level {
     blocks: Block[];
     prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
+
+    frame: number;
     currentFog: Entity;
     currentFogFilters: { [layerNum: number]: [PIXI.filters.ColorMatrixFilter] };
 }
@@ -36,6 +38,7 @@ export function levelPopulate(level: Level) {
     var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
 
+    level.frame = 0;
     level.currentFogFilters = {};
 }
 
@@ -95,6 +98,11 @@ export interface Slice {
     entities: Entity[];
 }
 
+export function sliceKey(b: Block, s: Slice) {
+    // meh whatever close enough
+    return `${b.x}_${b.y}_${s.x}_${s.y}_${s.tile_edge_count}_${s.props.length}`;
+}
+
 class Tile {
     constructor(public x: number, public y: number, public shapeIndex: number) { }
 
@@ -116,6 +124,7 @@ class Filth {
 }
 
 export type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
+export function propUid(p: Prop) { return p[0]; }
 export function propX(p: Prop) { return p[1]; }
 export function propY(p: Prop) { return p[2]; }
 export function propRotation(p: Prop) { return p[3]; }
@@ -134,6 +143,17 @@ export function entityName(e: Entity) { return e[1]; }
 export function entityX(e: Entity) { return e[2]; }
 export function entityY(e: Entity) { return e[3]; }
 export function entityProperties(e: Entity) { return e[9]; }
+
+export function getEntityOrAIPosition(level: Level, e: Entity) {
+    var ai = _.find(level.allEntities, e => entityName(e) === 'AI_controller' &&
+                                            entityProperties(e)['puppet_id'] === entityUid(e));
+    if (ai) {
+        var pos: string[] = entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+        return _.map(pos, p => parseInt(p, 10));
+    } else {
+        return [entityX(e), entityY(e)];
+    }
+}
 
 class TileShape {
     constructor(public top: TileEdge, public right: TileEdge, public bottom: TileEdge, public left: TileEdge) { }
