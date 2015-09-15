@@ -9,6 +9,9 @@
         "./**/*.ts"
     ],
     "files": [
+        "./bitstream.ts",
+        "./dustforce.ts",
+        "./httpx.ts",
         "./index.ts",
         "./js/coords.ts",
         "./js/dragscroll.ts",
@@ -18,6 +21,7 @@
         "./js/levelViewer.ts",
         "./js/model.ts",
         "./js/mousewheel.ts",
+        "./js/replay.ts",
         "./js/util.ts",
         "./js/wiamap.ts"
     ]

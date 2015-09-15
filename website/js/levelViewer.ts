@@ -1,7 +1,8 @@
 import { Point, Rectangle, Viewport } from './coords';
+import * as gfx from './gfx';
 import * as hud from './hud';
 import * as model from './model';
-import * as gfx from './gfx';
+import { ReplayUI } from './replay';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -69,7 +70,6 @@ class LevelDownloader {
             model.levelPopulate(level);
 
             setTimeout(() => {
-                hud.setLevelName(level.properties['level_name']);
                 createLevelViewer(level);
             }, 0);
         }, 0);
@@ -77,6 +77,8 @@ class LevelDownloader {
 }
 
 function createLevelViewer(level: model.Level) {
+    hud.setLevelName(level.properties['level_name']);
+
     var widget = new wiamap.Widget();
     var fogger = new FogMachine(widget, level);
 
@@ -87,6 +89,13 @@ function createLevelViewer(level: model.Level) {
     };
 
     populateLayers(widget, level);
+
+    if (level.properties['level_type'] === 0) {
+        var replayer = new ReplayUI(level, widget);
+        var m = /[#&]replay=(-?\d+)/.exec(location.hash);
+        if (m)
+            replayer.playReplay(parseInt(m[1], 10));
+    }
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);

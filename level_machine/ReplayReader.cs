@@ -18,8 +18,8 @@ namespace level_machine {
             var unk2 = s1.ReadByte();
             var unk3 = s1.ReadInt16();
             var uncompressedDataLen = s1.ReadInt32();
-            var unk4 = s1.ReadInt32();
-            var unk5 = s1.ReadByte();
+            var frames = s1.ReadInt32();
+            var character = s1.ReadByte();
             var level = Encoding.ASCII.GetString(s1.ReadBytes(s1.ReadByte()));
 
             s1.ReadInt16();  // skip two-byte zlib header
@@ -41,18 +41,18 @@ namespace level_machine {
                 }));
                 return new JObject {
                     {"entity_uid", entityUid},
-                    //{"unkA", unkA},
+//                    {"unkA", unkA},
                     {"corrections", corrections},
                 };
             }));
             return new JObject {
                 {"user", user},
                 {"level", level},
-                //{"unk1", unk1},
-                //{"unk2", unk2},
-                //{"unk3", unk3},
-                //{"unk4", unk4},
-                //{"unk5", unk5},
+//                {"unk1", unk1},
+//                {"unk2", unk2},
+//                {"unk3", unk3},
+                {"frames", frames},
+                {"character", character},
                 {"inputs", inputs},
                 {"sync", sync},
             };
