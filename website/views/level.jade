@@ -1,13 +1,13 @@
 doctype html
 meta(charset='utf-8')
-title Dustworld
+title Dustcourse
 meta(name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no')
 link(rel='icon' href='/favicon.png')
 link(rel='stylesheet', href='/static/index.css')
 
 .page-header
   div
-    .page-header-brand Dustworld
+    .page-header-brand Dustcourse
     .page-header-level Downloading level&hellip;
   .page-header-middle
   .page-header-btns.btn-group
@@ -16,11 +16,18 @@ canvas.level-canvas
     | Looks like your web browser is too outdated to use this site, sorry.
 
 .page-footer
-  | Dustforce was created by <a href="http://hitboxteam.com/" target="_blank">Hitbox Team</a>
-  | and their graphics are used <a href="http://dustforce.com/terms" target="_blank">with permission</a>.
+  | Dustforce was created by <a href="http://hitboxteam.com/" target="_blank">Hitbox Team</a>.
+  | Dustcourse was created by <a href="http://johnsoft.com/" target="_blank">John Simon</a>.
 
 script(src='//cdnjs.cloudflare.com/ajax/libs/lodash.js/3.10.0/lodash.min.js')
 script(src='//cdnjs.cloudflare.com/ajax/libs/pixi.js/3.0.7/pixi.min.js')
 script(src='/static/index.js')
 script.
-  Dustworld.initLevelViewer(!{JSON.stringify(levelName)});
+  Dustcourse.initLevelViewer(!{JSON.stringify(levelName)});
+
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');  
+  ga('create', 'UA-67526848-1', 'auto');
+  ga('send', 'pageview');

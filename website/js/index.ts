@@ -3,6 +3,6 @@
 
 import * as levelViewer from './levelViewer';
 
-(<any>window).Dustworld = {
+(<any>window).Dustcourse = {
     initLevelViewer: levelViewer.init,
 };

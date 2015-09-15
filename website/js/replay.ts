@@ -1,7 +1,7 @@
-import { Point, Rectangle } from './coords';
+import { Point, Rectangle, Viewport } from './coords';
+import * as gfx from './gfx';
 import * as hud from './hud';
 import * as model from './model';
-import * as sprites from './sprites';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
@@ -67,7 +67,7 @@ export class Replayer implements wiamap.Layer {
         this.frame = frame;
     }
 
-    public update(viewport: wiamap.Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
@@ -103,13 +103,10 @@ export class Replayer implements wiamap.Layer {
         var cameraCor = interpolateFrame(cameraEntity, this.frame);
         this.widget.viewport.position = new Point(cameraCor[1] / 10, cameraCor[2] / 10);
 
-        var texURL = sprites.spriteTextureURL('hud/head_1_0001');
-        var tex = sprites.getTexture(texURL, 250);
-        var sprite = new PIXI.Sprite(tex.texture);
-        sprite.position.x = playerCor[1] / 10;
-        sprite.position.y = playerCor[2] / 10 - 84;
-        sprite.scale.x = sprite.scale.y = 2.5;
-        this.stage.addChild(sprite);
+        var px = playerCor[1] / 10;
+        var py = playerCor[2] / 10;
+        var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
+        this.stage.addChild(util.createDustforceSprite(fc, px, py - 52, { scale: 2.5 }));
     }
 }
 

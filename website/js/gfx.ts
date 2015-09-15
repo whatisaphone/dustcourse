@@ -8,109 +8,136 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-export class TextureContainer {
-    public static IDLE = 0;
-    public static LOADING = 1;
-    public static LOADED = 2;
-    public static ERROR = 3;
+const IDLE = 0;
+const LOADING = 1;
+const LOADED = 2;
 
+export class FrameContainer {
     public state: number;
+    private imageLoaded: boolean;
+    private metadataXHR: XMLHttpRequest;
+    private metadataLoaded: boolean;
+    private metadata: FrameMetadata;
     public texture: PIXI.Texture;
-    public image: HTMLImageElement;
+    private image: HTMLImageElement;
+    public onloaded: () => void;
+    public frame: Frame;
 
-    constructor(public url: string, public priority: number) {
-        this.state = TextureContainer.IDLE;
+    constructor(private imageURL: string, private metadataURL: string, public priority: number) {
+        this.state = IDLE;
         this.image = document.createElement('img');
         this.texture = new PIXI.Texture(new PIXI.BaseTexture(this.image));
     }
 
     public load() {
-        this.state = TextureContainer.LOADING;
-        this.image.src = this.url;
-        this.texture.baseTexture.on('loaded', () => { this.imageLoaded(); });
-        this.texture.baseTexture.on('error', () => { this.imageLoaded(); });
+        this.state = LOADING;
+
+        this.image.src = this.imageURL;
+        this.texture.baseTexture.on('loaded', () => { this.onImageLoaded(); });
+        this.texture.baseTexture.on('error', () => { this.onImageLoaded(); });
+
+        if (this.metadataURL) {
+            this.metadataXHR = new XMLHttpRequest();
+            this.metadataXHR.onload = () => { this.onMetadataLoaded(); };
+            this.metadataXHR.onerror = () => { this.onMetadataLoaded(); };
+            this.metadataXHR.open('get', this.metadataURL);
+            this.metadataXHR.send();
+        }
     }
 
-    private imageLoaded() {
-        this.state = TextureContainer.LOADED;
+    private onImageLoaded() {
+        this.imageLoaded = true;
+        this.checkFullyLoaded();
+    }
+
+    private onMetadataLoaded() {
+        if (this.metadataXHR.status === 200)
+            this.metadata = JSON.parse(this.metadataXHR.response);
+        this.metadataLoaded = true;
+        this.checkFullyLoaded();
+    }
+
+    private checkFullyLoaded() {
+        if (!this.imageLoaded || (this.metadataURL && !this.metadataLoaded))
+            return;
+
+        var hitbox: Rectangle;
+        if (this.metadata) {
+            hitbox = Rectangle.ltrb(this.metadata.hitbox[1], this.metadata.hitbox[0],
+                                    this.metadata.hitbox[3], this.metadata.hitbox[2]);
+        } else if (this.image.complete) {
+            hitbox = new Rectangle(0, 0, this.image.naturalWidth, this.image.naturalHeight);
+        }
+
+        if (hitbox)
+            this.frame = new Frame(this.texture, hitbox);
+
+        this.state = LOADED;
+        this.onloaded && this.onloaded();
     }
 }
 
-class TextureManager {
-    private allTextures: { [url: string]: TextureContainer } = {};
+class FrameManager {
+    private allFrames: { [url: string]: FrameContainer } = {};
 
     constructor() { }
 
-    public getTexture(url: string, priority: number) {
-        var tex = this.allTextures[url];
-        if (tex)
-            return tex;
-        tex = new TextureContainer(url, priority);
-        this.allTextures[url] = tex;
+    public getFrame(imageURL: string, metadataURL: string, priority: number) {
+        var fc = this.allFrames[imageURL];
+        if (fc)
+            return fc;
+
+        fc = new FrameContainer(imageURL, metadataURL, priority);
+        this.allFrames[imageURL] = fc;
         this.fillLoadQueue();
-        return tex;
+        return fc;
     }
 
     private fillLoadQueue() {
-        var numLoading = _.filter(this.allTextures, t => t.state === TextureContainer.LOADING).length;
-        var unloaded = _.filter(this.allTextures, t => t.state === TextureContainer.IDLE);
-        unloaded = _.sortBy(unloaded, t => t.priority);
+        var numLoading = _.filter(this.allFrames, fc => fc.state === LOADING).length;
+        var unloaded = _.filter(this.allFrames, fc => fc.state === IDLE);
+        unloaded = _.sortBy(unloaded, fc => fc.priority);
         while (numLoading < 4 && unloaded.length) {
-            var tex = unloaded.pop();
-            tex.load();
-            tex.texture.baseTexture.on('loaded', () => { this.fillLoadQueue(); });
-            tex.texture.baseTexture.on('error', () => { this.fillLoadQueue(); });
+            var fc = unloaded.pop();
+            fc.load();
+            fc.onloaded = () => { this.fillLoadQueue(); };
             ++numLoading;
         }
     }
 }
 
-var textureManager = new TextureManager();
+var frameManager = new FrameManager();
 
-export function getTexture(url: string, priority: number) {
-    return textureManager.getTexture(url, priority);
+export function getFrame(name: string, priority: number) {
+    return frameManager.getFrame(frameImageURL(name), frameMetadataURL(name), priority);
 }
 
-export function spriteTextureURL(name: string) {
-    return '/static/sprites/' + name + '.png';
+export function getFrameFromRawImage(imageURL: string, priority: number) {
+    return frameManager.getFrame(imageURL, null, priority);
 }
 
-var loadedSprites: { [name: string]: Sprite } = {};
-
-export function loadSprite(name: string, priority: number) {
-    if (name in loadedSprites)
-        return loadedSprites[name];
-
-    loadedSprites[name] = null;  // so we don't send multiple requests for the same url
-
-    var texture = getTexture(spriteTextureURL(name), priority);
-
-    var xhr = new XMLHttpRequest();
-    xhr.onload = function () {
-        if (xhr.status !== 200)
-            return;  // TODO: better indication of error
-        var metadata: SpriteMetadata = JSON.parse(xhr.response);
-        var hitbox = Rectangle.ltrb(metadata.hitbox[1], metadata.hitbox[0], metadata.hitbox[3], metadata.hitbox[2]);
-        loadedSprites[name] = new Sprite(texture, hitbox);
-    };
-    xhr.open('get', '/static/sprites/' + name + '.json');
-    xhr.send();
+export function frameImageURL(name: string) {
+    return '/assets/sprites/' + name + '.png';
 }
 
-export class Sprite {
-    constructor(public texture: TextureContainer, public hitbox: Rectangle) { }
+export function frameMetadataURL(name: string) {
+    return '/assets/sprites/' + name + '.json';
 }
 
-interface SpriteMetadata {
+export class Frame {
+    constructor(public texture: PIXI.Texture, public hitbox: Rectangle) { }
+}
+
+interface FrameMetadata {
     hitbox: [number, number, number, number];
 }
 
 export class SpriteAnim {
-	constructor(public urlPrefix: string, public frameCount: number, public frameDuration60: number) { }
+	constructor(public namePrefix: string, public frameCount: number, public frameDuration60: number) { }
 
-    public pathForFrame(frame: number) {
+    public frameName(frame: number) {
         var spriteFrame = Math.floor(frame / this.frameDuration60) % this.frameCount + 1;
-        return this.urlPrefix + spriteFrame + '_0001';
+        return this.namePrefix + spriteFrame + '_0001';
     }
 }
 
@@ -141,7 +168,7 @@ var props: { [key: string]: SpriteAnim } = _.object([
     new SpriteAnim('area/nexus/props/npc_4_', 10, 6),
     new SpriteAnim('area/nexus/props/npc_5_', 12, 6),
     new SpriteAnim('area/tutorial/props/npc_1_', 17, 6),
-].map(a => [a.urlPrefix, a]));
+].map(a => [a.namePrefix, a]));
 
 export function propAnim(set: number, group: number, index: number, palette: number) {
     var isBackdrop = propGroups[group] === 'backdrops' && spriteSets[set] !== 'mansion';

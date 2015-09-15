@@ -1,5 +1,23 @@
+import { Rectangle } from './coords';
 import * as model from './model';
-import { Sprite } from './sprites';
+import { Frame, FrameContainer } from './gfx';
+
+export function lerp(x1: number, x2: number, p: number) {
+    return x1 + (x2 - x1) * p;
+}
+
+export function lerpRGB(rgb1: number, rgb2: number, p: number) {
+    var r1 = (rgb1 & 0xff0000) >> 16;
+    var g1 = (rgb1 & 0xff00) >> 8;
+    var b1 = rgb1 & 0xff;
+    var r2 = (rgb2 & 0xff0000) >> 16;
+    var g2 = (rgb2 & 0xff00) >> 8;
+    var b2 = rgb2 & 0xff;
+    var r = r1 + (r2 - r1) * p;
+    var g = g1 + (g2 - g1) * p;
+    var b = b1 + (b2 - b1) * p;
+    return (r << 16) + (g << 8) + (b | 0);
+}
 
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
@@ -19,8 +37,8 @@ export function convertIntToCSSRGB(color: number) {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
-export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, options?: DustforceSpriteOptions) {
-    var s = new DustforceSprite(sprite);
+export function addDustforceSprite(stage: PIXI.Container, fc: FrameContainer, options?: DustforceSpriteOptions) {
+    var s = new DustforceSprite(fc);
     s.position.x = options ? (options.posX || 0) : 0;
     s.position.y = options ? (options.posY || 0) : 0;
     s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
@@ -28,6 +46,17 @@ export function addDustforceSprite(stage: PIXI.Container, sprite: Sprite, option
     s.rotation = options ? (options.rotation || 0) : 0;
     s.alpha = options ? (options.alpha || 1) : 1;
     stage.addChild(s);
+    return s;
+}
+
+export function createDustforceSprite(fc: FrameContainer, x: number, y: number, options?: DustforceSpriteOptions) {
+    var s = new DustforceSprite(fc);
+    s.position.x = x;
+    s.position.y = y;
+    s.scale.x = options ? (options.scaleX || options.scale || 1) : 1;
+    s.scale.y = options ? (options.scaleY || options.scale || 1) : 1;
+    s.rotation = options ? (options.rotation || 0) : 0;
+    s.alpha = options ? (options.alpha || 1) : 1;
     return s;
 }
 
@@ -86,13 +115,24 @@ export class ViewportParticleContainer extends PIXI.ParticleContainer {
 }
 
 export class DustforceSprite extends PIXI.Sprite {
-    constructor(private sprite: Sprite) {
-        super(sprite.texture.texture);
+    constructor(private fc?: FrameContainer) {
+        super(fc && fc.frame && fc.frame.texture);
+    }
+
+    public setFrame(fc: FrameContainer) {
+        this.fc = fc;
+        var texture = fc && fc.frame && fc.frame.texture || PIXI.Texture.EMPTY;
+        if (this.texture !== texture)
+            this.texture = texture;
     }
 
     public updateTransform() {
+        this.setFrame(this.fc);
+
+        var hitbox = this.fc && this.fc.frame && this.fc.frame.hitbox;
+
         this.worldTransform.identity()
-            .translate(this.sprite.hitbox.left, this.sprite.hitbox.top)
+            .translate(hitbox ? hitbox.left : 0, hitbox ? hitbox.top : 0)
             .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
             .translate(this.position.x, this.position.y)
@@ -101,28 +141,41 @@ export class DustforceSprite extends PIXI.Sprite {
         // copied from PIXI.DisplayObject.updateTransform
         this.worldAlpha = this.alpha * this.parent.worldAlpha;
         this._currentBounds = null;
+
+        for (var ci = 0, cl = this.children.length; ci < cl; ++ci)
+            this.children[ci].updateTransform();
     }
 }
 
 export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: number) {
-    var fog = level.currentFog;
-    if (!fog)
+    if (!level.currentFog)
         return;
 
+    var filter = level.currentFogFilters[layerNum];
+    if (!filter)
+        filter = level.currentFogFilters[layerNum] = [new PIXI.filters.ColorMatrixFilter()];
     // as you can see, this function doesn't play nice with other filters on the passed object. oh well.
-    var filter = obj.filters && <PIXI.filters.ColorMatrixFilter>obj.filters[0];
-    if (!filter) {
-        filter = new PIXI.filters.ColorMatrixFilter();
-        obj.filters = [filter];
-    }
+    if (!obj.filters)
+        obj.filters = filter;
 
-    var fogProps = model.entityProperties(fog);
-    var [r, g, b] = convertIntToRGB(fogProps['fog_colour'][layerNum]);
-    var p = fogProps['fog_per'][layerNum];
-    filter.matrix = [
-        1 - p, 0,     0,     r * p, 0,
-        0,     1 - p, 0,     g * p, 0,
-        0,     0,     1 - p, b * p, 0,
-        0,     0,     0,     1,     0,
-    ];
+    var [r, g, b] = convertIntToRGB(level.currentFog['fog_colour'][layerNum]);
+    var p = level.currentFog['fog_per'][layerNum];
+
+    var starFactor = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
+
+    // filter.matrix = [
+    //     1 - p, 0,     0,     r * p, 0,
+    //     0,     1 - p, 0,     g * p, 0,
+    //     0,     0,     1 - p, b * p, 0,
+    //     0,     0,     0,     1,     0,
+    // ];
+
+    // This is ugly, but it avoids allocs
+    var m = filter[0].matrix;
+    m[0] = 1 - p;
+    m[3] = r * p;
+    m[6] = 1 - p;
+    m[8] = g * p;
+    m[12] = (1 - p) * starFactor;
+    m[13] = b * p * starFactor;
 }

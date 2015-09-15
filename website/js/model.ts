@@ -14,12 +14,34 @@ export interface Level {
     blocks: Block[];
     prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
-    currentFog: Entity;
+    allFogTriggers: Entity[];
+
+    frame: number;
+    currentFog: Fog;
+    currentFogFilters: { [layerNum: number]: [PIXI.filters.ColorMatrixFilter] };
 }
 
 export function levelPopulate(level: Level) {
+    _.each(level.blocks, block => {
+        _.each(block.slices, slice => {
+            slice.tiles = _.object(_.map(slice.tiles, (l, n) => [n, l.map((t: any) => {
+                var d = atob(t[2]);
+                return new Tile(t[0], t[1], d.charCodeAt(0));
+            })]));
+            slice.filth = _.map(slice.filth, (f: any) => {
+                var d = atob(f[2]);
+                var tile = _.find(slice.tiles[19], t => t.x === f[0] && t.y === f[1]);
+                return new Filth(f[0], f[1], d.charCodeAt(0) | (d.charCodeAt(1) << 8), d.charCodeAt(10), tile.shapeIndex);
+            });
+        });
+    });
+
     var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
+    level.allFogTriggers = _.filter(level.allEntities, e => entityName(e) === 'fog_trigger');
+
+    level.frame = 0;
+    level.currentFogFilters = {};
 }
 
 export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: number) {
@@ -29,16 +51,24 @@ export function tileWorldRect(block: Block, slice: Slice, tileX: number, tileY: 
 }
 
 export function eachIntersectingSlice(level: Level, area: Rectangle, callback: (b: Block, s: Slice) => void) {
-    for (var bx = Math.floor(area.left / pixelsPerBlock); bx < Math.ceil(area.right() / pixelsPerBlock); ++bx) {
-        for (var by = Math.floor(area.top / pixelsPerBlock); by < Math.ceil(area.bottom() / pixelsPerBlock); ++by) {
-            _.each(_.filter(level.blocks, b => b.x === bx && b.y === by), block => {
-                var blockX = bx * pixelsPerBlock;
-                var blockY = by * pixelsPerBlock;
-                // TODO: prune to only intersecting slices
-                _.each(block.slices, s => { callback(block, s); });
-            });
-        }
-    }
+    var blockXStart = Math.floor(area.left / pixelsPerBlock);
+    var blockXEnd = Math.ceil(area.right() / pixelsPerBlock);
+    var blockYStart = Math.floor(area.top / pixelsPerBlock);
+    var blockYEnd = Math.ceil(area.bottom() / pixelsPerBlock);
+    _.each(level.blocks, block => {
+        if (!(block.x >= blockXStart && block.x < blockXEnd && block.y >= blockYStart && block.y < blockYEnd))
+            return;
+        var blockX = block.x * pixelsPerBlock;
+        var blockY = block.y * pixelsPerBlock;
+        var sliceXStart = Math.floor((area.left - block.x * pixelsPerBlock) / pixelsPerSlice);
+        var sliceXEnd = Math.ceil((area.right() - block.x * pixelsPerBlock) / pixelsPerSlice);
+        var sliceYStart = Math.floor((area.top - block.y * pixelsPerBlock) / pixelsPerSlice);
+        var sliceYEnd = Math.ceil((area.bottom() - block.y * pixelsPerBlock) / pixelsPerSlice);
+        _.each(block.slices, slice => {
+            if (slice.x >= sliceXStart && slice.x < sliceXEnd && slice.y >= sliceYStart && slice.y < sliceYEnd)
+                callback(block, slice);
+        });
+    });
 }
 
 export interface PrerenderLayer {
@@ -64,33 +94,39 @@ export interface Slice {
     filth_count: number;
     tile_edge_count: number;
     filth_blocks: number;
-    tiles: Tile[][];
+    tiles: { [layer: string]: Tile[] };
     filth: Filth[];
     props: Prop[];
     entities: Entity[];
 }
 
-type Tile = [number, number, string];
-export function tileX(t: Tile) { return t[0]; }
-export function tileY(t: Tile) { return t[1]; }
-export function tileShape(t: Tile) { var d = atob(t[2]); return tileShapes[d.charCodeAt(0)] || tileShapes[0x80]; }
+export function sliceKey(b: Block, s: Slice) {
+    // meh whatever close enough
+    return `${b.x}_${b.y}_${s.x}_${s.y}_${s.tile_edge_count}_${s.props.length}`;
+}
 
-type Filth = [number, number, string];
-export function filthX(f: Filth) { return f[0]; }
-export function filthY(f: Filth) { return f[1]; }
-export function filthEdges(f: Filth) { var d = atob(f[2]); return d.charCodeAt(0) | (d.charCodeAt(1) << 8); }
-export function filthCaps(f: Filth) { var d = atob(f[2]); return d.charCodeAt(10); }
+class Tile {
+    constructor(public x: number, public y: number, public shapeIndex: number) { }
 
-export function eachFilthEdge(filth: Filth, shape: TileShape, callback: (e: TileEdge, m: number, c: number) => void) {
-    var edges = filthEdges(filth);
-    var caps = filthCaps(filth);
-    if ((edges >> 0) & 0xf)  callback(shape.top,    (edges >> 0) & 0xf,  (caps >> 0) & 0x3);
-    if ((edges >> 4) & 0xf)  callback(shape.bottom, (edges >> 4) & 0xf,  (caps >> 2) & 0x3);
-    if ((edges >> 8) & 0xf)  callback(shape.left,   (edges >> 8) & 0xf,  (caps >> 4) & 0x3);
-    if ((edges >> 12) & 0xf) callback(shape.right,  (edges >> 12) & 0xf, (caps >> 6) & 0x3);
+    public shape() {
+        return tileShapes[this.shapeIndex] || tileShapes[0x80];
+    }
+}
+
+class Filth {
+    constructor(public x: number, public y: number, public edges: number, public caps: number, public shapeIndex: number) { }
+
+    public eachEdge(callback: (e: TileEdge, m: number, c: number) => void) {
+        var shape = tileShapes[this.shapeIndex] || tileShapes[0x80];
+        if ((this.edges >> 0) & 0xf)  callback(shape.top,    (this.edges >> 0) & 0xf,  (this.caps >> 0) & 0x3);
+        if ((this.edges >> 4) & 0xf)  callback(shape.bottom, (this.edges >> 4) & 0xf,  (this.caps >> 2) & 0x3);
+        if ((this.edges >> 8) & 0xf)  callback(shape.left,   (this.edges >> 8) & 0xf,  (this.caps >> 4) & 0x3);
+        if ((this.edges >> 12) & 0xf) callback(shape.right,  (this.edges >> 12) & 0xf, (this.caps >> 6) & 0x3);
+    }
 }
 
 export type Prop = [number, number, number, number, number, number, number, number, number, number, number, number];
+export function propUid(p: Prop) { return p[0]; }
 export function propX(p: Prop) { return p[1]; }
 export function propY(p: Prop) { return p[2]; }
 export function propRotation(p: Prop) { return p[3]; }
@@ -109,6 +145,28 @@ export function entityName(e: Entity) { return e[1]; }
 export function entityX(e: Entity) { return e[2]; }
 export function entityY(e: Entity) { return e[3]; }
 export function entityProperties(e: Entity) { return e[9]; }
+
+export function getEntityOrAIPosition(level: Level, e: Entity) {
+    var ai = _.find(level.allEntities, e => entityName(e) === 'AI_controller' &&
+                                            entityProperties(e)['puppet_id'] === entityUid(e));
+    if (ai) {
+        var pos: string[] = entityProperties(ai)['nodes'][0].split(/[,\s]+/);
+        return _.map(pos, p => parseInt(p, 10));
+    } else {
+        return [entityX(e), entityY(e)];
+    }
+}
+
+export interface Fog {
+    fog_colour: number[];
+    fog_per: number[];
+    fog_speed: number;
+    gradient: [number, number, number];
+    gradient_middle: number;
+    star_top: number;
+    star_middle: number;
+    star_bottom: number;
+}
 
 class TileShape {
     constructor(public top: TileEdge, public right: TileEdge, public bottom: TileEdge, public left: TileEdge) { }

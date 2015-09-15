@@ -1,6 +1,5 @@
-import { Point, Rectangle, Size } from './coords';
+import { Point, Rectangle, Size, Viewport } from './coords';
 import DragScroll from './dragscroll';
-import * as sprites from './sprites';
 
 export class Widget implements DragScroll.Callback {
     private renderer: PIXI.SystemRenderer;
@@ -15,7 +14,7 @@ export class Widget implements DragScroll.Callback {
         this.container = new PIXI.Container();
         this.layers = [];
         this.viewport = new Viewport(new Point(0, 0), new Size(0, 0), 1);
-        this.draw();
+        this.advanceFrame();
 
         this.scroll = new DragScroll(this);
         this.scroll.bindEvents(this.getElement());
@@ -30,22 +29,11 @@ export class Widget implements DragScroll.Callback {
     }
 
     public getViewport() {
-        return new Rectangle(this.viewport.position.x - this.viewport.size.width / this.viewport.zoom / 2,
-            this.viewport.position.y - this.viewport.size.height / this.viewport.zoom / 2,
-            this.viewport.size.width / this.viewport.zoom, this.viewport.size.height / this.viewport.zoom);
+        return this.viewport;
     }
 
-    public setViewport(viewport: Rectangle) {
-        var x = viewport.left + viewport.width / 2;
-        var y = viewport.top + viewport.height / 2;
-        var zoom = Math.min(2, this.viewport.size.width / viewport.width);
-        this.viewport = new Viewport(new Point(x, y), this.viewport.size, zoom);
-    }
-
-    public scrollRelative(x: number, y: number) {
-        var newX = this.viewport.position.x + x / this.viewport.zoom;
-        var newY = this.viewport.position.y + y / this.viewport.zoom;
-        this.viewport = new Viewport(new Point(newX, newY), this.viewport.size, this.viewport.zoom);
+    public setViewport(viewport: Viewport) {
+        this.viewport = viewport;
     }
 
     public addLayer(layer: Layer) {
@@ -57,7 +45,7 @@ export class Widget implements DragScroll.Callback {
         });
     }
 
-    private draw() {
+    public advanceFrame() {
         var screenSize = new Size(this.getElement().clientWidth, this.getElement().clientHeight);
         this.viewport = new Viewport(this.viewport.position, screenSize, this.viewport.zoom);
         this.renderer.resize(screenSize.width, screenSize.height);
@@ -67,41 +55,7 @@ export class Widget implements DragScroll.Callback {
             layer.update(this.viewport, screenRect, worldRect);
         });
         this.renderer.render(this.container);
-        requestAnimationFrame(() => { this.draw(); });
-    }
-}
-
-export class Viewport {
-    constructor(public position: Point, public size: Size, public zoom: number) { }
-
-    public screenRect() {
-        return new Rectangle(-this.size.width / 2, -this.size.height / 2, this.size.width, this.size.height);
-    }
-
-    public screenToWorldP(layer: Layer, screenP: Point) {
-        var tileScale = 1;
-        var x = screenP.x / this.zoom / tileScale + this.position.x * layer.def.parallax;
-        var y = screenP.y / this.zoom / tileScale + this.position.y * layer.def.parallax;
-        return new Point(x, y);
-    }
-
-    public worldToScreenP(layer: Layer, worldP: Point) {
-        var tileScale = 1;
-        var x = (worldP.x - this.position.x * layer.def.parallax) * this.zoom * tileScale;
-        var y = (worldP.y - this.position.y * layer.def.parallax) * this.zoom * tileScale;
-        return new Point(x, y);
-    }
-
-    public screenToWorldR(layer: Layer, screenR: Rectangle) {
-        var tileScale = 1;
-        var topLeft = this.screenToWorldP(layer, screenR.topLeft());
-        return new Rectangle(topLeft.x, topLeft.y, screenR.width / tileScale / this.zoom, screenR.height / tileScale / this.zoom);
-    }
-
-    public worldToScreenR(layer: Layer, worldR: Rectangle) {
-        var tileScale = 1;
-        var topLeft = this.worldToScreenP(layer, worldR.topLeft());
-        return new Rectangle(topLeft.x, topLeft.y, worldR.width * tileScale * this.zoom, worldR.height * tileScale * this.zoom);
+        requestAnimationFrame(() => { this.advanceFrame(); });
     }
 }
 

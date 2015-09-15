@@ -19,6 +19,8 @@ gulp.task('server', function () {
             .pipe(plumber())
             .pipe(typescript(tsProject))
             .pipe(gulp.dest('./build/website')),
+        gulp.src('./website/static/**/*')
+            .pipe(gulp.dest('build/website/static')),
         gulp.src('./website/views/**/*')
             .pipe(gulp.dest('build/website/views'))
     );
@@ -40,7 +42,7 @@ gulp.task('js', function () {
 gulp.task('css', function () {
     return gulp.src('./website/css/index.styl')
         .pipe(plumber())
-        .pipe(stylus({paths: ['vendor'], use: [nib()]}))
+        .pipe(stylus({paths: ['vendor'], use: [nib()], compress: !gulp.env.dev}))
         .pipe(gulp.dest('./build/website/static'));
 });
 
