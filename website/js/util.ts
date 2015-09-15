@@ -2,6 +2,23 @@ import { Rectangle } from './coords';
 import * as model from './model';
 import { Frame, FrameContainer } from './gfx';
 
+export function lerp(x1: number, x2: number, p: number) {
+    return x1 + (x2 - x1) * p;
+}
+
+export function lerpRGB(rgb1: number, rgb2: number, p: number) {
+    var r1 = (rgb1 & 0xff0000) >> 16;
+    var g1 = (rgb1 & 0xff00) >> 8;
+    var b1 = rgb1 & 0xff;
+    var r2 = (rgb2 & 0xff0000) >> 16;
+    var g2 = (rgb2 & 0xff00) >> 8;
+    var b2 = rgb2 & 0xff;
+    var r = r1 + (r2 - r1) * p;
+    var g = g1 + (g2 - g1) * p;
+    var b = b1 + (b2 - b1) * p;
+    return (r << 16) + (g << 8) + (b | 0);
+}
+
 export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
@@ -131,8 +148,7 @@ export class DustforceSprite extends PIXI.Sprite {
 }
 
 export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: number) {
-    var fog = level.currentFog;
-    if (!fog)
+    if (!level.currentFog)
         return;
 
     var filter = level.currentFogFilters[layerNum];
@@ -142,9 +158,8 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
     if (!obj.filters)
         obj.filters = filter;
 
-    var fogProps = model.entityProperties(fog);
-    var [r, g, b] = convertIntToRGB(fogProps['fog_colour'][layerNum]);
-    var p = fogProps['fog_per'][layerNum];
+    var [r, g, b] = convertIntToRGB(level.currentFog['fog_colour'][layerNum]);
+    var p = level.currentFog['fog_per'][layerNum];
 
     var starFactor = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
 

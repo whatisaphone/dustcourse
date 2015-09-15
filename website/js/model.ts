@@ -14,9 +14,10 @@ export interface Level {
     blocks: Block[];
     prerenders: { [layer: string]: PrerenderLayer };
     allEntities: Entity[];
+    allFogTriggers: Entity[];
 
     frame: number;
-    currentFog: Entity;
+    currentFog: Fog;
     currentFogFilters: { [layerNum: number]: [PIXI.filters.ColorMatrixFilter] };
 }
 
@@ -37,6 +38,7 @@ export function levelPopulate(level: Level) {
 
     var allSlices = <Slice[]>_.flatten<Slice>(_.map(level.blocks, b => b.slices), false);
     level.allEntities = <Entity[]>_.flatten<Entity>(_.map(allSlices, s => s.entities), false);
+    level.allFogTriggers = _.filter(level.allEntities, e => entityName(e) === 'fog_trigger');
 
     level.frame = 0;
     level.currentFogFilters = {};
@@ -153,6 +155,17 @@ export function getEntityOrAIPosition(level: Level, e: Entity) {
     } else {
         return [entityX(e), entityY(e)];
     }
+}
+
+export interface Fog {
+    fog_colour: number[];
+    fog_per: number[];
+    fog_speed: number;
+    gradient: [number, number, number];
+    gradient_middle: number;
+    star_top: number;
+    star_middle: number;
+    star_bottom: number;
 }
 
 class TileShape {

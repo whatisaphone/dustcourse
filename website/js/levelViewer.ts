@@ -77,13 +77,15 @@ class LevelDownloader {
 
 function createLevelViewer(level: model.Level) {
     var widget = new wiamap.Widget();
+    var fogger = new FogMachine(widget, level);
+
     widget.advanceFrame = () => {
         ++level.frame;
+        fogger.onFrame();
         wiamap.Widget.prototype.advanceFrame.call(widget);
     };
 
     populateLayers(widget, level);
-    var fogger = new FogMachine(widget, level);
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);
@@ -91,16 +93,14 @@ function createLevelViewer(level: model.Level) {
         widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
-function findClosestFogEntity(level: model.Level, x: number, y: number) {
-    var fogs = _.filter(level.allEntities, e => model.entityName(e) == 'fog_trigger');
-    var closestFog = _.min(fogs, e => util.distance(x, y, model.entityX(e), model.entityY(e)));
-    return <any>closestFog !== Infinity ? closestFog : null;
+function findClosestFog(level: model.Level, x: number, y: number): model.Fog {
+    var closestFog = _.min(level.allFogTriggers, e => util.distance(x, y, model.entityX(e), model.entityY(e)));
+    return <any>closestFog !== Infinity ? <any>model.entityProperties(closestFog) : null;
 }
 
 function makeBackgroundGradient(level: model.Level) {
     if (level.currentFog) {
-        var properties = model.entityProperties(level.currentFog);
-        return makeSkyGradient(properties['gradient'], properties['gradient_middle']);
+        return makeSkyGradient(level.currentFog['gradient'], level.currentFog['gradient_middle']);
     }
 
     return makeSkyGradient(level.properties['cp_background_colour'], level.properties['cp_background_middle']);
@@ -141,21 +141,78 @@ function dustforceLayerParams(layerNum: number): DustforceLayerParams {
 }
 
 class FogMachine {
+    private lastX: number;
+    private lastY: number;
+    private tweenFrom: model.Fog;
+    private tweenTo: model.Fog;
+    private tweenCurTime: number;
+    private tweenTotalTime: number;
+    private tweenFog: model.Fog = {
+        fog_colour: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        fog_per: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        fog_speed: 0,
+        gradient: [0, 0, 0],
+        gradient_middle: 0,
+        star_top: 0,
+        star_middle: 0,
+        star_bottom: 0,
+    };
+
     constructor(private widget: wiamap.Widget, private level: model.Level) {
         widget.getElement().addEventListener('mousemove', e => { this.handleMouseMove(e); })
 
-        var fog = findClosestFogEntity(level, level.properties['p1_x'], level.properties['p1_y']);
-        this.applyFog(fog);
+        this.lastX = level.properties['p1_x'];
+        this.lastY = level.properties['p1_y'];
+        this.tweenTo = findClosestFog(level, this.lastX, this.lastY);
+        this.applyFog(this.tweenTo);
     }
 
     private handleMouseMove(e: MouseEvent) {
         var v = this.widget.viewport;
         var s = v.screenRect();
         var p = v.screenToWorldP({ def: { parallax: 1 }}, new Point(s.left + e.pageX, s.top + e.pageY));
-        this.applyFog(findClosestFogEntity(this.level, p.x, p.y));
+        this.lastX = p.x;
+        this.lastY = p.y;
     }
 
-    private applyFog(fog: model.Entity) {
+    private tweening() {
+        return this.tweenCurTime < this.tweenTotalTime;
+    }
+
+    public onFrame() {
+        var closestFog = findClosestFog(this.level, this.lastX, this.lastY);
+        if (closestFog !== this.tweenTo) {
+            this.tweenFrom = this.tweening() ? _.clone(this.tweenFog, true) : this.tweenTo;
+            this.tweenTo = closestFog;
+            this.tweenCurTime = 0;
+            this.tweenTotalTime = this.tweenTo.fog_speed;
+        }
+        if (!this.tweening())
+            return;
+        this.tweenCurTime += 1 / 60;
+        if (this.tweening()) {
+            var pct = this.tweenCurTime / this.tweenTotalTime;
+            this.calcTween(this.tweenFrom, this.tweenTo, pct, this.tweenFog);
+            this.applyFog(this.tweenFog);
+        } else {
+            this.applyFog(this.tweenTo);
+        }
+    }
+
+    private calcTween(from: model.Fog, to: model.Fog, pct: number, dest: model.Fog) {
+        for (var i = 0; i <= 20; ++i)
+            dest.fog_colour[i] = util.lerpRGB(from.fog_colour[i], to.fog_colour[i], pct);
+        for (var i = 0; i <= 20; ++i)
+            dest.fog_per[i] = util.lerp(from.fog_per[i], to.fog_per[i], pct);
+        for (var i = 0; i < 3; ++i)
+            dest.gradient[i] = util.lerpRGB(from.gradient[i], to.gradient[i], pct);
+        dest.gradient_middle = util.lerp(from.gradient_middle, to.gradient_middle, pct);
+        dest.star_top = util.lerp(from.star_top, to.star_top, pct);
+        dest.star_middle = util.lerp(from.star_middle, to.star_middle, pct);
+        dest.star_bottom = util.lerp(from.star_bottom, to.star_bottom, pct);
+    }
+
+    private applyFog(fog: model.Fog) {
         this.level.currentFog = fog;
         var el = this.widget.getElement();
         el.style.background = makeBackgroundGradient(this.level);
@@ -624,7 +681,6 @@ class StarsLayer implements wiamap.Layer {
             this.stage.visible = false;
             return;
         }
-        var fog = model.entityProperties(this.level.currentFog);
 
         this.stage.alpha = Math.max(0, Math.min(1, (viewport.zoom - 0.2) * 3.5));
         if (this.stage.alpha <= 0) {
@@ -640,6 +696,7 @@ class StarsLayer implements wiamap.Layer {
 
         this.expandUniverse(worldRect);
 
+        var fog = this.level.currentFog;
         var topY = worldRect.top;
         var midY = worldRect.top + fog['gradient_middle'] * worldRect.height;
         var botY = worldRect.bottom();
