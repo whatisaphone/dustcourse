@@ -6,7 +6,8 @@ import * as util from './util';
 import * as wiamap from './wiamap';
 
 export function init(levelName: string) {
-    hud.addPageHeaderButton('Home').href = '/level/Main%20Nexus%20DX';
+    if (levelName !== 'Main Nexus DX')
+        hud.addPageHeaderButton('Nexus').href = '/level/Main%20Nexus%20DX';
 
     new LevelDownloader(levelName).download();
 }
