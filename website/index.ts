@@ -19,8 +19,9 @@ app.get('/level/:levelName', (req, res) => {
     res.render('level', { levelName: req.params.levelName });
 });
 
-app.use('/assets', express.static('assets'));
-app.use('/static', express.static('static'));
+app.use('/assets', express.static('assets', { maxAge: 1000 * 60 * 60 }));
+
+app.use('/static', express.static('static', { maxAge: 1000 * 60 * 60 }));
 
 var port: number = +process.env.PORT || 3000;
 
