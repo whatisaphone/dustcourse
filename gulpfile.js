@@ -19,6 +19,8 @@ gulp.task('server', function () {
             .pipe(plumber())
             .pipe(typescript(tsProject))
             .pipe(gulp.dest('./build/website')),
+        gulp.src('./website/static/**/*')
+            .pipe(gulp.dest('build/website/static')),
         gulp.src('./website/views/**/*')
             .pipe(gulp.dest('build/website/views'))
     );

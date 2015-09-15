@@ -606,19 +606,20 @@ class Particle {
 }
 
 class StarsLayer implements wiamap.Layer {
-    public def: wiamap.LayerDef;
-    public stage = new util.ViewportParticleContainer();
+    public def = { zindex: 4, parallax: 0.02 };
+    public stage = new util.ChunkContainer();
+    public starStages: util.ViewportParticleContainer[] = [];
     private universeBounds = new Rectangle(0, 0, 0, 0);
 
     constructor(private level: model.Level) {
-        this.def = { zindex: 4, parallax: 0.02 };
-        this.stage.blendMode = PIXI.BLEND_MODES.ADD;
+        _.each(_.range(0, 3), i => {
+            var s = new util.ViewportParticleContainer();
+            this.starStages.push(s);
+            this.stage.addChild(s);
+        });
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        // something is weird with the coordinates here, I have to figure that out before I can enable this
-        //return;
-
         if (!this.level.currentFog) {
             this.stage.visible = false;
             return;
@@ -632,15 +633,12 @@ class StarsLayer implements wiamap.Layer {
         }
 
         this.stage.visible = true;
-        this.stage.position.x = -worldRect.left - canvasRect.left;
-        this.stage.position.y = -worldRect.top - canvasRect.top;
+        this.stage.position.x = -worldRect.left;
+        this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
         util.applyFog(this.stage, this.level, 0);
 
         this.expandUniverse(worldRect);
-
-        // Yeah, yeah, I know stuff like this belongs in a shader. I don't
-        // feel like figuring that out right now
 
         var topY = worldRect.top;
         var midY = worldRect.top + fog['gradient_middle'] * worldRect.height;
@@ -649,23 +647,28 @@ class StarsLayer implements wiamap.Layer {
         var midA = fog['star_middle'];
         var botA = fog['star_bottom'];
 
-        for (var ci = 0, cl = this.stage.children.length; ci < cl; ++ci) {
-            var child = this.stage.children[ci];
-            if (child.position.y < midY) {
-                var pct = (child.position.y - topY) / (midY - topY);
-                var alpha = topA * (1 - pct) + midA * pct;
-            } else {
-                var pct = (child.position.y - midY) / (botY - midY);
-                var alpha = midA * (1 - pct) + botA * pct;
+        // Yeah, yeah, I know stuff like this belongs in a shader. I don't
+        // feel like figuring that out right now. This runs quick *enough*
+
+        for (var ssi = 0, ssl = this.starStages.length; ssi < ssl; ++ssi) {
+            var ss = this.starStages[ssi];
+            for (var ci = 0, cl = ss.children.length; ci < cl; ++ci) {
+                var child = ss.children[ci];
+                if (child.position.y < midY) {
+                    var pct = (child.position.y - topY) / (midY - topY);
+                    var alpha = topA * (1 - pct) + midA * pct;
+                } else {
+                    var pct = (child.position.y - midY) / (botY - midY);
+                    var alpha = midA * (1 - pct) + botA * pct;
+                }
+                alpha *= (ci % 9) / 8;  // add some "shimmer"
+                child.alpha = Math.max(0, Math.min(1, alpha));
             }
-            child.alpha = Math.max(0, Math.min(1, alpha));
         }
     }
 
     private expandUniverse(area: Rectangle) {
-        if (!this.level.currentFog)
-            return;
-        var galaxySize = 96;
+        var galaxySize = 192;
         var minX = Math.floor(area.left / galaxySize) * galaxySize;
         var minY = Math.floor(area.top / galaxySize) * galaxySize;
         var maxX = Math.floor(area.right() / galaxySize) * galaxySize;
@@ -674,17 +677,18 @@ class StarsLayer implements wiamap.Layer {
         for (var galaxyY = minY; galaxyY < maxY; galaxyY += galaxySize) {
             if (this.universeBounds.contains(new Point(galaxyX, galaxyY)))
                 continue;
-            for (var s = 0; s < 4; ++s) {
+            for (var s = 0; s < 36; ++s) {
                 var x = galaxyX + Math.random() * galaxySize;
                 var y = galaxyY + Math.random() * galaxySize;
 
-                var texURL = gfx.frameImageURL('effects/stars/star_' + Math.floor(Math.random() * 3 + 1) + '_0001');
+                var whichStar = Math.floor(Math.random() * 3);
+                var texURL = '/static/star' + (whichStar + 1) + '.png';
                 var tex = gfx.getFrameFromRawImage(texURL, this.def.zindex).texture;
                 var sprite = new PIXI.Sprite(tex);
                 sprite.position.x = x;
                 sprite.position.y = y;
-                sprite.scale.x = sprite.scale.y = 2;
-                this.stage.addChild(sprite);
+                // sprite.scale.x = sprite.scale.y = 1.5;
+                this.starStages[whichStar].addChild(sprite);
             }
         }
         this.universeBounds = Rectangle.ltrb(

@@ -30,3 +30,16 @@ To deploy the website:
 To update the game assets (several GB; best to do this overnight unless it's a tiny change):
 
     deploy/upload-assets.sh user@whatever.server.com
+
+### Various notes
+
+#### Stars
+
+It took a little finagling to get stars looking similar to how they do in the game. It's
+unimportant but also weird and fun so I may as well document it. The original stars are
+colored, at their brightest, approximately rgb(240, 240, 210), and blended in screen mode.
+PIXI's screen mode seems to give bad results, but luckily the stars are monochromatic
+(other than alpha, of course), so screen mode can be simulated using normal blending.
+First the original star sprites are edited and colorized to white (or, output levels set
+to range 255-255). Then, the stars are drawn normally, but with the blue channel shaded
+down to 210/240==7/8 strength. Bam, easy as it gets.

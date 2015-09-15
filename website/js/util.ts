@@ -146,6 +146,8 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
     var [r, g, b] = convertIntToRGB(fogProps['fog_colour'][layerNum]);
     var p = fogProps['fog_per'][layerNum];
 
+    var starFactor = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
+
     // filter.matrix = [
     //     1 - p, 0,     0,     r * p, 0,
     //     0,     1 - p, 0,     g * p, 0,
@@ -159,6 +161,6 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
     m[3] = r * p;
     m[6] = 1 - p;
     m[8] = g * p;
-    m[12] = 1 - p;
-    m[13] = b * p;
+    m[12] = (1 - p) * starFactor;
+    m[13] = b * p * starFactor;
 }
