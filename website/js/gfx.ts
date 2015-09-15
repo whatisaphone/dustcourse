@@ -185,6 +185,7 @@ var entities: { [key: string]: SpriteAnim } = {
     'enemy_book': new SpriteAnim('entities/mansion/book/airidle_', 6, 6),
     'enemy_butler': new SpriteAnim('entities/mansion/butler/walk_', 10, 6),
     'enemy_chest_scrolls': new SpriteAnim('entities/mansion/chest/idle_', 7, 6),
+    'enemy_chest_treasure': new SpriteAnim('entities/mansion/tchest/idle_', 7, 6),
     'enemy_critter': new SpriteAnim('entities/forest/critter/airidle_', 7, 6),
     'enemy_flag': new SpriteAnim('entities/mansion/flag/idle_', 8, 6),
     'enemy_gargoyle_big': new SpriteAnim('entities/mansion/bgargoyle/idle_', 10, 6),
