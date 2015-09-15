@@ -45,6 +45,9 @@ app.use('/assets', express.static('assets', { maxAge: 1000 * 60 * 60 }));
 
 app.use('/static', express.static('static', { maxAge: 1000 * 60 * 60 }));
 
+app.get('/favicon.ico', (req, res) => { res.sendFile(__dirname + '/static/favicon.ico', { maxAge: 1000 * 60 * 60 }); });
+app.get('/favicon.png', (req, res) => { res.sendFile(__dirname + '/static/favicon.png', { maxAge: 1000 * 60 * 60 }); });
+
 function genericError(res: express.Response, err: any) {
     console.log(err);
     res.status(500);

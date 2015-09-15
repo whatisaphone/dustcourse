@@ -236,4 +236,5 @@ FakesAssemblies/
 
 *.sublime-*
 /backstage/
+/other/
 /reversing/
