@@ -1,4 +1,5 @@
 import { Point, Rectangle, Size, Viewport } from './coords';
+import * as levelViewer from './levelViewer';
 import DragScroll from './dragscroll';
 
 export class Widget implements DragScroll.Callback {
@@ -7,6 +8,7 @@ export class Widget implements DragScroll.Callback {
     public viewport: Viewport;
     public layers: Layer[];
     private scroll: DragScroll;
+    public propsLayers: levelViewer.PropsLayer[];
 
     constructor() {
         var view = <HTMLCanvasElement>document.querySelector('canvas');

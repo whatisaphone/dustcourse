@@ -128,8 +128,9 @@ function populateLayers(widget: wiamap.Widget, level: model.Level) {
         widget.addLayer(new PrerenderedTileLayer(level, parseInt(layerID, 10), layer));
     });
 
-    _.each(_.range(1, 21), layerNum => {
-        widget.addLayer(new PropsLayer(level, layerNum));
+    widget.propsLayers = _.map(_.range(1, 21), layerNum => new PropsLayer(level, layerNum));
+    _.each(widget.propsLayers, layer => {
+        widget.addLayer(layer);
     });
 
     widget.addLayer(new StarsLayer(level));
@@ -280,12 +281,12 @@ class PrerenderedTileLayer extends wiamap.TileLayer {
     }
 }
 
-class PropsLayer implements wiamap.Layer {
+export class PropsLayer implements wiamap.Layer {
     public def: wiamap.LayerDef;
     public stage = new util.ChunkContainer();
     private sliceStages: { [sliceKey: string]: PIXI.Container } = {};
     private propSprites: { [uid: number]: util.DustforceSprite } = {};
-    private sliceEntities: { [sliceKey: string]: { [uid: number]: Entity } } = {};
+    public sliceEntities: { [sliceKey: string]: { [uid: number]: Entity } } = {};
     private frame = 0;
     private layerParams: DustforceLayerParams;
 
@@ -411,13 +412,14 @@ class PropsLayer implements wiamap.Layer {
     }
 }
 
-interface Entity {
+export interface Entity {
+    sprite: PIXI.DisplayObject;
     add(stage: PIXI.Container): void;
     update(): void;
 }
 
 class SimpleEntity implements Entity {
-    private sprite: util.DustforceSprite;
+    public sprite: util.DustforceSprite;
 
     constructor(private level: model.Level, private entity: model.Entity, private anim: gfx.SpriteAnim) { }
 
@@ -435,7 +437,7 @@ class SimpleEntity implements Entity {
 
 class LevelDoorEntity implements Entity {
     private fc: gfx.FrameContainer;
-    private sprite: PIXI.DisplayObject;
+    public sprite: PIXI.DisplayObject;
 
     constructor(private level: model.Level, private entity: model.Entity) { }
 

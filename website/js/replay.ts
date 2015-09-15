@@ -1,6 +1,7 @@
 import { Point, Rectangle, Viewport } from './coords';
 import * as gfx from './gfx';
 import * as hud from './hud';
+import * as levelViewer from './levelViewer';
 import * as model from './model';
 import * as util from './util';
 import * as wiamap from './wiamap';
@@ -111,26 +112,41 @@ export class Replayer implements wiamap.Layer {
     }
 
     private processReplay(replay: Replay) {
-        var playerEntity = _.find(replay.sync, s => s.entity_uid === 2);
-        var cameraEntity = _.find(replay.sync, s => s.entity_uid === 3);
-        var playerCor = interpolateFrame(playerEntity, this.frame);
-        if (!playerCor)
-            return;
-        var cameraCor = interpolateFrame(cameraEntity, this.frame);
-        this.widget.viewport.position = new Point(cameraCor[1] / 10, cameraCor[2] / 10);
-
-        var px = playerCor[1] / 10;
-        var py = playerCor[2] / 10;
-        var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
-        this.stage.addChild(util.createDustforceSprite(fc, px - 24, py - 52, { scale: 2.5 }));
+        _.each(replay.sync, sync => {
+            var corr = interpolateFrame(sync, this.frame);
+            if (corr && sync.entity_uid === 2) {
+                var px = corr[1] / 10;
+                var py = corr[2] / 10;
+                var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
+                this.stage.addChild(util.createDustforceSprite(fc, px - 24, py - 52, { scale: 2.5 }));
+            } else if (corr && sync.entity_uid === 3) {
+                this.widget.viewport.position = new Point(corr[1] / 10, corr[2] / 10);
+            } else {
+                var entity: levelViewer.Entity;
+                _.each(this.widget.propsLayers[18 - 1].sliceEntities, slen => {
+                    if (!entity)
+                        entity = slen[sync.entity_uid];
+                });
+                if (entity) {
+                    if (corr) {
+                        entity.sprite.position.x = corr[1] / 10;
+                        entity.sprite.position.y = corr[2] / 10;
+                    } else {
+                        entity.sprite.visible = false;
+                    }
+                }
+            }
+        });
     }
 }
 
 function interpolateFrame(entity: ReplayEntity, frame: number) {
     var index = _.sortedIndex(entity.corrections, [frame], c => c[0]);
+    if (index === 0)
+        return entity.corrections[0];
     var b = entity.corrections[index];
     if (!b)
-        return entity.corrections[entity.corrections.length - 1];
+        return null;
     if (b[0] === frame)
         return b;
     var a = entity.corrections[index - 1];
