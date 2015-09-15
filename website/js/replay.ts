@@ -23,7 +23,7 @@ export class ReplayUI {
     private replayer: Replayer;
 
     constructor(private level: model.Level, widget: wiamap.Widget) {
-        this.replayer = new Replayer(widget);
+        this.replayer = new Replayer(widget, level);
         widget.addLayer(this.replayer);
         // hud.addPageHeaderButton('Replays').onclick = () => { this.headerButtonClicked(); };
     }
@@ -64,7 +64,7 @@ export class Replayer implements wiamap.Layer {
     private frame = 0;
     private state = STATE_STOPPED;
 
-    constructor(private widget: wiamap.Widget) {
+    constructor(private widget: wiamap.Widget, private level: model.Level) {
         widget.addLayer(this);
     }
 
@@ -86,6 +86,7 @@ export class Replayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
+        util.applyFog(this.stage, this.level, 19);
 
         if (this.state !== STATE_PLAYING)
             return;
