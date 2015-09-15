@@ -90,8 +90,12 @@ function createLevelViewer(level: model.Level) {
 
     populateLayers(widget, level);
 
-    if (level.properties['level_type'] === 0)
-        new ReplayUI(level, widget);
+    if (level.properties['level_type'] === 0) {
+        var replayer = new ReplayUI(level, widget);
+        var m = /[#&]replay=(-?\d+)/.exec(location.hash);
+        if (m)
+            replayer.playReplay(parseInt(m[1], 10));
+    }
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
         widget.scrollTo(1182.91, -1200, 0.5);
