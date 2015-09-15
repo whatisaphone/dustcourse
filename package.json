@@ -9,7 +9,8 @@
     "bluebird": "^2.9.33",
     "express": "^4.13.3",
     "jade": "^1.11.0",
-    "lodash": "^3.10.1"
+    "lodash": "^3.10.1",
+    "pm2": "^0.14.7"
   },
   "devDependencies": {
     "browserify": "^11.0.1",
