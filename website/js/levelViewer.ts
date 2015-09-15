@@ -84,7 +84,7 @@ function createLevelViewer(level: model.Level) {
 
     widget.advanceFrame = () => {
         ++level.frame;
-        fogger.onFrame();
+        fogger.everyFrame();
         wiamap.Widget.prototype.advanceFrame.call(widget);
     };
 
@@ -103,9 +103,9 @@ function createLevelViewer(level: model.Level) {
         widget.scrollTo(level.properties['p1_x'], level.properties['p1_y'], 0.5);
 }
 
-function findClosestFog(level: model.Level, x: number, y: number): model.Fog {
+function findClosestFog(level: model.Level, x: number, y: number) {
     var closestFog = _.min(level.allFogTriggers, e => util.distance(x, y, model.entityX(e), model.entityY(e)));
-    return <any>closestFog !== Infinity ? <any>model.entityProperties(closestFog) : null;
+    return <any>closestFog !== Infinity ? closestFog : null;
 }
 
 function makeBackgroundGradient(level: model.Level) {
@@ -151,8 +151,6 @@ function dustforceLayerParams(layerNum: number): DustforceLayerParams {
 }
 
 class FogMachine {
-    private lastX: number;
-    private lastY: number;
     private tweenFrom: model.Fog;
     private tweenTo: model.Fog;
     private tweenCurTime: number;
@@ -166,46 +164,51 @@ class FogMachine {
         star_top: 0,
         star_middle: 0,
         star_bottom: 0,
+        width: 0,
     };
 
     constructor(private widget: wiamap.Widget, private level: model.Level) {
-        widget.getElement().addEventListener('mousemove', e => { this.handleMouseMove(e); })
-
-        this.lastX = level.properties['p1_x'];
-        this.lastY = level.properties['p1_y'];
-        this.tweenTo = findClosestFog(level, this.lastX, this.lastY);
-        this.applyFog(this.tweenTo);
-    }
-
-    private handleMouseMove(e: MouseEvent) {
-        var v = this.widget.viewport;
-        var s = v.screenRect();
-        var p = v.screenToWorldP({ def: { parallax: 1 }}, new Point(s.left + e.pageX, s.top + e.pageY));
-        this.lastX = p.x;
-        this.lastY = p.y;
+        var fog = findClosestFog(level, level.properties['p1_x'], level.properties['p1_y']);
+        this.tweenTo = fog && <any>model.entityProperties(fog);
+        this.drawFog(this.tweenTo);
     }
 
     private tweening() {
-        return this.tweenCurTime < this.tweenTotalTime;
+        return this.tweenCurTime <= this.tweenTotalTime;
     }
 
-    public onFrame() {
-        var closestFog = findClosestFog(this.level, this.lastX, this.lastY);
-        if (closestFog !== this.tweenTo) {
-            this.tweenFrom = this.tweening() ? _.clone(this.tweenFog, true) : this.tweenTo;
-            this.tweenTo = closestFog;
-            this.tweenCurTime = 0;
-            this.tweenTotalTime = this.tweenTo.fog_speed;
+    public everyFrame() {
+        var v = this.widget.viewport;
+        var s = v.screenRect();
+        var screenCenter = v.screenToWorldP({ def: { parallax: 1 }}, new Point(s.left + s.width / 2, s.top + s.height / 2));
+        var fog = findClosestFog(this.level, screenCenter.x, screenCenter.y);
+        if (fog) {
+            var fogX = model.entityX(fog);
+            var fogY = model.entityY(fog);
+            var fogProps: model.Fog = <any>model.entityProperties(fog);
+            var distance = util.distance(screenCenter.x, screenCenter.y, fogX, fogY);
+            if (distance < 384 / v.zoom + fogProps.width)
+                this.setNextFog(fogProps);
         }
-        if (!this.tweening())
-            return;
-        this.tweenCurTime += 1 / 60;
+
         if (this.tweening()) {
-            var pct = this.tweenCurTime / this.tweenTotalTime;
-            this.calcTween(this.tweenFrom, this.tweenTo, pct, this.tweenFog);
-            this.applyFog(this.tweenFog);
-        } else {
-            this.applyFog(this.tweenTo);
+            this.tweenCurTime += 1 / 60;
+            if (this.tweening()) {
+                var pct = this.tweenCurTime / this.tweenTotalTime;
+                this.calcTween(this.tweenFrom, this.tweenTo, pct, this.tweenFog);
+                this.drawFog(this.tweenFog);
+            } else {
+                this.drawFog(this.tweenTo);
+            }
+        }
+    }
+
+    private setNextFog(fog: model.Fog) {
+        if (fog !== this.tweenTo) {
+            this.tweenFrom = this.tweening() ? _.clone(this.tweenFog, true) : this.tweenTo;
+            this.tweenTo = fog;
+            this.tweenCurTime = 0;
+            this.tweenTotalTime = fog.fog_speed;
         }
     }
 
@@ -222,7 +225,7 @@ class FogMachine {
         dest.star_bottom = util.lerp(from.star_bottom, to.star_bottom, pct);
     }
 
-    private applyFog(fog: model.Fog) {
+    private drawFog(fog: model.Fog) {
         this.level.currentFog = fog;
         var el = this.widget.getElement();
         el.style.background = makeBackgroundGradient(this.level);

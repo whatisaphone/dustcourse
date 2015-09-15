@@ -166,6 +166,7 @@ export interface Fog {
     star_top: number;
     star_middle: number;
     star_bottom: number;
+    width: number;
 }
 
 class TileShape {
