@@ -9,6 +9,9 @@
         "./**/*.ts"
     ],
     "files": [
+        "./bitstream.ts",
+        "./dustforce.ts",
+        "./httpx.ts",
         "./index.ts",
         "./js/coords.ts",
         "./js/dragscroll.ts",
