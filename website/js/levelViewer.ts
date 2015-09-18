@@ -45,15 +45,17 @@ class LevelDownloader {
             return;
         }
 
-        this.overlay.style.opacity = '0';
+        this.overlay.style.opacity = '0';  // CSS fade out transition
         setTimeout(() => { this.overlay.parentNode.removeChild(this.overlay); }, 2000);
 
+        // stagger these out of an abundance of caution to avoid frame skips
         setTimeout(() => {
             var level = JSON.parse(this.xhr.response);
-            model.levelPopulate(level);
-
             setTimeout(() => {
-                createLevelViewer(level);
+                model.levelPopulate(level);
+                setTimeout(() => {
+                    createLevelViewer(level);
+                }, 0);
             }, 0);
         }, 0);
     }
