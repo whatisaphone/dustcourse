@@ -22,38 +22,22 @@ class LevelDownloader {
     public download() {
         this.overlay = document.createElement('div');
         this.overlay.className = 'opaque-overlay';
-        (<any>this.overlay).innerHTML = '<div class="progress" style="width:60%">' +
-            '<div class="progress-bar progress-bar-striped active">' +
-        '</div>';
         document.body.appendChild(this.overlay);
 
         this.xhr = new XMLHttpRequest();
         this.xhr.open('get', '/assets/levels/' + this.levelName + '/manifest.json');
         this.xhr.send();
-        this.xhr.onprogress = e => { this.progress(e); };
         this.xhr.onload = () => { this.loaded(); };
         this.xhr.onerror = () => { this.error(); };
     }
 
-    private progress(event: ProgressEvent) {
-        if (event.lengthComputable)
-            this.setProgress(event.loaded / event.total);
-    }
-
-    private setProgress(progress: number) {
-        var progressBar = <HTMLElement>this.overlay.querySelector('.progress-bar');
-        progressBar.style.width = (progress * 100) + '%';
-    }
-
     private error() {
         hud.setLevelName('There was an error downloading "' + this.levelName + '".');
-        this.setProgress(0);
     }
 
     private loaded() {
         if (this.xhr.status === 404) {
             hud.setLevelName('The level "' + this.levelName + '" was not found on the server.');
-            this.setProgress(0);
             return;
         }
         if (this.xhr.status !== 200) {
@@ -61,7 +45,6 @@ class LevelDownloader {
             return;
         }
 
-        this.setProgress(1);
         this.overlay.style.opacity = '0';
         setTimeout(() => { this.overlay.parentNode.removeChild(this.overlay); }, 2000);
 
