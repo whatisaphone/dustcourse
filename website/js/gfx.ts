@@ -78,30 +78,31 @@ export class FrameContainer {
 }
 
 class FrameManager {
-    private allFrames: { [url: string]: FrameContainer } = {};
+    private all: { [url: string]: FrameContainer } = {};
+    private loading = 0;
+    private unloaded: FrameContainer[] = [];
 
     constructor() { }
 
     public getFrame(imageURL: string, metadataURL: string, priority: number) {
-        var fc = this.allFrames[imageURL];
+        var fc = this.all[imageURL];
         if (fc)
             return fc;
 
         fc = new FrameContainer(imageURL, metadataURL, priority);
-        this.allFrames[imageURL] = fc;
+        this.all[imageURL] = fc;
+        var uidx = _.sortedIndex(this.unloaded, fc, fc => fc.priority);
+        this.unloaded.splice(uidx, 0, fc);
         this.fillLoadQueue();
         return fc;
     }
 
     private fillLoadQueue() {
-        var numLoading = _.filter(this.allFrames, fc => fc.state === LOADING).length;
-        var unloaded = _.filter(this.allFrames, fc => fc.state === IDLE);
-        unloaded = _.sortBy(unloaded, fc => fc.priority);
-        while (numLoading < 4 && unloaded.length) {
-            var fc = unloaded.pop();
+        while (this.loading < 4 && this.unloaded.length) {
+            var fc = this.unloaded.pop();
             fc.load();
-            fc.onloaded = () => { this.fillLoadQueue(); };
-            ++numLoading;
+            ++this.loading;
+            fc.onloaded = () => { --this.loading; this.fillLoadQueue(); };
         }
     }
 }
