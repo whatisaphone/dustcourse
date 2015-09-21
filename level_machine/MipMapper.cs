@@ -127,7 +127,7 @@ namespace level_machine {
                                 continue;
 
                             var path = Path.Combine(App.LevelAssetsOutputPath, name,
-                                string.Format("{0}_{1}_{2},{3}.png", bucket.Key, zoom, x, y));
+                                string.Format("{0}_{1}_{2},{3}.png", zoom, bucket.Key, x, y));
                             using (var file = File.Open(path, FileMode.Create, FileAccess.Write)) {
                                 image.Save(file, ImageFormat.Png);
                             }
