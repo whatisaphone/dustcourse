@@ -107,8 +107,8 @@ export class TileLayer implements Layer {
         var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
         var screenRect = viewport.worldToScreenR(this, worldRect);
         var sprite = new PIXI.Sprite(tile.texture);
-        sprite.position.x = Math.floor(screenRect.left - canvasRect.left);
-        sprite.position.y = Math.floor(screenRect.top - canvasRect.top);
+        sprite.position.x = screenRect.left - canvasRect.left;
+        sprite.position.y = screenRect.top - canvasRect.top;
         sprite.scale.x = sprite.scale.y = viewport.zoom / scale.scale;
         this.stage.addChild(sprite);
     }
