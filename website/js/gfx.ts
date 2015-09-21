@@ -23,7 +23,7 @@ export class FrameContainer {
     public onloaded: () => void;
     public frame: Frame;
 
-    constructor(private imageURL: string, private metadataURL: string, public priority: number) {
+    constructor(private imageURL: string, public metadataURL: string, public priority: number) {
         this.state = IDLE;
         this.image = document.createElement('img');
         this.texture = new PIXI.Texture(new PIXI.BaseTexture(this.image));
@@ -98,11 +98,17 @@ class FrameManager {
     }
 
     private fillLoadQueue() {
-        while (this.loading < 4 && this.unloaded.length) {
+        while (this.loading < 8 && this.unloaded.length) {
             var fc = this.unloaded.pop();
+            var fcNumDownloads = 1 + (fc.metadataURL ? 1 : 0);
+
             fc.load();
-            ++this.loading;
-            fc.onloaded = () => { --this.loading; this.fillLoadQueue(); };
+            this.loading += fcNumDownloads;
+
+            fc.onloaded = () => {
+                this.loading -= fcNumDownloads;
+                this.fillLoadQueue();
+            };
         }
     }
 }
