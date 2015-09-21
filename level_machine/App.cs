@@ -11,9 +11,9 @@ namespace level_machine {
         public const int TilesPerSlice = 16;
         public const int SlicesPerBlock = 16;
         public const int PixelsPerSlice = PixelsPerTile * TilesPerSlice;
-        public const string SpritesPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\assets\\sprites";
-        public const string IntermediatePath = "T:\\Dev\\Projects\\Dustworld\\build\\intermediate";
-        public const string LevelAssetsOutputPath = "T:\\Dev\\Projects\\Dustworld\\build\\website\\assets\\levels";
+        public const string SpritesPath = "T:\\Dev\\Projects\\Dustcourse\\build\\website\\assets\\sprites";
+        public const string IntermediatePath = "C:\\Users\\John\\AppData\\Local\\Temp\\DustcourseLevelInt";
+        public const string LevelAssetsOutputPath = "T:\\Dev\\Projects\\Dustcourse\\build\\website\\assets\\levels";
 
         private static void Main(string[] args) {
             var command = args.Length > 0 ? args[0] : "<not-given>";
