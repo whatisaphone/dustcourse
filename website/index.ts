@@ -10,7 +10,7 @@ import * as dustforce from './dustforce';
 import * as httpx from './httpx';
 
 var app = express();
-app.set('views', './views')
+app.set('views', __dirname + '/views')
 app.set('view engine', 'jade');
 
 app.get('/', (req, res) => {
@@ -41,9 +41,9 @@ app.get('/replay/:replayId', (req, res) => {
         .catch(err => { genericError(res, err); });
 });
 
-app.use('/assets', express.static('assets', { maxAge: 1000 * 60 * 60 }));
+app.use('/assets', express.static(__dirname + '/assets', { maxAge: 1000 * 60 * 60 }));
 
-app.use('/static', express.static('static', { maxAge: 1000 * 60 * 60 }));
+app.use('/static', express.static(__dirname + '/static', { maxAge: 1000 * 60 * 60 }));
 
 app.get('/favicon.ico', (req, res) => { res.sendFile(__dirname + '/static/favicon.ico', { maxAge: 1000 * 60 * 60 }); });
 app.get('/favicon.png', (req, res) => { res.sendFile(__dirname + '/static/favicon.png', { maxAge: 1000 * 60 * 60 }); });
