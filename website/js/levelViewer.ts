@@ -222,16 +222,18 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
     public zindex: number;
     public parallax: number;
     public scales: PrerenderedTileScale[];
+    public textureScale: number;
 
     constructor(private level: model.Level, private layerNum: number, layer: model.PrerenderLayer) {
         var layerParams = dustforceLayerParams(layerNum);
         this.zindex = layerNum * 10 + 3;
         this.parallax = layerParams.parallax;
+        this.textureScale = layerParams.scale;
         this.scales = _.map(layer.scales, s =>
             new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
     }
 
-    public getTile(scale: PrerenderedTileScale, x: number, y: number): wiamap.Tile {
+    public getTile(scale: PrerenderedTileScale, x: number, y: number) {
         var realX = Math.round(x / scale.layerScale);
         var realY = Math.round(y / scale.layerScale);
         if (!_.find(scale.tiles, t => t[0] === realX && t[1] === realY))
@@ -240,7 +242,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
         var imageURL = '/assets/levels/' + this.level.path
             + '/' + scale.scale + '_' + this.layerNum + '_' + realX + ',' + realY + '.png';
         var fc = gfx.getFrameFromRawImage(imageURL, this.zindex);
-        return { texture: fc.texture };
+        return fc.texture;
     }
 }
 
