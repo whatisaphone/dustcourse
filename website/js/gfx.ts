@@ -1,4 +1,5 @@
 import { Rectangle } from './coords';
+import * as util from './util';
 
 const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];
 const propGroups = [
@@ -86,19 +87,25 @@ class FrameManager {
 
     public getFrame(imageURL: string, metadataURL: string, priority: number) {
         var fc = this.all[imageURL];
-        if (fc)
+        if (fc) {
+            if (fc.state === IDLE) {
+                // Prioritize downloading the most recently requested frames
+                var uidx = (<any>_).sortedLastIndex(this.unloaded, fc, (fc: FrameContainer) => fc.priority);
+                util.moveArrayElement(this.unloaded, fc, uidx);
+            }
             return fc;
+        }
 
         fc = new FrameContainer(imageURL, metadataURL, priority);
         this.all[imageURL] = fc;
-        var uidx = _.sortedIndex(this.unloaded, fc, fc => fc.priority);
+        var uidx = (<any>_).sortedLastIndex(this.unloaded, fc, (fc: FrameContainer) => fc.priority);
         this.unloaded.splice(uidx, 0, fc);
         this.fillLoadQueue();
         return fc;
     }
 
     private fillLoadQueue() {
-        while (this.loading < 8 && this.unloaded.length) {
+        while (this.loading < 4 && this.unloaded.length) {
             var fc = this.unloaded.pop();
             var fcNumDownloads = 1 + (fc.metadataURL ? 1 : 0);
 

@@ -23,6 +23,15 @@ export function distance(x1: number, y1: number, x2: number, y2: number) {
     return Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
 }
 
+export function moveArrayElement<T>(array: T[], element: T, newIndex: number) {
+    if (array[newIndex] === element)
+        return;
+    var oldIndex = _.indexOf(array, element);
+    if (oldIndex !== -1)
+        array.splice(oldIndex, 1);
+    array.splice(newIndex - <any>(newIndex > oldIndex), 0, element);
+}
+
 export function convertIntToRGB(color: number) {
     var r = (color & 0xff0000) >> 16;
     var g = (color & 0xff00) >> 8;
