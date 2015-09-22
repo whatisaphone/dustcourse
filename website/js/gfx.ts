@@ -9,7 +9,7 @@ const propGroups = [
     'npc', 'symbol', 'cars', 'sidewalk', 'machinery'
 ];
 
-const IDLE = 0;
+const UNLOADED = 0;
 const LOADING = 1;
 const LOADED = 2;
 
@@ -25,7 +25,7 @@ export class FrameContainer {
     public frame: Frame;
 
     constructor(private imageURL: string, public metadataURL: string, public priority: number) {
-        this.state = IDLE;
+        this.state = UNLOADED;
         this.image = document.createElement('img');
         this.texture = new PIXI.Texture(new PIXI.BaseTexture(this.image));
     }
@@ -88,7 +88,7 @@ class FrameManager {
     public getFrame(imageURL: string, metadataURL: string, priority: number) {
         var fc = this.all[imageURL];
         if (fc) {
-            if (fc.state === IDLE) {
+            if (fc.state === UNLOADED) {
                 // Prioritize downloading the most recently requested frames
                 var uidx = (<any>_).sortedLastIndex(this.unloaded, fc, (fc: FrameContainer) => fc.priority);
                 util.moveArrayElement(this.unloaded, fc, uidx);
