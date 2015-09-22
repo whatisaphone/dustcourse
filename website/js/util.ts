@@ -46,6 +46,27 @@ export function convertIntToCSSRGB(color: number) {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
+export class FrameCounter {
+    public frame: number;
+    private lastFrameTime: number;
+
+    public advance() {
+        var time = window.performance && performance.now ? performance.now() : Date.now();
+        if (!this.lastFrameTime) {
+            this.frame = 0;
+            this.lastFrameTime = time;
+        } else {
+            var framesPassed = Math.floor((time - this.lastFrameTime) / 1000 * 60);
+            if (framesPassed > 0 && framesPassed < 300)
+                this.frame += framesPassed;
+            else
+                this.frame += 1;
+            this.lastFrameTime = time;
+        }
+        return this.frame;
+    }
+}
+
 export function addDustforceSprite(stage: PIXI.Container, fc: FrameContainer, options?: DustforceSpriteOptions) {
     var s = new DustforceSprite(fc);
     s.position.x = options ? (options.posX || 0) : 0;

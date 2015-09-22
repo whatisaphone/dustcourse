@@ -67,8 +67,9 @@ function createLevelViewer(level: model.Level) {
     var widget = new wiamap.Widget();
     var fogger = new FogMachine(widget, level);
 
+    var frameCounter = new util.FrameCounter();
     widget.advanceFrame = () => {
-        ++level.frame;
+        level.frame = frameCounter.advance();
         fogger.everyFrame();
         wiamap.Widget.prototype.advanceFrame.call(widget);
     };
@@ -274,7 +275,6 @@ export class PropsLayer implements wiamap.Layer {
     private sliceStages: { [sliceKey: string]: PIXI.Container } = {};
     private propSprites: { [uid: number]: util.DustforceSprite } = {};
     public sliceEntities: { [sliceKey: string]: { [uid: number]: Entity } } = {};
-    private frame = 0;
     private layerParams: DustforceLayerParams;
 
     constructor(private level: model.Level, private layerNum: number) {
@@ -283,8 +283,6 @@ export class PropsLayer implements wiamap.Layer {
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        ++this.frame;
-
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
@@ -374,7 +372,7 @@ export class PropsLayer implements wiamap.Layer {
     private updateProp(prop: model.Prop) {
         var anim = gfx.propAnim(model.propSet(prop), model.propGroup(prop),
                                 model.propIndex(prop), model.propPalette(prop));
-        var fc = gfx.getFrame(anim.frameName(this.frame), this.def.zindex);
+        var fc = gfx.getFrame(anim.frameName(this.level.frame), this.def.zindex);
         this.propSprites[model.propUid(prop)].setFrame(fc);
     }
 
@@ -590,7 +588,7 @@ class FilthParticlesLayer implements wiamap.Layer {
             : [anim.frameCount * anim.frameDuration60, 1];
         var fadeOutStart = 30 + Math.random() * 90;
         var fadeOutDuration = 8 + Math.random() * 16;
-        return new Particle(anim, fs, fd, x, y, theta, dx, dy);
+        return new Particle(anim, fs, fd, x, y, theta, dx, dy, this.level.frame);
     }
 
     private generateParticleDrift(angle: number, parMin: number, parMax: number, perpMin: number, perpMax: number) {
@@ -602,17 +600,17 @@ class FilthParticlesLayer implements wiamap.Layer {
     }
 
     private drawAndUpdateParticle(viewport: Viewport, particle: Particle) {
-        var fc = gfx.getFrame(particle.anim.frameName(particle.frame), this.def.zindex);
+        var frame = this.level.frame - particle.spawnedFrame;
+        var fc = gfx.getFrame(particle.anim.frameName(frame), this.def.zindex);
         particle.sprite.setFrame(fc);
 
         particle.sprite.position.x = particle.x;
         particle.sprite.position.y = particle.y;
         particle.sprite.alpha = particle.alpha;
 
-        ++particle.frame;
         particle.x += particle.dx;
         particle.y += particle.dy;
-        if (particle.frame >= particle.fadeOutStart) {
+        if (frame >= particle.fadeOutStart) {
             particle.alpha -= 1 / particle.fadeOutDuration;
             if (particle.alpha <= 0)
                 return false;
@@ -657,11 +655,12 @@ var filthParticleInfos = [
 ];
 
 class Particle {
-    public frame = 1;
     public alpha = 1;
     public sprite: util.DustforceSprite;
 
-    constructor(public anim: gfx.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number, public x: number, public y: number, public rotation: number, public dx: number, public dy: number) { }
+    constructor(public anim: gfx.SpriteAnim, public fadeOutStart: number, public fadeOutDuration: number,
+                public x: number, public y: number, public rotation: number, public dx: number, public dy: number,
+                public spawnedFrame: number) { }
 }
 
 class StarsLayer implements wiamap.Layer {
