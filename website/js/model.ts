@@ -6,7 +6,6 @@ export const tilesPerSlice = 16;
 export const slicesPerBlock = 16;
 export const pixelsPerSlice = pixelsPerTile * tilesPerSlice;
 export const pixelsPerBlock = pixelsPerTile * tilesPerSlice * slicesPerBlock;
-export const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];  // TODO: remove; only needed in spriteLoader
 
 export interface Level {
     path: string;

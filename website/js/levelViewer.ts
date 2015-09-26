@@ -507,17 +507,17 @@ class FilthLayer implements wiamap.Layer {
         var length = edge.length * model.pixelsPerFilth;
 
         if (center) {
-            var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
+            var url = 'area/' + gfx.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + (2 + (filthX + filthY) % 5) + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
             container.addChild(util.createDustforceSprite(fc, 0, 0, { scaleX: edge.length }));
         }
         if (caps & 1) {
-            var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
+            var url = 'area/' + gfx.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 1 + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
             container.addChild(util.createDustforceSprite(fc, 0, 0));
         }
         if (caps & 2) {
-            var url = 'area/' + model.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
+            var url = 'area/' + gfx.spriteSets[center & 7] + '/filth/' + (center & 8 ? 'spikes' : 'filth') + '_' + 7 + '_0001';
             var fc = gfx.getFrame(url, this.def.zindex);
             container.addChild(util.createDustforceSprite(fc, length, 0));
         }

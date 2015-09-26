@@ -1,7 +1,7 @@
 import { Rectangle } from './coords';
 import * as util from './util';
 
-const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];
+export const spriteSets = [null, 'mansion', 'forest', 'city', 'laboratory', 'tutorial', 'nexus'];
 const propGroups = [
     'books', 'buildingblocks', 'chains', 'decoration', 'facade', 'foliage', 'furniture', 'gazebo',
     'lighting', null, 'statues', 'storage', 'study', 'fencing', null, null,
