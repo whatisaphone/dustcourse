@@ -348,14 +348,12 @@ export class PropsLayer implements wiamap.Layer {
     }
 
     private addProp(stage: PIXI.Container, prop: model.Prop) {
-        var propX = model.propX(prop);
-        var propY = model.propY(prop);
+        var propX = model.propX(prop) * this.layerParams.parallax;
+        var propY = model.propY(prop) * this.layerParams.parallax;
         var scaleX = model.propScaleX(prop);
         var scaleY = model.propScaleY(prop);
 
         if (model.propLayerGroup(prop) <= 5) {
-            propX *= this.layerParams.parallax;
-            propY *= this.layerParams.parallax;
             scaleX *= 2;
             scaleY *= 2;
         }
