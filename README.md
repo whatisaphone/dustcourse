@@ -6,16 +6,20 @@ In one window, run:
 
 In another, run:
 
-    cd build/website && node index.js
+    node build/website/index.js
 
 Restart the first command if it crashes. Restart the second whenever the server-side the code is modified.
 
 ## Building
 
-    # Extract sprites (takes about 2 hours)
+    # Extract sprites (takes about 2 hours on a HDD)
     ./level_machine/bin/Debug/level_machine extract-sprites "T:\Steam Library\steamapps\common\Dustforce\content\sprites"/*
-    # Build levels (takes about 7 hours)
+    # Build levels (takes about 7 hours on a HDD, 2 hours on an SSD)
     ./level_machine/bin/Debug/level_machine render "T:\Steam Library\steamapps\common\Dustforce\content\levels2"/*
+    # Compress images. This takes forever - about 2.5 hours per 100MB of PNGs on an
+    # 8-core CPU. And there are 5GB of sprites and tiles to cover the built-in maps...
+    # there goes a week. It reduces PNG file sizes by about 20-30%, occasionally more.
+    python3 scripts/compress-images.py build/website/assets
 
 The reason these take so long is because they create between between tens of
 thousands and millions of files. They spend most of their time inside the file
@@ -29,7 +33,7 @@ To deploy the website:
 
 To update the game assets (several GB; best to do this overnight unless it's a tiny change):
 
-    deploy/upload-assets.sh user@whatever.server.com
+    deploy/update-assets.sh user@whatever.server.com
 
 ### Various notes
 
