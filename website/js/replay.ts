@@ -71,7 +71,7 @@ export class Replayer implements wiamap.Layer {
     private replays: Replay[];
     private replayFrameCount: number;
     private lastFrameTime: number;
-    private frame = 0;
+    private counter = new util.FrameCounter();
     private state = STATE_STOPPED;
 
     constructor(private widget: wiamap.Widget, private level: model.Level) {
@@ -89,7 +89,7 @@ export class Replayer implements wiamap.Layer {
     }
 
     public seek(frame: number) {
-        this.frame = frame;
+        this.counter.setFrame(frame);
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -101,15 +101,8 @@ export class Replayer implements wiamap.Layer {
         if (this.state !== STATE_PLAYING)
             return;
 
-        var thisFrameTime = Date.now();
-        if (this.lastFrameTime) {
-            var framesElapsed = (thisFrameTime - this.lastFrameTime) / 1000 * 60;
-            this.frame += framesElapsed;
-        } else {
-            ++this.frame;
-        }
-        this.lastFrameTime = thisFrameTime;
-        if (this.frame > this.replayFrameCount) {
+        var frame = this.counter.advance();
+        if (frame > this.replayFrameCount) {
             this.state = STATE_STOPPED;
             return;
         }
@@ -122,7 +115,7 @@ export class Replayer implements wiamap.Layer {
 
     private processReplay(replay: Replay) {
         _.each(replay.sync, sync => {
-            var corr = interpolateFrame(sync, this.frame);
+            var corr = interpolateFrame(sync, this.counter.frame());
             if (corr && sync.entity_uid === 2) {
                 var px = corr[1] / 10;
                 var py = corr[2] / 10;

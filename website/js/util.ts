@@ -47,23 +47,32 @@ export function convertIntToCSSRGB(color: number) {
 }
 
 export class FrameCounter {
-    public frame: number;
+    private counter = 0;
     private lastFrameTime: number;
+
+    public frame() {
+        return Math.floor(this.counter);
+    }
+
+    public setFrame(f: number) {
+        this.counter = f;
+        this.lastFrameTime = null;
+    }
 
     public advance() {
         var time = window.performance && performance.now ? performance.now() : Date.now();
         if (!this.lastFrameTime) {
-            this.frame = 0;
             this.lastFrameTime = time;
-        } else {
-            var framesPassed = Math.floor((time - this.lastFrameTime) / 1000 * 60);
-            if (framesPassed > 0 && framesPassed < 300)
-                this.frame += framesPassed;
-            else
-                this.frame += 1;
-            this.lastFrameTime = time;
+            return this.counter;
         }
-        return this.frame;
+
+        var framesElapsed = (time - this.lastFrameTime) / 1000 * 60;
+        if (framesElapsed > 0 && framesElapsed < 300)
+            this.counter += framesElapsed;
+        else
+            this.counter += 1;
+        this.lastFrameTime = time;
+        return this.counter;
     }
 }
 
