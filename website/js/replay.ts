@@ -22,6 +22,7 @@ interface ReplayEntity {
 
 export class ReplayUI {
     private replayer: Replayer;
+    private replays: Replay[];
 
     constructor(private level: model.Level, widget: wiamap.Widget) {
         this.replayer = new Replayer(widget, level);
@@ -29,27 +30,35 @@ export class ReplayUI {
         // hud.addPageHeaderButton('Replays').onclick = () => { this.headerButtonClicked(); };
     }
 
-    public playReplay(replayId: number) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('get', '/replay/' + replayId + '.json');
-        xhr.send();
-        xhr.onload = () => { this.loaded(xhr); };
-        xhr.onerror = () => { this.errored(); };
+    public playReplays(replayIds: number[]) {
+        this.replays = _.map(replayIds, _ => null);
+
+        _.each(replayIds, (replayId, index) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open('get', '/replay/' + replayId + '.json');
+            xhr.send();
+            xhr.onload = () => { this.loaded(xhr, index); };
+            xhr.onerror = () => { this.errored(); };
+        });
     }
 
     private errored() {
         // TODO
     }
 
-    private loaded(xhr: XMLHttpRequest) {
+    private loaded(xhr: XMLHttpRequest, index: number) {
         if (xhr.status !== 200) {
             this.errored();
             return;
         }
-        var replay = JSON.parse(xhr.response);
-        this.replayer.load([replay]);
-        this.replayer.seek(0);
-        this.replayer.play();
+        this.replays[index] = JSON.parse(xhr.response);
+
+        var done = _.all(this.replays, r => r);
+        if (done) {
+            this.replayer.load(this.replays);
+            this.replayer.seek(0);
+            this.replayer.play();
+        }
     }
 }
 

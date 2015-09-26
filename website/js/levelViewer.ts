@@ -78,9 +78,9 @@ function createLevelViewer(level: model.Level) {
 
     if (level.properties['level_type'] === 0) {
         var replayer = new ReplayUI(level, widget);
-        var m = /[#&]replay=(-?\d+)/.exec(location.hash);
+        var m = /[#&]replay=([-,\d]+)/.exec(location.hash);
         if (m)
-            replayer.playReplay(parseInt(m[1], 10));
+            replayer.playReplays(m[1].split(',').map(id => parseInt(id, 10)));
     }
 
     if (level.path === 'Main Nexus DX')  // first impressions matter
