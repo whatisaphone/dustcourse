@@ -118,10 +118,10 @@ class Filth {
 
     public eachEdge(callback: (e: TileEdge, m: number, c: number) => void) {
         var shape = tileShapes[this.shapeIndex] || tileShapes[0x80];
-        if ((this.edges >> 0) & 0xf)  callback(shape.top,    (this.edges >> 0) & 0xf,  (this.caps >> 0) & 0x3);
-        if ((this.edges >> 4) & 0xf)  callback(shape.bottom, (this.edges >> 4) & 0xf,  (this.caps >> 2) & 0x3);
-        if ((this.edges >> 8) & 0xf)  callback(shape.left,   (this.edges >> 8) & 0xf,  (this.caps >> 4) & 0x3);
-        if ((this.edges >> 12) & 0xf) callback(shape.right,  (this.edges >> 12) & 0xf, (this.caps >> 6) & 0x3);
+        if (shape.top    && (this.edges >> 0) & 0xf)  callback(shape.top,    (this.edges >> 0) & 0xf,  (this.caps >> 0) & 0x3);
+        if (shape.bottom && (this.edges >> 4) & 0xf)  callback(shape.bottom, (this.edges >> 4) & 0xf,  (this.caps >> 2) & 0x3);
+        if (shape.left   && (this.edges >> 8) & 0xf)  callback(shape.left,   (this.edges >> 8) & 0xf,  (this.caps >> 4) & 0x3);
+        if (shape.right  && (this.edges >> 12) & 0xf) callback(shape.right,  (this.edges >> 12) & 0xf, (this.caps >> 6) & 0x3);
     }
 }
 
