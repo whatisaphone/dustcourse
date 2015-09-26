@@ -14,8 +14,11 @@ app.set('views', __dirname + '/views')
 app.set('view engine', 'jade');
 
 app.get('/', (req, res) => {
-    var levelName = req.params.level;
-    res.redirect(302, '/level/Main Nexus DX');
+    res.render('level', { levelName: 'Main Nexus DX' });
+});
+
+app.get('/level/Main%20Nexus%20DX', (req, res) => {
+    res.redirect(302, '/');
 });
 
 app.get('/level/:levelName', (req, res) => {
