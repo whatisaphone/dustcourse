@@ -96,7 +96,7 @@ export class Replayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
-        util.applyFog(this.stage, this.level, 19);
+        util.applyFog(this.stage, this.level, 18);
 
         if (this.state !== STATE_PLAYING)
             return;
