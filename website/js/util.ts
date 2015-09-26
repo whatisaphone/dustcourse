@@ -163,8 +163,8 @@ export class DustforceSprite extends PIXI.Sprite {
 
         this.worldTransform.identity()
             .translate(hitbox ? hitbox.left : 0, hitbox ? hitbox.top : 0)
-            .rotate(this.rotation)
             .scale(this.scale.x, this.scale.y)
+            .rotate(this.rotation)
             .translate(this.position.x, this.position.y)
             .prepend(this.parent.worldTransform);
 
