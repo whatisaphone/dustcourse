@@ -26,7 +26,6 @@ export class ReplayUI {
 
     constructor(private level: model.Level, widget: wiamap.Widget) {
         this.replayer = new Replayer(widget, level);
-        widget.addLayer(this.replayer);
         // hud.addPageHeaderButton('Replays').onclick = () => { this.headerButtonClicked(); };
     }
 
@@ -55,48 +54,87 @@ export class ReplayUI {
 
         var done = _.all(this.replays, r => r);
         if (done) {
-            this.replayer.load(this.replays);
-            this.replayer.seek(0);
-            this.replayer.play();
+            this.prepareReplays(this.replays);
         }
+    }
+
+    private prepareReplays(replays: Replay[]) {
+        this.replayer.load(replays);
+        this.replayer.seek(0);
+        this.replayer.play();
     }
 }
 
 const STATE_STOPPED = 0;
 const STATE_PLAYING = 1;
 
-export class Replayer implements wiamap.Layer {
-    public def = { zindex: 199, parallax: 1 };
-    public stage = new util.ChunkContainer();
+class Replayer {
     private replays: Replay[];
     private replayFrameCount: number;
-    private lastFrameTime: number;
     private counter = new util.FrameCounter();
     private state = STATE_STOPPED;
+    private hud = new HUDLayer(this);
+    private heads = new HeadsLayer(this);
+    private metadataElement: HTMLElement;
 
     constructor(private widget: wiamap.Widget, private level: model.Level) {
-        widget.addLayer(this);
+        widget.addLayer(this.hud);
+        widget.addLayer(this.heads);
     }
 
     public load(replays: Replay[]) {
         this.replays = replays;
         this.replayFrameCount = _.max(replays, r => r.frames).frames;
+
+        this.metadataElement = document.createElement('div');
+        this.metadataElement.className = 'replay-metadata';
+        document.body.appendChild(this.metadataElement);
+
+        var dupChars = _.object(_.filter(_.pairs(_.groupBy(replays, r => r.character)), p => p[1].length > 1));
+
+        replays.forEach(replay => {
+            if (replay.character in dupChars) {
+                var filter = new PIXI.filters.ColorMatrixFilter();
+                util.tintMatrix(filter.matrix, Math.random(), Math.random(), Math.random(), 1/3, 1);
+            }
+
+            var row = document.createElement('div');
+            row.className = 'replay-metadata-row';
+            row.textContent = replay.user;
+            this.metadataElement.appendChild(row);
+
+            var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
+            var sprite = util.createDustforceSprite(fc, 0, 0);
+            if (filter)
+                sprite.filters = [filter];
+            this.hud.stage.addChild(sprite);
+
+            sprite = util.createDustforceSprite(fc, 0, 0, { scale: 2.5 });
+            if (filter)
+                sprite.filters = [filter];
+            this.heads.stage.addChild(sprite);
+        });
     }
 
     public play() {
         this.state = STATE_PLAYING;
-        this.lastFrameTime = 0;
     }
 
     public seek(frame: number) {
         this.counter.setFrame(frame);
     }
 
-    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        this.stage.position.x = -worldRect.left;
-        this.stage.position.y = -worldRect.top;
-        this.stage.scale.x = this.stage.scale.y = viewport.zoom;
-        util.applyFog(this.stage, this.level, 18);
+    public updateHUD(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        if (!this.replays)
+            return;
+
+        this.replays.forEach((replay, replayIndex) => {
+            var row = this.metadataElement.children[replayIndex];
+            var rowRect = row.getBoundingClientRect();
+            var sprite = this.hud.stage.children[replayIndex];
+            sprite.position.x = rowRect.left - 40;
+            sprite.position.y = rowRect.top + rowRect.height / 2;
+        });
 
         if (this.state !== STATE_PLAYING)
             return;
@@ -107,10 +145,12 @@ export class Replayer implements wiamap.Layer {
             return;
         }
 
-        this.stage.removeChildren();
+        this.updateCamera(viewport);
+    }
 
+    private updateCamera(viewport: Viewport) {
         var cameras = this.replays
-            .map(r => interpolateFrame(_.find(r.sync, s => s.entity_uid === 3), frame))
+            .map(r => interpolateFrame(_.find(r.sync, s => s.entity_uid === 3), this.counter.frame()))
             .filter(r => <any>r)
             .map(([f, x, y, dx, dy]) => [x / 10, y / 10]);
         var avgX = _.sum(cameras, c => c[0]) / cameras.length;
@@ -120,28 +160,36 @@ export class Replayer implements wiamap.Layer {
         var minY = _.min(cameras, c => c[1])[1];
         var maxY = _.max(cameras, c => c[1])[1];
         var dist = util.distance(minX - 1, minY - 1, maxX + 1, maxY + 1);
-        var viewportSize = this.widget.getViewport().size;
         var zoom = Math.min(0.5, Math.min(
-            0.5 * viewportSize.height / (270 + dist),
-            0.5 * viewportSize.width / (480 + dist)
+            0.5 * viewport.size.height / (270 + dist),
+            0.5 * viewport.size.width / (480 + dist)
         ));
-        this.widget.setViewport(new Viewport(new Point(avgX, avgY), viewportSize, zoom));
+        this.widget.setViewport(new Viewport(new Point(avgX, avgY), viewport.size, zoom));
+    }
 
-        _.each(this.replays, replay => {
-            this.processReplay(replay, this.replays.length === 1);
+    public updateHeads(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.heads.stage.position.x = -worldRect.left;
+        this.heads.stage.position.y = -worldRect.top;
+        this.heads.stage.scale.x = this.heads.stage.scale.y = viewport.zoom;
+        util.applyFog(this.heads.stage, this.level, 18);
+
+        if (this.state !== STATE_PLAYING)
+            return;
+
+        _.each(this.replays, (replay, replayIndex) => {
+            this.drawHead(replay, replayIndex, this.replays.length === 1);
         });
     }
 
-    private processReplay(replay: Replay, doEnemies: boolean) {
+    private drawHead(replay: Replay, replayIndex: number, doEnemies: boolean) {
         _.each(replay.sync, sync => {
             var corr = interpolateFrame(sync, this.counter.frame());
             if (!corr)
                 return;
             if (sync.entity_uid === 2) {
-                var px = corr[1] / 10;
-                var py = corr[2] / 10;
-                var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
-                this.stage.addChild(util.createDustforceSprite(fc, px - 24, py - 52, { scale: 2.5 }));
+                var sprite = this.heads.stage.children[replayIndex];
+                sprite.position.x = corr[1] / 10 - 24;
+                sprite.position.y = corr[2] / 10 - 52;
             } else if (doEnemies) {
                 var entity: levelViewer.Entity;
                 _.each(this.widget.propsLayers[18 - 1].sliceEntities, slen => {
@@ -158,6 +206,28 @@ export class Replayer implements wiamap.Layer {
                 }
             }
         });
+    }
+}
+
+class HUDLayer implements wiamap.Layer {
+    public def = { zindex: 250, parallax: 1 };
+    public stage = new PIXI.Container();
+
+    constructor(private replayer: Replayer) { }
+
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.replayer.updateHUD(viewport, canvasRect, worldRect);
+    }
+}
+
+class HeadsLayer implements wiamap.Layer {
+    public def = { zindex: 199, parallax: 1 };
+    public stage = new util.ChunkContainer();
+
+    constructor(private replayer: Replayer) { }
+
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        this.replayer.updateHeads(viewport, canvasRect, worldRect);
     }
 }
 

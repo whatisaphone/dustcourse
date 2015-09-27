@@ -199,22 +199,22 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
 
     var [r, g, b] = convertIntToRGB(level.currentFog['fog_colour'][layerNum]);
     var p = level.currentFog['fog_per'][layerNum];
+    var jaundice = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
 
-    var starFactor = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
+    tintMatrix(filter[0].matrix, r, g, b, p, jaundice);
+}
 
-    // filter.matrix = [
-    //     1 - p, 0,     0,     r * p, 0,
-    //     0,     1 - p, 0,     g * p, 0,
-    //     0,     0,     1 - p, b * p, 0,
-    //     0,     0,     0,     1,     0,
-    // ];
+// This assumes nobody else ever touches the matrix.
+export function tintMatrix(matrix: number[], r: number, g: number, b: number, p: number, jaundice: number) {
+    // [ 1 - p, 0,     0,     r * p, 0,
+    //   0,     1 - p, 0,     g * p, 0,
+    //   0,     0,     1 - p, b * p, 0,
+    //   0,     0,     0,     1,     0 ]
 
-    // This is ugly, but it avoids allocs
-    var m = filter[0].matrix;
-    m[0] = 1 - p;
-    m[3] = r * p;
-    m[6] = 1 - p;
-    m[8] = g * p;
-    m[12] = (1 - p) * starFactor;
-    m[13] = b * p * starFactor;
+    matrix[0] = 1 - p;
+    matrix[3] = r * p;
+    matrix[6] = 1 - p;
+    matrix[8] = g * p;
+    matrix[12] = (1 - p) * jaundice;
+    matrix[13] = b * p * jaundice;
 }
