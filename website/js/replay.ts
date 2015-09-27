@@ -6,6 +6,8 @@ import * as model from './model';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
+const PHI = 0.618034;
+
 interface Replay {
     user: string;
     level: string;
@@ -90,12 +92,15 @@ class Replayer {
         this.metadataElement.className = 'replay-metadata';
         document.body.appendChild(this.metadataElement);
 
-        var dupChars = _.object(_.filter(_.pairs(_.groupBy(replays, r => r.character)), p => p[1].length > 1));
+        var dupCharHues = _.object(_.map(_.filter(_.pairs(_.groupBy(replays, r => r.character)), p => p[1].length > 1), p => [p[0], 0]));
 
         replays.forEach(replay => {
-            if (replay.character in dupChars) {
+            var dupHue = dupCharHues[replay.character];
+            if (dupHue !== undefined) {
                 var filter = new PIXI.filters.ColorMatrixFilter();
-                util.tintMatrix(filter.matrix, Math.random(), Math.random(), Math.random(), 1/3, 1);
+                var [r, g, b] = util.hsvToRgb(dupHue, 1, 1);
+                util.tintMatrix(filter.matrix, r, g, b, 0.4, 1);
+                dupCharHues[replay.character] = (dupHue + PHI) % 1;
             }
 
             var row = document.createElement('div');
