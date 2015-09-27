@@ -108,29 +108,48 @@ export class Replayer implements wiamap.Layer {
         }
 
         this.stage.removeChildren();
+
+        var cameras = this.replays
+            .map(r => interpolateFrame(_.find(r.sync, s => s.entity_uid === 3), frame))
+            .filter(r => <any>r)
+            .map(([f, x, y, dx, dy]) => [x / 10, y / 10]);
+        var avgX = _.sum(cameras, c => c[0]) / cameras.length;
+        var avgY = _.sum(cameras, c => c[1]) / cameras.length;
+        var minX = _.min(cameras, c => c[0])[0];
+        var maxX = _.max(cameras, c => c[0])[0];
+        var minY = _.min(cameras, c => c[1])[1];
+        var maxY = _.max(cameras, c => c[1])[1];
+        var dist = util.distance(minX - 1, minY - 1, maxX + 1, maxY + 1);
+        var viewportSize = this.widget.getViewport().size;
+        var zoom = Math.min(0.5, Math.min(
+            0.5 * viewportSize.height / (270 + dist),
+            0.5 * viewportSize.width / (480 + dist)
+        ));
+        this.widget.setViewport(new Viewport(new Point(avgX, avgY), viewportSize, zoom));
+
         _.each(this.replays, replay => {
-            this.processReplay(replay);
+            this.processReplay(replay, this.replays.length === 1);
         });
     }
 
-    private processReplay(replay: Replay) {
+    private processReplay(replay: Replay, doEnemies: boolean) {
         _.each(replay.sync, sync => {
             var corr = interpolateFrame(sync, this.counter.frame());
-            if (corr && sync.entity_uid === 2) {
+            if (!corr)
+                return;
+            if (sync.entity_uid === 2) {
                 var px = corr[1] / 10;
                 var py = corr[2] / 10;
                 var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
                 this.stage.addChild(util.createDustforceSprite(fc, px - 24, py - 52, { scale: 2.5 }));
-            } else if (corr && sync.entity_uid === 3) {
-                this.widget.viewport.position = new Point(corr[1] / 10, corr[2] / 10);
-            } else {
+            } else if (doEnemies) {
                 var entity: levelViewer.Entity;
                 _.each(this.widget.propsLayers[18 - 1].sliceEntities, slen => {
                     if (!entity)
                         entity = slen[sync.entity_uid];
                 });
                 if (entity) {
-                    if (corr) {
+                    if (corr[0] < sync.corrections[sync.corrections.length - 1][0]) {
                         entity.sprite.position.x = corr[1] / 10;
                         entity.sprite.position.y = corr[2] / 10;
                     } else {
@@ -148,7 +167,7 @@ function interpolateFrame(entity: ReplayEntity, frame: number) {
         return entity.corrections[0];
     var b = entity.corrections[index];
     if (!b)
-        return null;
+        return entity.corrections[entity.corrections.length - 1];
     if (b[0] === frame)
         return b;
     var a = entity.corrections[index - 1];
