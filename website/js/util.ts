@@ -223,6 +223,23 @@ export function applyFog(obj: PIXI.DisplayObject, level: model.Level, layerNum: 
     tintMatrix(filter[0].matrix, r, g, b, p, jaundice);
 }
 
+// oh god the code duplication
+export function updateFogFilter(level: model.Level, layerNum: number) {
+    if (!level.currentFog)
+        return;
+
+    var filter = level.currentFogFilters[layerNum];
+    if (!filter)
+        filter = level.currentFogFilters[layerNum] = [new PIXI.filters.ColorMatrixFilter()];
+
+    var [r, g, b] = convertIntToRGB(level.currentFog['fog_colour'][layerNum]);
+    var p = level.currentFog['fog_per'][layerNum];
+    var jaundice = layerNum === 0 ? 7 / 8 : 1;  // see the stars section in README
+
+    tintMatrix(filter[0].matrix, r, g, b, p, jaundice);
+    return filter[0];
+}
+
 // This assumes nobody else ever touches the matrix.
 export function tintMatrix(matrix: number[], r: number, g: number, b: number, p: number, jaundice: number) {
     // [ 1 - p, 0,     0,     r * p, 0,

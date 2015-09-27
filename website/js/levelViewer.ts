@@ -664,15 +664,17 @@ class Particle {
 class StarsLayer implements wiamap.Layer {
     public def = { zindex: 4, parallax: 0.02 };
     public stage = new util.ChunkContainer();
-    public starStages: util.ViewportParticleContainer[] = [];
+    private starStages: util.ViewportParticleContainer[] = [];
     private universeBounds = new Rectangle(0, 0, 0, 0);
+    private shader: StarShader;
 
     constructor(private level: model.Level) {
         _.each(_.range(0, 3), i => {
-            var s = new util.ViewportParticleContainer();
+            var s = new util.ViewportParticleContainer(1000, { alpha: true });
             this.starStages.push(s);
             this.stage.addChild(s);
         });
+        this.shader = new StarShader();
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -691,36 +693,18 @@ class StarsLayer implements wiamap.Layer {
         this.stage.position.x = -worldRect.left;
         this.stage.position.y = -worldRect.top;
         this.stage.scale.x = this.stage.scale.y = viewport.zoom;
-        util.applyFog(this.stage, this.level, 0);
+
+        util.updateFogFilter(this.level, 0);
+        if (!this.stage.filters)
+            this.stage.filters = [this.level.currentFogFilters[0][0], this.shader];
 
         this.expandUniverse(worldRect);
 
         var fog = this.level.currentFog;
-        var topY = worldRect.top;
-        var midY = worldRect.top + fog['gradient_middle'] * worldRect.height;
-        var botY = worldRect.bottom();
-        var topA = fog['star_top'];
-        var midA = fog['star_middle'];
-        var botA = fog['star_bottom'];
-
-        // Yeah, yeah, I know stuff like this belongs in a shader. I don't
-        // feel like figuring that out right now. This runs quick *enough*
-
-        for (var ssi = 0, ssl = this.starStages.length; ssi < ssl; ++ssi) {
-            var ss = this.starStages[ssi];
-            for (var ci = 0, cl = ss.children.length; ci < cl; ++ci) {
-                var child = ss.children[ci];
-                if (child.position.y < midY) {
-                    var pct = (child.position.y - topY) / (midY - topY);
-                    var alpha = topA * (1 - pct) + midA * pct;
-                } else {
-                    var pct = (child.position.y - midY) / (botY - midY);
-                    var alpha = midA * (1 - pct) + botA * pct;
-                }
-                alpha *= (ci % 9) / 8;  // add some "shimmer"
-                child.alpha = Math.max(0, Math.min(1, alpha));
-            }
-        }
+        this.shader.uniforms.gradient_middle.value = fog['gradient_middle'];
+        this.shader.uniforms.star_top.value = fog['star_top'];
+        this.shader.uniforms.star_middle.value = fog['star_middle'];
+        this.shader.uniforms.star_bottom.value = fog['star_bottom'];
     }
 
     private expandUniverse(area: Rectangle) {
@@ -733,7 +717,7 @@ class StarsLayer implements wiamap.Layer {
         for (var galaxyY = minY; galaxyY < maxY; galaxyY += galaxySize) {
             if (this.universeBounds.contains(new Point(galaxyX, galaxyY)))
                 continue;
-            for (var s = 0; s < 36; ++s) {
+            for (var s = 0; s < 40; ++s) {
                 var x = galaxyX + Math.random() * galaxySize;
                 var y = galaxyY + Math.random() * galaxySize;
 
@@ -743,6 +727,7 @@ class StarsLayer implements wiamap.Layer {
                 var sprite = new PIXI.Sprite(tex);
                 sprite.position.x = x;
                 sprite.position.y = y;
+                sprite.alpha = (s % 10 + 1) / 10;
                 // sprite.scale.x = sprite.scale.y = 1.5;
                 this.starStages[whichStar].addChild(sprite);
             }
@@ -754,3 +739,41 @@ class StarsLayer implements wiamap.Layer {
             Math.max(maxY, this.universeBounds.bottom()));
     }
 }
+
+class StarShader extends PIXI.AbstractFilter {
+    uniforms = {
+        gradient_middle: {type: '1f', value: 0},
+        star_top: {type: '1f', value: 0},
+        star_middle: {type: '1f', value: 0},
+        star_bottom: {type: '1f', value: 0},
+    };
+
+    fragmentSrc: any = [
+        'precision lowp float;',
+
+        'varying vec2 vTextureCoord;',
+        'varying vec4 vColor;',
+
+        'uniform sampler2D uSampler;',
+        'uniform float gradient_middle;',
+        'uniform float star_top;',
+        'uniform float star_middle;',
+        'uniform float star_bottom;',
+
+        'void main(void) {',
+            'float p;',
+            'float a;',
+            'if (vTextureCoord.y < gradient_middle) {',
+                'p = vTextureCoord.y / gradient_middle;',
+                'a = star_top * (1.0 - p) + star_middle * p;',
+            '} else {',
+                'p = (vTextureCoord.y - gradient_middle) / (1.0 - gradient_middle);',
+                'a = star_middle * (1.0 - p) + star_bottom * p;',
+            '}',
+            'gl_FragColor = texture2D(uSampler, vTextureCoord) * a;',
+        '}',
+    ].join('\n');
+}
+
+StarShader.prototype = Object.create(StarShader.prototype);
+StarShader.prototype.constructor = StarShader;
