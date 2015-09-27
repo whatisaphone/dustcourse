@@ -13,6 +13,8 @@ interface Replay {
     character: number;
     inputs: string[];
     sync: ReplayEntity[];
+    headTintMatrix: number[];
+    headSpriteFilter: PIXI.filters.ColorMatrixFilter;
 }
 
 interface ReplayEntity {
@@ -95,10 +97,12 @@ class Replayer {
         replays.forEach(replay => {
             var dup = dupChars[replay.character];
             if (dup) {
-                var filter = new PIXI.filters.ColorMatrixFilter();
                 var [r, g, b] = util.hsvToRgb(dup[0], 1, 1);
                 var p = [0, 0, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55][dup[1]] || 0.6;
-                util.tintMatrix(filter.matrix, r, g, b, p, 1);
+                replay.headTintMatrix = [1 - p, 0,     0,     r * p, 0,
+                                         0,     1 - p, 0,     g * p, 0,
+                                         0,     0,     1 - p, b * p, 0,
+                                         0,     0,     0,     1,     0];
                 dup[0] += 1 / dup[1];
             }
 
@@ -109,13 +113,16 @@ class Replayer {
 
             var fc = gfx.getFrame('hud/head_' + (replay.character + 1) + '_0001', 250);
             var sprite = util.createDustforceSprite(fc, 0, 0);
-            if (filter)
-                sprite.filters = [filter];
+            if (replay.headTintMatrix) {
+                var hudSpriteFilter = new PIXI.filters.ColorMatrixFilter();
+                hudSpriteFilter.matrix = replay.headTintMatrix;
+                sprite.filters = [hudSpriteFilter];
+            }
             this.hud.stage.addChild(sprite);
 
             sprite = util.createDustforceSprite(fc, 0, 0, { scale: 2.5 });
-            if (filter)
-                sprite.filters = [filter];
+            replay.headSpriteFilter = new PIXI.filters.ColorMatrixFilter();
+            sprite.filters = [replay.headSpriteFilter];
             this.heads.stage.addChild(sprite);
         });
     }
@@ -175,13 +182,17 @@ class Replayer {
         this.heads.stage.position.x = -worldRect.left;
         this.heads.stage.position.y = -worldRect.top;
         this.heads.stage.scale.x = this.heads.stage.scale.y = viewport.zoom;
-        util.applyFog(this.heads.stage, this.level, 18);
 
         if (this.state !== STATE_PLAYING)
             return;
 
         _.each(this.replays, (replay, replayIndex) => {
             this.drawHead(replay, replayIndex, this.replays.length === 1);
+
+            if (replay.headTintMatrix)
+                util.multiplyColorMatrices(replay.headSpriteFilter.matrix, replay.headTintMatrix, this.level.currentFogFilters[18][0].matrix);
+            else
+                replay.headSpriteFilter.matrix = this.level.currentFogFilters[18][0].matrix;
         });
     }
 
