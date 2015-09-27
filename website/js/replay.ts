@@ -6,8 +6,6 @@ import * as model from './model';
 import * as util from './util';
 import * as wiamap from './wiamap';
 
-const PHI = 0.618034;
-
 interface Replay {
     user: string;
     level: string;
@@ -92,15 +90,16 @@ class Replayer {
         this.metadataElement.className = 'replay-metadata';
         document.body.appendChild(this.metadataElement);
 
-        var dupCharHues = _.object(_.map(_.filter(_.pairs(_.groupBy(replays, r => r.character)), p => p[1].length > 1), p => [p[0], 0]));
+        var dupChars = _.object(_.map(_.filter(_.pairs(_.groupBy(replays, r => r.character)), p => p[1].length > 1), p => [p[0], [0, p[1].length]]));
 
         replays.forEach(replay => {
-            var dupHue = dupCharHues[replay.character];
-            if (dupHue !== undefined) {
+            var dup = dupChars[replay.character];
+            if (dup) {
                 var filter = new PIXI.filters.ColorMatrixFilter();
-                var [r, g, b] = util.hsvToRgb(dupHue, 1, 1);
-                util.tintMatrix(filter.matrix, r, g, b, 0.4, 1);
-                dupCharHues[replay.character] = (dupHue + PHI) % 1;
+                var [r, g, b] = util.hsvToRgb(dup[0], 1, 1);
+                var p = [0, 0, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55][dup[1]] || 0.6;
+                util.tintMatrix(filter.matrix, r, g, b, p, 1);
+                dup[0] += 1 / dup[1];
             }
 
             var row = document.createElement('div');
