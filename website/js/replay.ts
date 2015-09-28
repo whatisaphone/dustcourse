@@ -14,7 +14,9 @@ interface Replay {
     inputs: string[];
     sync: ReplayEntity[];
     headTintMatrix: number[];
+    headSprite: util.DustforceSprite;
     headSpriteFilter: PIXI.filters.ColorMatrixFilter;
+    fxs: [gfx.SpriteAnim, util.DustforceSprite, number][];
 }
 
 interface ReplayEntity {
@@ -78,6 +80,7 @@ class Replayer {
     private hud = new HUDLayer(this);
     private heads = new HeadsLayer(this);
     private metadataElement: HTMLElement;
+    private lastDrawnFrame: number;
 
     constructor(private widget: wiamap.Widget, private level: model.Level) {
         widget.addLayer(this.hud);
@@ -120,10 +123,12 @@ class Replayer {
             }
             this.hud.stage.addChild(sprite);
 
-            sprite = util.createDustforceSprite(fc, 0, 0, { scale: 2.5 });
+            replay.headSprite = util.createDustforceSprite(fc, 0, 0, { scale: 2.5 });
             replay.headSpriteFilter = new PIXI.filters.ColorMatrixFilter();
-            sprite.filters = [replay.headSpriteFilter];
-            this.heads.stage.addChild(sprite);
+            replay.headSprite.filters = [replay.headSpriteFilter];
+            this.heads.stage.addChild(replay.headSprite);
+
+            replay.fxs = [];
         });
     }
 
@@ -133,6 +138,7 @@ class Replayer {
 
     public seek(frame: number) {
         this.counter.setFrame(frame);
+        this.lastDrawnFrame = frame;
     }
 
     public updateHUD(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
@@ -184,25 +190,28 @@ class Replayer {
         if (this.state !== STATE_PLAYING)
             return;
 
-        _.each(this.replays, (replay, replayIndex) => {
-            this.drawHead(replay, replayIndex, this.replays.length === 1);
+        _.each(this.replays, replay => {
+            this.drawEntities(replay, this.replays.length === 1);
 
             if (replay.headTintMatrix)
                 util.multiplyColorMatrices(replay.headSpriteFilter.matrix, replay.headTintMatrix, this.level.currentFogFilters[18][0].matrix);
             else
                 replay.headSpriteFilter.matrix = this.level.currentFogFilters[18][0].matrix;
         });
+
+        this.lastDrawnFrame = this.counter.frame();
     }
 
-    private drawHead(replay: Replay, replayIndex: number, doEnemies: boolean) {
+    private drawEntities(replay: Replay, doEnemies: boolean) {
         _.each(replay.sync, sync => {
             var corr = interpolateFrame(sync, this.counter.frame());
             if (!corr)
                 return;
             if (sync.entity_uid === 2) {
-                var sprite = this.heads.stage.children[replayIndex];
-                sprite.position.x = corr[1] / 10 - 24;
-                sprite.position.y = corr[2] / 10 - 52;
+                var head = replay.headSprite;
+                head.position.x = corr[1] / 10 - 24;
+                head.position.y = corr[2] / 10 - 52;
+                this.drawFx(replay, sync);
             } else if (doEnemies) {
                 var entity: levelViewer.Entity;
                 _.each(this.widget.propsLayers[18 - 1].sliceEntities, slen => {
@@ -219,6 +228,93 @@ class Replayer {
                 }
             }
         });
+    }
+
+    private drawFx(replay: Replay, entity: ReplayEntity) {
+        var frame = Math.floor(this.counter.frame());
+
+        for (var fxi = 0, fxl = replay.fxs.length; fxi < fxl; ++fxi) {
+            var [anim, sprite, spawned] = replay.fxs[fxi];
+            if (frame - spawned >= anim.frameCount * anim.frameDuration60) {
+                this.heads.stage.removeChild(sprite);
+                replay.fxs.splice(fxi, 1);
+                --fxi;
+                --fxl;
+                continue;
+            }
+            var fc = gfx.getFrame(anim.frameName(frame - spawned), this.heads.def.zindex);
+            sprite.setFrame(fc);
+        }
+
+        for (var f = Math.ceil(this.lastDrawnFrame) + 1; f <= frame; ++f)
+            this.checkForNewFxs(replay, entity, f);
+    }
+
+    private checkForNewFxs(replay: Replay, entity: ReplayEntity, frame: number) {
+        function inp(inputRow: number, offset: number) {
+            return replay.inputs[inputRow].charCodeAt(frame + offset) - 48;
+        }
+
+        var corr = interpolateFrame(entity, frame);
+
+        if (inp(2, 0) && !inp(2, -1)) {
+            var anim = new gfx.SpriteAnim('player/dustman/movementfx/dmdbljump_', 5, 6);
+            this.addFx(replay, anim, corr[1] / 10, corr[2] / 10, 1);
+        }
+
+        if (inp(3, 0) && !inp(3, -1)) {
+            var anim = new gfx.SpriteAnim('player/dustman/movementfx/dmairdash_', 5, 6);
+            var scaleX = inp(0, 0) === 2 ? 1 : inp(0, 0) === 0 ? -1 : 1;
+            this.addFx(replay, anim, corr[1] / 10 - 30 * scaleX, corr[2] / 10, scaleX);
+        } else if (inp(4, 0) && !inp(4, -1)) {
+            var anim = new gfx.SpriteAnim('player/dustman/movementfx/dmfastfall_', 5, 6);
+            this.addFx(replay, anim, corr[1] / 10, corr[2] / 10 - 80, 1);
+        }
+
+        anim = null;
+        var offX = 0, offY = 0;
+        if ((inp(5, 0) && inp(6, 0)) && !(inp(5, -1) && inp(6, -1))) {
+            anim = new gfx.SpriteAnim('player/dustman/attackfx/dmcleanse_', 15, 6);
+        } else if (inp(5, -6) && !inp(5, -7)) {
+            offX = 90;
+            if (inp(1, 0) === 0) {
+                anim = new gfx.SpriteAnim('player/dustman/attackfx/dmgroundstrikeu2_', 6, 6);
+                offX = 50;
+                offY = -50;
+            } else if (inp(1, 0) === 2)
+                anim = new gfx.SpriteAnim('player/dustman/sweepfx/dmsweep2_', 4, 6);
+            else
+                anim = new gfx.SpriteAnim('player/dustman/attackfx/dmgroundstrike1_', 6, 6);
+            var scaleX = inp(0, -4) === 2 ? 1 : inp(0, -4) === 0 ? -1 : 1;
+        } else if (inp(6, -16) && !inp(6, -17)) {
+            offX = 90;
+            if (inp(1, -10) === 0) {
+                anim = new gfx.SpriteAnim('player/dustman/attackfx/dmheavyu_', 6, 6);
+                offY = -90;
+            } else if (inp(1, -10) === 2)
+                anim = new gfx.SpriteAnim('player/dustman/attackfx/dmairheavyd_', 6, 6);
+            else
+                anim = new gfx.SpriteAnim('player/dustman/attackfx/dmheavyf_', 6, 6);
+            var scaleX = inp(0, -10) === 2 ? 1 : inp(0, -10) === 0 ? -1 : 1;
+        }
+        if (anim)
+            this.addFx(replay, anim, corr[1] / 10 + offX * scaleX, corr[2] / 10 + offY, scaleX);
+    }
+
+    private addFx(replay: Replay, anim: gfx.SpriteAnim, x: number, y: number, scaleX: number) {
+        var fc = gfx.getFrame(anim.frameName(0), this.heads.def.zindex);
+        var sprite = util.createDustforceSprite(fc, x, y, { scaleX: scaleX });
+        sprite.filters = [replay.headSpriteFilter];
+        this.heads.stage.addChild(sprite);
+
+        // BLUUHHHHHHH whatever it fixes the problem
+        sprite.updateTransform = function () {
+            var b = this.getBounds();
+            this.filterArea = new PIXI.Rectangle(b.x - b.width, b.y - b.height, b.width * 2, b.height * 2);
+            util.DustforceSprite.prototype.updateTransform.call(this);
+        };
+
+        replay.fxs.push([anim, sprite, this.counter.frame()]);
     }
 }
 
@@ -255,5 +351,5 @@ function interpolateFrame(entity: ReplayEntity, frame: number) {
         return b;
     var a = entity.corrections[index - 1];
     var p = (frame - a[0]) / (b[0] - a[0]);
-    return [frame, a[1] * (1 - p) + b[1] * p, a[2] * (1 - p) + b[2] * p];
+    return [frame, a[1] * (1 - p) + b[1] * p, a[2] * (1 - p) + b[2] * p, b[3], b[4]];
 }
