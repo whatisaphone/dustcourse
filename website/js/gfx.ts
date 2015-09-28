@@ -85,6 +85,10 @@ class FrameManager {
 
     constructor() { }
 
+    public getCachedFrame(cacheKey: string) {
+        return this.all[cacheKey];
+    }
+
     public getFrame(imageURL: string, metadataURL: string, priority: number) {
         var fc = this.all[imageURL];
         if (fc) {
@@ -128,6 +132,10 @@ export function getFrame(name: string, priority: number) {
 
 export function getFrameFromRawImage(imageURL: string, priority: number) {
     return frameManager.getFrame(imageURL, null, priority);
+}
+
+export function getCachedFrameFromRawImage(imageURL: string) {
+    return frameManager.getCachedFrame(imageURL);
 }
 
 export function frameImageURL(name: string) {

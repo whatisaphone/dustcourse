@@ -81,7 +81,7 @@ export interface LayerDef {
 export interface TileLayerDef extends LayerDef {
     scales: TileScale[];
     textureScale: number;
-    getTile(scale: TileScale, x: number, y: number): PIXI.Texture;
+    getTile(scale: TileScale, x: number, y: number, firstChoice: boolean): PIXI.Texture;
 }
 
 export interface TileScale {
@@ -96,18 +96,20 @@ export class TileLayer implements Layer {
     constructor(public def: TileLayerDef) { }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        var scale = chooseTileScale(this.def.scales, viewport.zoom);
+        var scales = _.sortBy(this.def.scales, s => s.scale);
+        var scale = chooseTileScale(scales, viewport.zoom);
+        var scaleIndex = _.indexOf(scales, scale);
+        var otherScales = [scales[scaleIndex + 1], scales[scaleIndex - 1]].filter(s => <any>s);
 
         this.stage.removeChildren();
-        enumerateTiles(this, scale, worldRect, (wx, wy, texture) => {
-            this.addTile(viewport, canvasRect, scale, wx, wy, texture);
+        enumerateTiles(this, worldRect, scale, true, otherScales, (tileRect, scale, texture) => {
+            this.addTile(viewport, canvasRect, scale, tileRect, texture);
         });
     }
 
     private addTile(viewport: Viewport, canvasRect: Rectangle, scale: TileScale,
-                    wx: number, wy: number, texture: PIXI.Texture) {
-        var worldRect = new Rectangle(wx, wy, scale.tileWidth, scale.tileHeight);
-        var screenRect = viewport.worldToScreenR(this, worldRect);
+                    tileRect: Rectangle, texture: PIXI.Texture) {
+        var screenRect = viewport.worldToScreenR(this, tileRect);
         var sprite = new PIXI.Sprite(texture);
         sprite.position.x = screenRect.left - canvasRect.left;
         sprite.position.y = screenRect.top - canvasRect.top;
@@ -117,21 +119,31 @@ export class TileLayer implements Layer {
 }
 
 function chooseTileScale(scales: TileScale[], targetZoom: number) {
-    var sorted = _.sortBy(scales, s => s.scale);
-    return _.find(sorted, s => s.scale >= targetZoom) || sorted[sorted.length - 1];
+    return _.find(scales, s => s.scale >= targetZoom) || scales[scales.length - 1];
 }
 
-function enumerateTiles(layer: TileLayer, scale: TileScale, area: Rectangle, callback: (wx: number, wy: number, t: PIXI.Texture) => void) {
+function enumerateTiles(layer: TileLayer, area: Rectangle, scale: TileScale, firstChoice: boolean, otherScales: TileScale[], callback: (r: Rectangle, s: TileScale, t: PIXI.Texture) => void) {
     var minX = Math.floor(area.left / scale.tileWidth) * scale.tileWidth;
     var maxX = Math.ceil(area.right() / scale.tileWidth) * scale.tileWidth;
     var minY = Math.floor(area.top / scale.tileHeight) * scale.tileHeight;
     var maxY = Math.ceil(area.bottom() / scale.tileHeight) * scale.tileHeight;
 
+    var tileRect = new Rectangle(0, 0, 0, 0);
     for (var wx = minX; wx < maxX; wx += scale.tileWidth) {
         for (var wy = minY; wy < maxY; wy += scale.tileHeight) {
-            var texture = layer.def.getTile(scale, wx, wy);
-            if (texture)
-                callback(wx, wy, texture);
+            tileRect.left = wx;
+            tileRect.top = wy;
+            tileRect.width = scale.tileWidth;
+            tileRect.height = scale.tileHeight;
+
+            var texture = layer.def.getTile(scale, wx, wy, firstChoice);
+            if (texture) {
+                callback(tileRect, scale, texture);
+            } else if (otherScales.length) {
+                var nextScale = otherScales[0];
+                var otherScales2 = otherScales.slice(1);
+                enumerateTiles(layer, tileRect, nextScale, false, otherScales2, callback);
+            }
         }
     }
 }

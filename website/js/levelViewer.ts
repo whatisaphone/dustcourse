@@ -234,7 +234,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
             new PrerenderedTileScale(s.scale, s.tile_size, layerParams.scale, s.tiles));
     }
 
-    public getTile(scale: PrerenderedTileScale, x: number, y: number) {
+    public getTile(scale: PrerenderedTileScale, x: number, y: number, firstChoice: boolean) {
         var realX = Math.round(x / scale.layerScale);
         var realY = Math.round(y / scale.layerScale);
         if (!_.find(scale.tiles, t => t[0] === realX && t[1] === realY))
@@ -242,8 +242,9 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
 
         var imageURL = '/assets/levels/' + this.level.path
             + '/' + scale.scale + '_' + this.layerNum + '_' + realX + ',' + realY + '.png';
-        var fc = gfx.getFrameFromRawImage(imageURL, this.zindex);
-        return fc.texture;
+        var fc = firstChoice ? gfx.getFrameFromRawImage(imageURL, this.zindex)
+                             : gfx.getCachedFrameFromRawImage(imageURL);
+        return fc && fc.texture.baseTexture.hasLoaded ? fc.texture : null;
     }
 }
 
