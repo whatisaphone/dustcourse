@@ -1,4 +1,5 @@
 import { Point, Rectangle, Size, Viewport } from './coords';
+import * as gfx from './gfx';
 import * as levelViewer from './levelViewer';
 import DragScroll from './dragscroll';
 
@@ -81,7 +82,7 @@ export interface LayerDef {
 export interface TileLayerDef extends LayerDef {
     scales: TileScale[];
     textureScale: number;
-    getTile(scale: TileScale, x: number, y: number, firstChoice: boolean): PIXI.Texture;
+    getTile(scale: TileScale, x: number, y: number, firstChoice: boolean): gfx.FrameContainer;
 }
 
 export interface TileScale {
@@ -136,9 +137,11 @@ function enumerateTiles(layer: TileLayer, area: Rectangle, scale: TileScale, fir
             tileRect.width = scale.tileWidth;
             tileRect.height = scale.tileHeight;
 
-            var texture = layer.def.getTile(scale, wx, wy, firstChoice);
-            if (texture) {
-                callback(tileRect, scale, texture);
+            var fc = layer.def.getTile(scale, wx, wy, firstChoice);
+            if (!fc) {
+                // there's nothing there, so don't try to draw anything
+            } else if (fc.texture.baseTexture.hasLoaded) {
+                callback(tileRect, scale, fc.texture);
             } else if (otherScales.length) {
                 var nextScale = otherScales[0];
                 var otherScales2 = otherScales.slice(1);

@@ -244,7 +244,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
             + '/' + scale.scale + '_' + this.layerNum + '_' + realX + ',' + realY + '.png';
         var fc = firstChoice ? gfx.getFrameFromRawImage(imageURL, this.zindex)
                              : gfx.getCachedFrameFromRawImage(imageURL);
-        return fc && fc.texture.baseTexture.hasLoaded ? fc.texture : null;
+        return fc;
     }
 }
 
