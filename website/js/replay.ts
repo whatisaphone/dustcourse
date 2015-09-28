@@ -176,9 +176,8 @@ class Replayer {
         var maxX = _.max(cameras, c => c[0])[0];
         var minY = _.min(cameras, c => c[1])[1];
         var maxY = _.max(cameras, c => c[1])[1];
-        var dist = util.distance(minX - 960, minY - 540, maxX + 960, maxY + 540);
-        var zoom = Math.min(1, Math.min(viewport.size.width / (1920 + maxX - minX),
-                                        viewport.size.height / (1080 + maxY - minY)));
+        var zoom = Math.min(1, Math.min(viewport.size.width / (1920 * 1.25 + maxX - minX),
+                                        viewport.size.height / (1080 * 1.25 + maxY - minY)));
         this.widget.setViewport(new Viewport(new Point(avgX, avgY), viewport.size, zoom));
     }
 
