@@ -7,27 +7,24 @@ export function parseReplay(data: Buffer) {
     if (s.readString(6) !== 'DF_RPL')
         throw new Error();
     s.readByte();
-    var user = s.readString(s.readI16());
+    var user = s.readString(s.readU16());
     if (s.readString(6) !== 'DF_RPL')
         throw new Error();
     s.readByte();
-    s.readI16();
-    var len = s.readI32();
-    var frames = s.readI32();
+    s.readU16();
+    var len = s.readU32();
+    var frames = s.readU32();
     var character = s.readByte();
     var level = s.readString(s.readByte());
 
     s = new Bitstream(zlib.inflateSync(s.remaining()));
 
-    var inputsLen = s.readI32();
-    var inputs = _.map(_.range(0, 7), () => {
-        var inp = s.readString(s.readI32());
-        return new Buffer(inp, 'binary').toString('base64');
-    });
-    var sync = _.map(_.range(0, s.readI32()), () => {
-        var entityUid = s.readI32();
-        s.readI32();  // this looks like a 1-based index of the entity sync info in a scrambled order?
-        var corrections = _.map(_.range(0, s.readI32()), () => _.map(_.range(0, 5), () => s.readI32()));
+    var inputsLen = s.readU32();
+    var inputs = _.map(_.range(0, 7), i => expandReplayInputs(i, s.readBuffer(s.readU32())));
+    var sync = _.map(_.range(0, s.readU32()), () => {
+        var entityUid = s.readU32();
+        s.readU32();  // this looks like a 1-based index of the entity sync info in a scrambled order?
+        var corrections = _.map(_.range(0, s.readU32()), () => _.map(_.range(0, 5), () => s.readU32()));
         return {
             entity_uid: entityUid,
             corrections: corrections,
@@ -42,4 +39,23 @@ export function parseReplay(data: Buffer) {
         inputs: inputs,
         sync: sync,
     };
+}
+
+function expandReplayInputs(index: number, data: Buffer) {
+    var s = new Bitstream(data);
+    var ret = '';
+    var state = 0;
+
+    for (;;) {
+        var frames = s.readByte();
+        if (frames === 0xff)
+            break;
+        var next = s.readUxx(index >= 5 ? 4 : 2);
+
+        for (var f = 0; f <= frames; ++f)
+            ret += String.fromCharCode(state + (state < 10 ? 48 /* '0' */ : 87 /* 'a' - 10 */));
+        state = next;
+    }
+
+    return ret.slice(1);
 }

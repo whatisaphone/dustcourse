@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json.Linq;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -30,7 +31,26 @@ namespace level_machine {
             var s2 = new BinaryReader(new MemoryStream(innerData));
             var inputsTotalLen = s2.ReadInt32();
             var inputs = JArray.FromObject(Enumerable.Range(0, 7).Select(i => {
-                return s2.ReadBytes(s2.ReadInt32());
+                var raw = new BitStream(s2.ReadBytes(s2.ReadInt32()));
+                var ret = new StringBuilder();
+                var buf = new byte[1];
+                var oldVal = 0;
+                while (true) {
+                    raw.Read(buf, 8);
+                    var fs = buf[0];
+                    Console.WriteLine(fs);
+                    if (fs == 0xff)
+                        break;
+                    raw.Read(buf, i >= 5 ? 4 : 2);
+                    var val = buf[0];
+                    Console.WriteLine(val);
+
+                    for (var z = 0; z <= fs; ++z)
+                        ret.Append((char) (oldVal + (oldVal < 10 ? '0' : 'a' - 10)));
+                    oldVal = val;
+                }
+                ret.Remove(0, 1);
+                return ret.ToString();
             }));
             Debug.Assert(s2.BaseStream.Position == inputsTotalLen + 4);
             var sync = JArray.FromObject(Enumerable.Range(0, s2.ReadInt32()).Select(i => {
