@@ -671,7 +671,7 @@ class StarsLayer implements wiamap.Layer {
 
     constructor(private level: model.Level) {
         _.each(_.range(0, 3), i => {
-            var s = new util.ViewportParticleContainer(1000, { alpha: true });
+            var s = new util.ViewportParticleContainer(4000, { alpha: true });
             this.starStages.push(s);
             this.stage.addChild(s);
         });
@@ -712,8 +712,8 @@ class StarsLayer implements wiamap.Layer {
         var galaxySize = 192;
         var minX = Math.floor(area.left / galaxySize) * galaxySize;
         var minY = Math.floor(area.top / galaxySize) * galaxySize;
-        var maxX = Math.floor(area.right() / galaxySize) * galaxySize;
-        var maxY = Math.floor(area.bottom() / galaxySize) * galaxySize;
+        var maxX = Math.ceil(area.right() / galaxySize) * galaxySize;
+        var maxY = Math.ceil(area.bottom() / galaxySize) * galaxySize;
         for (var galaxyX = minX; galaxyX < maxX; galaxyX += galaxySize)
         for (var galaxyY = minY; galaxyY < maxY; galaxyY += galaxySize) {
             if (this.universeBounds.contains(new Point(galaxyX, galaxyY)))
