@@ -48,9 +48,14 @@ export class Widget implements DragScroll.Callback {
     }
 
     public advanceFrame() {
-        var screenSize = new Size(this.getElement().clientWidth, this.getElement().clientHeight);
-        this.viewport = new Viewport(this.viewport.position, screenSize, this.viewport.zoom);
-        this.renderer.resize(screenSize.width, screenSize.height);
+        var screenWidth = this.getElement().clientWidth;
+        var screenHeight = this.getElement().clientHeight;
+        if (screenWidth !== this.renderer.width || screenHeight !== this.renderer.height) {
+            var screenSize = new Size(screenWidth, screenHeight);
+            this.viewport = new Viewport(this.viewport.position, screenSize, this.viewport.zoom);
+            this.renderer.resize(screenWidth, screenHeight);
+        }
+
         _.each(this.layers, layer => {
             var screenRect = this.viewport.screenRect();
             var worldRect = this.viewport.screenToWorldR(layer, screenRect);
