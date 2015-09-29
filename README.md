@@ -1,3 +1,11 @@
+# Dustcourse
+
+[Dustcourse](https://dustcourse.com/) is a web-based level viewer for Dustforce. Like most demanding webapps, it runs best in Chrome (sorry Firefox, maybe next year).
+
+There's a hidden feature that plays back replays. It's accessible only through manually visiting URLs ([such as this one](https://dustcourse.com/level/yottadifficult#replay=5259359,4496631,4024525,5341247,5359091,3536164,4375226,2825575,2478623,5140503)), since there isn't really a great way to expose it in the UI. Since [Dustkid](http://dustkid.com/)'s replay pages are a natural place, [msg555](https://github.com/msg555) added links from there. Thanks, buddy!
+
+[Dustforce](http://dustforce.com/) was created by [Hitbox Team](http://hitboxteam.com/), not me — I'm just helping keep the legacy alive.
+
 ## Development
 
 In one window, run:
@@ -8,7 +16,9 @@ In another, run:
 
     node build/website/index.js
 
-Restart the first command if it crashes. Restart the second whenever the server-side the code is modified.
+Then open a web browser to http://localhost:3000/.
+
+Restart the first command if it crashes. Restart the second whenever the server-side code is modified.
 
 ## Building
 
@@ -35,9 +45,9 @@ To update the game assets (several GB; best to do this overnight unless it's a t
 
     deploy/update-assets.sh user@whatever.server.com
 
-### Various notes
+## Various notes
 
-#### Stars
+### Stars
 
 It took a little finagling to get stars looking similar to how they do in the game. It's
 unimportant but also weird and fun so I may as well document it. The original stars are
