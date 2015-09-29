@@ -6,4 +6,4 @@ set -o pipefail
 
 REMOTE="$1"
 
-rsync -az $(dirname "$0")/../build/website/assets "$REMOTE":/srv/dustcourse/
+rsync -azW $(dirname "$0")/../build/website/assets "$REMOTE":/srv/dustcourse/
