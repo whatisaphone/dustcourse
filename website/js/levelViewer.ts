@@ -585,8 +585,6 @@ class FilthParticlesLayer implements wiamap.Layer {
         var [fs, fd] = info.fade
             ? [info.fade[0] + Math.random() * info.fade[1], info.fade[2] + Math.random() * info.fade[3]]
             : [anim.frameCount * anim.frameDuration60, 1];
-        var fadeOutStart = 30 + Math.random() * 90;
-        var fadeOutDuration = 8 + Math.random() * 16;
         return new Particle(anim, fs, fd, x, y, theta, dx, dy, this.level.frame);
     }
 
