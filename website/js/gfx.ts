@@ -80,7 +80,7 @@ export class FrameContainer {
 
 class FrameManager {
     private all: { [url: string]: FrameContainer } = {};
-    private loading = 0;
+    private loading: FrameContainer[] = [];
     private unloaded: FrameContainer[] = [];
 
     constructor() { }
@@ -109,18 +109,24 @@ class FrameManager {
     }
 
     private fillLoadQueue() {
-        while (this.loading < 6 && this.unloaded.length) {
+        while (this.loading.length < 6 && this.unloaded.length) {
             var fc = this.unloaded.pop();
             var fcNumDownloads = 1 + (fc.metadataURL ? 1 : 0);
 
             fc.load();
-            this.loading += fcNumDownloads;
+            this.loading.push(fc);
 
             fc.onloaded = () => {
-                this.loading -= fcNumDownloads;
+                this.loading.splice(_.indexOf(this.loading, fc), 1);
                 this.fillLoadQueue();
             };
         }
+    }
+
+    public getHighestUnloaded() {
+        var highestUnloaded = this.unloaded.length ? this.unloaded[this.unloaded.length - 1].priority : -1;
+        var highestLoading = this.loading.length ? _.max(this.loading, fc => fc.priority).priority : -1;
+        return Math.max(highestUnloaded, highestLoading);
     }
 }
 
@@ -144,6 +150,10 @@ export function frameImageURL(name: string) {
 
 export function frameMetadataURL(name: string) {
     return '/assets/sprites/' + name + '.json';
+}
+
+export function getHighestPriorityUnloadedFrame() {
+    return frameManager.getHighestUnloaded();
 }
 
 export class Frame {

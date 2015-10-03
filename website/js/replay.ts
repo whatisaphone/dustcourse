@@ -95,7 +95,8 @@ class ReplayLetsGo implements wiamap.Layer {
     }
 
     public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
-        if (this.readyToStart && !this.started) {
+        // 193 is the zindex of layer 19 prerendered tiles
+        if (this.readyToStart && !this.started && gfx.getHighestPriorityUnloadedFrame() < 193) {
             hud.setLevelName(this.replayer.level.properties['level_name']);
             this.replayer.updateCamera(viewport);
             this.start();
