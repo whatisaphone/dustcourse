@@ -11,7 +11,7 @@ def main():
     print(json.dumps(c, separators=(',',':')))
 
 def collect():
-    root = '../build/website/static/sprites'
+    root = os.path.dirname(os.path.abspath(__file__)) + '/../build/website/assets/sprites'
     hitboxes = []
     for (dirpath, dirnames, filenames) in os.walk(root):
         for fn in glob.glob(dirpath + '/*.json'):
