@@ -109,7 +109,7 @@ class FrameManager {
     }
 
     private fillLoadQueue() {
-        while (this.loading < 4 && this.unloaded.length) {
+        while (this.loading < 6 && this.unloaded.length) {
             var fc = this.unloaded.pop();
             var fcNumDownloads = 1 + (fc.metadataURL ? 1 : 0);
 

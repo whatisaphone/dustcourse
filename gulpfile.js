@@ -1,5 +1,6 @@
 var browserify = require('browserify');
 var gulp = require('gulp');
+var concat = require('gulp-concat');
 var plumber = require('gulp-plumber');
 var sourcemaps = require('gulp-sourcemaps');
 var merge = require('merge-stream');
@@ -27,16 +28,20 @@ gulp.task('server', function () {
 });
 
 gulp.task('js', function () {
-    return browserify({entries: './website/js/index.ts'})
-        .plugin(tsify)
-        .bundle()
-            .on('error', function (err) { console.log(err); this.emit('end'); })
-            .pipe(source('index.js'))
-            .pipe(buffer())
-            .pipe(gulp.env.dev ? sourcemaps.init() : gutil.noop())
-            .pipe(gulp.env.dev ? gutil.noop() : uglify())
-            .pipe(gulp.env.dev ? sourcemaps.write() : gutil.noop())
-            .pipe(gulp.dest('build/website/static'));
+    return merge(
+        gulp.src('./bower_components/tween.js/src/Tween.js'),
+        browserify({entries: './website/js/index.ts'})
+            .plugin(tsify)
+            .bundle()
+                .on('error', function (err) { console.log(err); this.emit('end'); })
+                .pipe(source('index.js'))
+                .pipe(buffer())
+    )
+        .pipe(gulp.env.dev ? sourcemaps.init() : gutil.noop())
+        .pipe(concat('index.js'))
+        .pipe(gulp.env.dev ? gutil.noop() : uglify())
+        .pipe(gulp.env.dev ? sourcemaps.write() : gutil.noop())
+        .pipe(gulp.dest('build/website/static'));
 });
 
 gulp.task('css', function () {

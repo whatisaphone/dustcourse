@@ -26,15 +26,19 @@ interface ReplayEntity {
 
 export class ReplayUI {
     private replayer: Replayer;
+    private letsGo: ReplayLetsGo;
     private replays: Replay[];
 
-    constructor(private level: model.Level, widget: wiamap.Widget) {
-        this.replayer = new Replayer(widget, level);
-        // hud.addPageHeaderButton('Replays').onclick = () => { this.headerButtonClicked(); };
-    }
+    constructor(private level: model.Level, private widget: wiamap.Widget) { }
 
     public playReplays(replayIds: number[]) {
+        this.replayer = new Replayer(this.widget, this.level);
+        this.letsGo = new ReplayLetsGo(this.replayer);
+        this.widget.addLayer(this.letsGo);
+
         this.replays = _.map(replayIds, _ => null);
+
+        hud.setLevelName('Downloading replay' + (replayIds.length > 1 ? 's' : '') + '...');
 
         _.each(replayIds, (replayId, index) => {
             var xhr = new XMLHttpRequest();
@@ -46,7 +50,7 @@ export class ReplayUI {
     }
 
     private errored() {
-        // TODO
+        hud.setLevelName('Error downloading replays');
     }
 
     private loaded(xhr: XMLHttpRequest, index: number) {
@@ -58,6 +62,7 @@ export class ReplayUI {
 
         var done = _.all(this.replays, r => r);
         if (done) {
+            hud.setLevelName('Downloading graphics...');
             this.prepareReplays(this.replays);
         }
     }
@@ -65,8 +70,141 @@ export class ReplayUI {
     private prepareReplays(replays: Replay[]) {
         this.replayer.load(replays);
         this.replayer.seek(0);
-        this.replayer.play();
+        this.letsGo.letsGo();
     }
+}
+
+class ReplayLetsGo implements wiamap.Layer {
+    public def = { zindex: 250, parallax: 1 };
+    public stage = new PIXI.Container();
+    private readyToStart: boolean;
+    private started: boolean;
+    private fader: PIXI.Graphics;
+    private bg1: util.DustforceSprite;
+    private bg2: util.DustforceSprite;
+    private bg3: util.DustforceSprite;
+    private bg: util.DustforceSprite;
+    private text3: util.DustforceSprite;
+    private text2: util.DustforceSprite;
+    private text1: util.DustforceSprite;
+    private textGo: util.DustforceSprite;
+    private portrait: util.DustforceSprite;
+
+    constructor(private replayer: Replayer) {
+        this.build();  // preload intro images
+    }
+
+    public update(viewport: Viewport, canvasRect: Rectangle, worldRect: Rectangle) {
+        if (this.readyToStart && !this.started) {
+            hud.setLevelName(this.replayer.level.properties['level_name']);
+            this.replayer.updateCamera(viewport);
+            this.start();
+            this.started = true;
+        }
+    }
+
+    public letsGo() {
+        this.readyToStart = true;
+    }
+
+    private build() {
+        var w = this.replayer.widget.viewport.size.width;
+        var h = this.replayer.widget.viewport.size.height;
+
+        this.stage.removeChildren();
+
+        this.fader = new PIXI.Graphics();
+        this.fader.beginFill(0);
+        this.fader.drawRect(0, 0, w, h);
+        this.fader.endFill();
+        this.stage.addChild(this.fader);
+
+        this.bg1 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/bg/dmstartbg1_1_0001', 250), 0, 0);
+        this.bg2 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/bg/dmstartbg2_1_0001', 250), 320, 0, { scaleX: (w + 200) / 220 });
+        this.bg3 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/bg/dmstartbg3_1_0001', 250), w + 320 + 200, 0);
+        this.bg = util.createDustforceSprite(null, 0, h / 2 - 140);
+        this.bg.addChild(this.bg1);
+        this.bg.addChild(this.bg2);
+        this.bg.addChild(this.bg3);
+        this.stage.addChild(this.bg);
+        this.text3 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/text/gotext_1_0001', 250), w / 2, h / 2);
+        this.text2 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/text/gotext_2_0001', 250), this.text3.position.x, this.text3.position.y);
+        this.text1 = util.createDustforceSprite(gfx.getFrame('hud/levelstart/text/gotext_3_0001', 250), this.text3.position.x, this.text3.position.y);
+        this.textGo = util.createDustforceSprite(gfx.getFrame('hud/levelstart/text/letsgo_1_0001', 250), this.text3.position.x, this.text3.position.y);
+        this.portrait = util.createDustforceSprite(gfx.getFrame('hud/levelstart/portraits/dmportrait_1_0001', 250), 0, h / 2 - 392);
+        this.stage.addChild(this.text3);
+        this.stage.addChild(this.text2);
+        this.stage.addChild(this.text1);
+        this.stage.addChild(this.portrait);
+        this.stage.addChild(this.textGo);
+        var f = new PIXI.filters.ColorMatrixFilter();
+        f.matrix = [0, 0, 0, 0.169, 0,
+                    0, 0, 0, 0.541, 0,
+                    0, 0, 0, 0.855, 0,
+                    0, 0, 0, 1, 0];
+        this.text3.filters = this.text2.filters = this.text1.filters = this.textGo.filters = [f];
+
+        this.bg.visible = false;
+        this.text3.visible = false;
+        this.text2.visible = false;
+        this.text1.visible = false;
+        this.textGo.visible = false;
+        this.portrait.visible = false;
+    }
+
+    private start() {
+        var w = this.replayer.widget.viewport.size.width;
+        var h = this.replayer.widget.viewport.size.height;
+
+        this.build();
+        this.bg.visible = true;
+        this.portrait.visible = true;
+
+        chain(this.fader, [[{ alpha: 0 }, 24]]);
+        function num(s: PIXI.Sprite, delay: number) {
+            chain(s, [[{ visible: 0 }, 0],
+                          [{ visible: 0 }, delay - 1],
+                          [{ visible: 1 }, 1],
+                          [{ visible: 1 }, 11],
+                          [{ visible: 0 }, 1]]);
+            chain(s.scale, [[{ x: 1.2, y: 1.2 }, delay],
+                                [{ x: 0.8, y: 0.8 }, 12]]);
+            chain(s, [[{ alpha: 1 }, 8 + delay],
+                      [{ alpha: 0.5 }, 4]]);
+        }
+        num(this.text3, 8);
+        num(this.text2, 20);
+        num(this.text1, 32);
+        num(this.textGo, 44);
+        chain(this.bg.position, [[{ x: w }, 0],
+                            [{ x: '-' + (w + 320) }, 8],
+                            [{ x: '-100' }, 52],
+                            [{ x: '-' + (w + 420) }, 8]]);
+        chain(this.portrait.position, [[{ x: w + w / 3.5 }, 0],
+                                  [{ x: '-' + (w + 320) }, 8],
+                                  [{ x: '-100' }, 52],
+                                  [{ x: '-' + (w + 420) }, 8]], () => {
+            this.replayer.play();
+        });
+
+        TWEEN.update();  // move everything into initial position to avoid flash of ugly content
+    }
+}
+
+function chain(obj: any, tos: [any, number][], onComplete?: () => void) {
+    var first: TWEEN.Tween = null;
+    var last: TWEEN.Tween = null;
+    _.each(tos, to => {
+        var cur = new TWEEN.Tween(obj).to(to[0], to[1] * 1000 / 60);
+        if (!first)
+            first = cur;
+        if (last)
+            last.chain(cur);
+        last = cur;
+    });
+    if (onComplete)
+        last.onComplete(onComplete);
+    first.start();
 }
 
 const STATE_STOPPED = 0;
@@ -82,7 +220,7 @@ class Replayer {
     private metadataElement: HTMLElement;
     private lastDrawnFrame: number;
 
-    constructor(private widget: wiamap.Widget, private level: model.Level) {
+    constructor(public widget: wiamap.Widget, public level: model.Level) {
         widget.addLayer(this.hud);
         widget.addLayer(this.heads);
     }
@@ -165,7 +303,7 @@ class Replayer {
         this.updateCamera(viewport);
     }
 
-    private updateCamera(viewport: Viewport) {
+    public updateCamera(viewport: Viewport) {
         var cameras = this.replays
             .map(r => interpolateFrame(_.find(r.sync, s => s.entity_uid === 3), this.counter.frame()))
             .filter(r => <any>r)

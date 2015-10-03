@@ -49,6 +49,8 @@ export class Widget implements DragScroll.Callback {
     }
 
     public advanceFrame() {
+        TWEEN.update();
+
         var screenWidth = this.getElement().clientWidth;
         var screenHeight = this.getElement().clientHeight;
         if (screenWidth !== this.renderer.width || screenHeight !== this.renderer.height) {
