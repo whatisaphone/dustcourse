@@ -2,7 +2,7 @@
   "name": "dustworld-website",
   "version": "0.0.1",
   "main": "index.js",
-  "author": "John Simon <john@johnsoft.com>",
+  "author": "John Simon <john@whatisaphone.com>",
   "license": "MIT",
   "scripts": {
     "gulp": "gulp"
