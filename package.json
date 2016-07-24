@@ -4,7 +4,9 @@
   "main": "index.js",
   "author": "John Simon <john@johnsoft.com>",
   "license": "MIT",
-  "private": true,
+  "scripts": {
+    "gulp": "gulp"
+  },
   "dependencies": {
     "bluebird": "^2.9.33",
     "express": "^4.13.3",

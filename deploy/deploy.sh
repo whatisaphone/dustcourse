@@ -6,7 +6,7 @@ set -o pipefail
 
 REMOTE="$1"
 
-gulp build-website
+npm run gulp build-website
 
 rsync -az $(dirname "$0")/../package.json "$REMOTE":/srv/dustcourse/
 rsync -az $(dirname "$0")/../build/website/{static,views,*.js} "$REMOTE":/srv/dustcourse/
