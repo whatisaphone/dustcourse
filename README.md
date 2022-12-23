@@ -10,11 +10,11 @@ There's a hidden feature that plays back replays. It's accessible only through m
 
 In one window, run:
 
-    gulp watch-website --dev
+    pnpm gulp watch-website --dev
 
 In another, run:
 
-    node build/website/index.js
+    pnpm node build/website/index.js
 
 Then open a web browser to http://localhost:3000/.
 
