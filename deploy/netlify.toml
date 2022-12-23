@@ -1,0 +1,10 @@
+# https://docs.netlify.com/configure-builds/file-based-configuration/
+
+[build]
+publish = "../build/website/assets"
+
+[[headers]]
+for = "/*"
+[headers.values]
+# This is just for easier local testing
+Access-Control-Allow-Origin = "*"
