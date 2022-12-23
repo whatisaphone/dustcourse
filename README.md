@@ -1,8 +1,6 @@
 # Dustcourse
 
-[Dustcourse](https://dustcourse.com/) is a web-based level viewer for Dustforce. Like most demanding webapps, it runs best in Chrome (sorry Firefox, maybe next year).
-
-There's a hidden feature that plays back replays. It's accessible only through manually visiting URLs ([such as this one](https://dustcourse.com/level/yottadifficult#replay=5259359,4496631,4024525,5341247,5359091,3536164,4375226,2825575,2478623,5140503)), since there isn't really a great way to expose it in the UI. Since [Dustkid](http://dustkid.com/)'s replay pages are a natural place, [msg555](https://github.com/msg555) added links from there. Thanks, buddy!
+Dustcourse is an online viewer for Dustforce levels and replays. It lives on its own site at https://dustcourse.com/, and is also linked from Dustkid replay pages such as [this one](http://dustkid.com/replay/8866052) (click "Watch on Dustcourse").
 
 [Dustforce](http://dustforce.com/) was created by [Hitbox Team](http://hitboxteam.com/), not me — I'm just helping keep the legacy alive.
 
@@ -20,7 +18,7 @@ Then open a web browser to http://localhost:3000/.
 
 Restart the first command if it crashes. Restart the second whenever the server-side code is modified.
 
-## Building
+### Building Assets
 
     # Extract sprites (takes about 2 hours on a HDD)
     ./level_machine/bin/Debug/level_machine extract-sprites "T:\Steam Library\steamapps\common\Dustforce\content\sprites"/*
@@ -34,16 +32,6 @@ Restart the first command if it crashes. Restart the second whenever the server-
 The reason these take so long is because they create between between tens of
 thousands and millions of files. They spend most of their time inside the file
 system driver. Optimization opportunities abound.
-
-## Deploying
-
-To deploy the website:
-
-    deploy/deploy.sh user@whatever.server.com
-
-To update the game assets (several GB; best to do this overnight unless it's a tiny change):
-
-    deploy/update-assets.sh user@whatever.server.com
 
 ## Various notes
 
