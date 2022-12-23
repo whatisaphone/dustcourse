@@ -1,3 +1,4 @@
+import * as config from './config';
 import { Rectangle } from './coords';
 import * as util from './util';
 
@@ -34,6 +35,7 @@ export class FrameContainer {
         this.state = LOADING;
 
         this.image.src = this.imageURL;
+        this.image.crossOrigin = 'anonymous';
         this.texture.baseTexture.on('loaded', () => { this.onImageLoaded(); });
         this.texture.baseTexture.on('error', () => { this.onImageLoaded(); });
 
@@ -145,11 +147,11 @@ export function getCachedFrameFromRawImage(imageURL: string) {
 }
 
 export function frameImageURL(name: string) {
-    return '/assets/sprites/' + name + '.png';
+    return config.assetsRoot + '/sprites/' + name + '.png';
 }
 
 export function frameMetadataURL(name: string) {
-    return '/assets/sprites/' + name + '.json';
+    return config.assetsRoot + '/sprites/' + name + '.json';
 }
 
 export function getHighestPriorityUnloadedFrame() {

@@ -1,3 +1,4 @@
+import * as config from './config';
 import { Point, Rectangle, Viewport } from './coords';
 import * as gfx from './gfx';
 import * as hud from './hud';
@@ -25,7 +26,7 @@ class LevelDownloader {
         document.body.appendChild(this.overlay);
 
         this.xhr = new XMLHttpRequest();
-        this.xhr.open('get', '/assets/levels/' + this.levelName + '/manifest.json');
+        this.xhr.open('get', config.assetsRoot + '/levels/' + this.levelName + '/manifest.json');
         this.xhr.send();
         this.xhr.onload = () => { this.loaded(); };
         this.xhr.onerror = () => { this.error(); };
@@ -240,7 +241,7 @@ class PrerenderedTileLayerDef implements wiamap.TileLayerDef {
         if (!_.find(scale.tiles, t => t[0] === realX && t[1] === realY))
             return;
 
-        var imageURL = '/assets/levels/' + this.level.path
+        var imageURL = config.assetsRoot + '/levels/' + this.level.path
             + '/' + scale.scale + '_' + this.layerNum + '_' + realX + ',' + realY + '.png';
         var fc = firstChoice ? gfx.getFrameFromRawImage(imageURL, this.zindex)
                              : gfx.getCachedFrameFromRawImage(imageURL);

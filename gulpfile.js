@@ -13,6 +13,8 @@ var tsify = require('tsify');
 var buffer = require('vinyl-buffer');
 var source = require('vinyl-source-stream');
 
+const assetsRoot = gulp.env.assetsRoot || '/assets';
+
 gulp.task('server', function () {
     var tsProject = typescript.createProject('./website/tsconfig.json');
     return merge(
@@ -30,7 +32,12 @@ gulp.task('server', function () {
 gulp.task('js', function () {
     return merge(
         gulp.src('./bower_components/tween.js/src/Tween.js'),
-        browserify({entries: './website/js/index.ts'})
+        browserify({
+            entries: './website/js/index.ts',
+            insertGlobalVars: {
+                DUSTCOURSE_ASSETS_ROOT: () => JSON.stringify(assetsRoot),
+            },
+        })
             .plugin(tsify)
             .bundle()
                 .on('error', function (err) { console.log(err); this.emit('end'); })
